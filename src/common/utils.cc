@@ -376,6 +376,7 @@ void Utils::LoadData(const char* filename, std::vector<unsigned>& data,
 }
 
 void Utils::LoadTddConfig(const std::string& filename, std::string& jconfig) {
+
   std::string line;
   std::ifstream config_file(filename);
   if (config_file.is_open()) {

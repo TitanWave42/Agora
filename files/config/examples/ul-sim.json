@@ -17,5 +17,7 @@
   "socket_thread_num": 1,
   "ue_core_offset": 12,
   "ue_worker_thread_num": 2,
-  "ue_socket_thread_num": 1
+  "ue_socket_thread_num": 1,
+  "bs_server_addr": "192.168.2.2",
+  "bs_rru_addr": "192.168.2.1"
 }
