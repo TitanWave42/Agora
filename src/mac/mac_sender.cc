@@ -484,6 +484,8 @@ void* MacSender::DataUpdateThread(size_t tid, size_t num_data_sources) {
         VideoReceiver::kVideoStreamRxPort + (tid * num_data_sources) + source));
 #else
     ///\todo need a list of file names for this
+    std::cout<<"HEY \n Hey\nHey\nHey\nHey. I'm printing the data filename:\n.";
+    std::cout<<data_filename_<<std::endl<<std::flush;
     sources.emplace_back(std::make_unique<FileReceiver>(data_filename_));
 #endif
   }

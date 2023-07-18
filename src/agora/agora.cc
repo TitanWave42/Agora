@@ -187,7 +187,7 @@ void Agora::ScheduleAntennasTX(size_t frame_id, size_t symbol_id) {
         gen_tag_t::FrmSymAnt(frame_id, symbol_id, antenna).tag_;
     worker_events.at(enqueue_worker_id).push_back(tx_data);
 
-    AGORA_LOG_TRACE(
+    AGORA_LOG_INFO(
         "ScheduleAntennasTX: (Frame %zu, Symbol %zu, Ant %zu) - tx event added "
         "to worker %zu : %zu\n",
         frame_id, symbol_id, antenna, enqueue_worker_id, worker_events.size());
@@ -197,7 +197,7 @@ void Agora::ScheduleAntennasTX(size_t frame_id, size_t symbol_id) {
   size_t enqueue_worker_id = 0;
   for (const auto& worker : worker_events) {
     if (!worker.empty()) {
-      AGORA_LOG_TRACE(
+      AGORA_LOG_INFO(
           "ScheduleAntennasTX: (Frame %zu, Symbol %zu) - adding %zu "
           "event(s) to worker %zu transmit queue\n",
           frame_id, symbol_id, worker.size(), enqueue_worker_id);
@@ -1248,7 +1248,7 @@ void Agora::CheckIncrementScheduleFrame(size_t frame_id,
 bool Agora::CheckFrameComplete(size_t frame_id) {
   bool finished = false;
 
-  AGORA_LOG_TRACE(
+  AGORA_LOG_INFO(
       "Checking work complete %zu, ifft %d, tx %d, decode %d, tomac %d, tx "
       "%d\n",
       frame_id, static_cast<int>(this->ifft_counters_.IsLastSymbol(frame_id)),

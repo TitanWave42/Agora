@@ -32,7 +32,7 @@ MacThreadClient::MacThreadClient(
     log_filename_ = kDefaultLogFilename;
   }
   log_file_ = std::fopen(log_filename_.c_str(), "w");
-  RtAssert(log_file_ != nullptr, "Failed to open MAC log file");
+  //RtAssert(log_file_ != nullptr, "Failed to open MAC log file");
 
   AGORA_LOG_INFO("MacThreadClient: Frame duration %.2f ms, tsc_delta %zu\n",
                  cfg_->GetFrameDurationSec() * 1000, tsc_delta_);

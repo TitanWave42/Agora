@@ -31,7 +31,7 @@ class ChannelSim {
   ChannelSim(const Config* const config, size_t bs_thread_num,
              size_t user_thread_num, size_t worker_thread_num,
              size_t in_core_offset = 30,
-             std::string in_chan_type = std::string("RAYLEIGH"),
+             std::string in_chan_type = std::string("AWGN"),
              double in_chan_snr = 20);
   ~ChannelSim();
 

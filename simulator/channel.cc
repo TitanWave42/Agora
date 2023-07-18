@@ -6,8 +6,8 @@
 
 #include <utility>
 
-static constexpr bool kPrintChannelOutput = false;
-static constexpr bool kPrintSNRCheck = false;
+static constexpr bool kPrintChannelOutput = true;
+static constexpr bool kPrintSNRCheck = true;
 static constexpr double kMeanChannelGain = 0.1f;
 
 Channel::Channel(const Config* const config, std::string& in_channel_type,
@@ -15,6 +15,7 @@ Channel::Channel(const Config* const config, std::string& in_channel_type,
     : cfg_(config),
       sim_chan_model_(std::move(in_channel_type)),
       channel_snr_db_(in_channel_snr) {
+  channel_snr_db_ = 121.0f;
   bs_ant_ = cfg_->BsAntNum();
   ue_ant_ = cfg_->UeAntNum();
   n_samps_ = cfg_->SampsPerSymbol();
@@ -45,8 +46,11 @@ void Channel::ApplyChan(const arma::cx_fmat& fmat_src, arma::cx_fmat& fmat_dst,
   if (is_newChan) {
     switch (chan_model_) {
       case kAwgn: {
+        
+        std::cout<<"Channel Model AWGN"<<std::endl<<std::flush;
+        //throw std::runtime_error("AWGN");
         arma::fmat rmat(ue_ant_, bs_ant_, arma::fill::ones);
-        arma::fmat imat(ue_ant_, bs_ant_, arma::fill::zeros);
+        arma::fmat imat(ue_ant_, bs_ant_, arma::fill::ones);
         h_ = arma::cx_fmat(rmat, imat);
         // H = H / abs(H).max();
       } break;
@@ -54,6 +58,9 @@ void Channel::ApplyChan(const arma::cx_fmat& fmat_src, arma::cx_fmat& fmat_dst,
       case kRayleigh:
         // Simple Uncorrelated Rayleigh Channel - Flat fading (single tap)
         {
+          std::cout<<"Channel Model Rayleigh"<<std::endl<<std::flush;
+          //throw std::runtime_error("RAY");
+
           arma::fmat rmat(ue_ant_, bs_ant_, arma::fill::randn);
           arma::fmat imat(ue_ant_, bs_ant_, arma::fill::randn);
           h_ = arma::cx_fmat(rmat, imat);
@@ -67,6 +74,7 @@ void Channel::ApplyChan(const arma::cx_fmat& fmat_src, arma::cx_fmat& fmat_dst,
         break;
     }
   }
+  //throw std::runtime_error("Neither");
   if (is_downlink) {
     fmat_h = fmat_src * h_.st();
   } else {
@@ -77,11 +85,14 @@ void Channel::ApplyChan(const arma::cx_fmat& fmat_src, arma::cx_fmat& fmat_dst,
   Awgn(fmat_h, fmat_dst);
 
   if (kPrintChannelOutput) {
+    std::cout<<"Printing channel snr: " << std::to_string(channel_snr_db_)<<std::endl;
+
     Utils::PrintMat(h_, "H");
   }
 }
 
 void Channel::Awgn(const arma::cx_fmat& src, arma::cx_fmat& dst) const {
+  std::cout<<"Printing channel snr: " << std::to_string(channel_snr_db_)<<std::endl;
   if (channel_snr_db_ < 120.0f) {
     const int n_row = src.n_rows;
     const int n_col = src.n_cols;
@@ -95,8 +106,9 @@ void Channel::Awgn(const arma::cx_fmat& src, arma::cx_fmat& dst) const {
     // arma::cx_fmat noise = arma::cx_fmat(x, y);
 
     // Add noise to signal
-    noise *= noise_samp_std_;
-    dst = src + noise;
+    // noise *= noise_samp_std_;
+    // dst = src + noise;
+    dst = src;
 
     // Check SNR
     if (kPrintSNRCheck) {

@@ -30,7 +30,7 @@ MacThreadBaseStation::MacThreadBaseStation(
     log_filename_ = kDefaultLogFilename;
   }
   log_file_ = std::fopen(log_filename_.c_str(), "w");
-  RtAssert(log_file_ != nullptr, "Failed to open MAC log file");
+  //RtAssert(log_file_ != nullptr, "Failed to open MAC log file");
 
   AGORA_LOG_INFO(
       "MacThreadBaseStation: Frame duration %.2f ms, tsc_delta %zu\n",
@@ -80,10 +80,10 @@ void MacThreadBaseStation::ProcessRxFromPhy() {
   }
 
   if (event.event_type_ == EventType::kPacketToMac) {
-    AGORA_LOG_TRACE("MacThreadBaseStation: MAC thread event kPacketToMac\n");
+    AGORA_LOG_INFO("MacThreadBaseStation: MAC thread event kPacketToMac\n");
     ProcessCodeblocksFromPhy(event);
   } else if (event.event_type_ == EventType::kSNRReport) {
-    AGORA_LOG_TRACE("MacThreadBaseStation: MAC thread event kSNRReport\n");
+    AGORA_LOG_INFO("MacThreadBaseStation: MAC thread event kSNRReport\n");
     ProcessSnrReportFromPhy(event);
   }
 }
@@ -292,7 +292,7 @@ void MacThreadBaseStation::ProcessUdpPacketsFromApps() {
         udp_comm_->Recv(&udp_pkt_buf_.at(total_bytes_received),
                         (udp_pkt_buf_.size() - total_bytes_received));
     if (ret == 0) {
-      AGORA_LOG_TRACE(
+      AGORA_LOG_INFO(
           "MacThreadBaseStation: No data received with %zu pending\n",
           total_bytes_received);
       if (total_bytes_received == 0) {
@@ -524,6 +524,7 @@ void MacThreadBaseStation::ProcessUdpPacketsFromAppsBs(const char* payload) {
 }
 
 void MacThreadBaseStation::RunEventLoop() {
+  //std::cout<<"Log file: " << log_filename_.c_str() << std::endl<<std::flush;
   AGORA_LOG_INFO(
       "MacThreadBasestation: Running MAC thread event loop, logging to file "
       "%s\n",

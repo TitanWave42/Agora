@@ -84,6 +84,7 @@ void* MacReceiver::LoopRecv(size_t tid) {
     const ssize_t recvlen = udp_server->Recv(phy_address_, phy_port_ + ue_id,
                                              &rx_buffer[0u], max_packet_length);
     if (recvlen < 0) {
+      std::cout<<"recvlen < 0" <<std::endl<<std::flush;
       std::perror("recv failed");
       throw std::runtime_error("Receiver: recv failed");
     } else if ((recvlen > 0) &&
