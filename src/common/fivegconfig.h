@@ -11,50 +11,51 @@
 #ifndef FIVEGCONFIG_H_
 #define FIVEGCONFIG_H_
 
-#include <string>
 #include <map>
+#include <string>
 #include <vector>
+
 #include "nlohmann/json.hpp"
 
 class FiveGConfig {
-  public:
-    
-    static std::map<size_t, std::string> format_table;
-    static std::vector<size_t> supported_formats;
+ public:
+  static std::map<size_t, std::string> format_table;
+  static std::vector<size_t> supported_formats;
 
-    explicit FiveGConfig(nlohmann::json tdd_conf);
-    ~FiveGConfig();
+  explicit FiveGConfig(nlohmann::json tdd_conf);
+  ~FiveGConfig();
 
-    std::string FiveGFormat();
+  std::string FiveGFormat();
 
-    std::string FormBeaconSubframe(int format_num, size_t user_num);
+  std::string FormBeaconSubframe(int format_num, size_t user_num);
 
-    void ReadAndVerifyValues();
+  void ReadAndVerifyValues();
 
-    std::string FormFrame(std::string frame_schedule, size_t user_num, 
-                                    std::vector<std::string> flex_formats);
+  std::string FormFrame(std::string frame_schedule, size_t user_num,
+                        std::vector<std::string> flex_formats);
 
-    double SamplingRate();
-    size_t OfdmDataStart();
-  private:
-    nlohmann::json tdd_conf_;
-    double sampling_rate_;
-    float subcarrier_spacing_;
-    size_t max_supported_channel_bandwidth_;
-    size_t channel_bandwidth_;
-    size_t ofdm_data_num_;
-    size_t ofdm_data_start_;
-    size_t fft_size_;
-    size_t user_num_;
-    size_t numerology_;
-    std::string frame_schedule_;
-    std::vector<std::string> flex_formats_;
-    std::vector<size_t> valid_ffts_;
-    std::vector<size_t> supported_channel_bandwidths_;
-    //only valid for numerology 0.
-    std::map<size_t, size_t> channel_bandwidth_to_ofdm_data_num_;
-    bool IsSupported(size_t format_num);
-    bool SetChannelBandwidth();
+  double SamplingRate();
+  size_t OfdmDataStart();
+
+ private:
+  nlohmann::json tdd_conf_;
+  double sampling_rate_;
+  float subcarrier_spacing_;
+  size_t max_supported_channel_bandwidth_;
+  size_t channel_bandwidth_;
+  size_t ofdm_data_num_;
+  size_t ofdm_data_start_;
+  size_t fft_size_;
+  size_t user_num_;
+  size_t numerology_;
+  std::string frame_schedule_;
+  std::vector<std::string> flex_formats_;
+  std::vector<size_t> valid_ffts_;
+  std::vector<size_t> supported_channel_bandwidths_;
+  //only valid for numerology 0.
+  std::map<size_t, size_t> channel_bandwidth_to_ofdm_data_num_;
+  bool IsSupported(size_t format_num);
+  bool SetChannelBandwidth();
 };
 
 #endif /* FIVEGCONFIG_HPP_ */

@@ -36,5 +36,5 @@
   "tx_gain_b": 1000,
   "ue_worker_thread_num": 1,
   "ue_socket_thread_num": 1,
-  "max_frame": 5
+  "max_frame": 100
 }

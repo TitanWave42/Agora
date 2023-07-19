@@ -61,8 +61,9 @@ int main(int argc, char* argv[]) {
       std::ofstream create_file;
       data_filename = TOSTRING(PROJECT_DIRECTORY) +
                       std::string("/files/experiment/ul_increment_file.bin");
-      std::string data_log_file = TOSTRING(PROJECT_DIRECTORY) + 
-                                  std::string("files/experiment/ul_increment_file.txt");
+      std::string data_log_file =
+          TOSTRING(PROJECT_DIRECTORY) +
+          std::string("files/experiment/ul_increment_file.txt");
       AGORA_LOG_INFO(
           "Generating test binary file for user uplink %s.  Frames: "
           "%zu, Packets: %zu, Packet Size: %zu\n",
@@ -74,9 +75,10 @@ int main(int argc, char* argv[]) {
           data_filename,
           (std::ofstream::out | std::ofstream::binary | std::ofstream::trunc));
       assert(create_file.is_open() == true);
-      
+
       std::ofstream create_log_file;
-      create_log_file.open(data_log_file, (std::ofstream::out | std::ofstream::trunc));
+      create_log_file.open(data_log_file,
+                           (std::ofstream::out | std::ofstream::trunc));
       assert(create_log_file.is_open() == true);
 
       std::vector<char> mac_data;
@@ -85,7 +87,6 @@ int main(int argc, char* argv[]) {
       for (size_t i = 0; i < (cfg->FramesToTest() *
                               cfg->MacPacketsPerframe(Direction::kUplink));
            i++) {
-
         std::fill(mac_data.begin(), mac_data.end(), (char)i);
         create_file.write(mac_data.data(), mac_data.size());
         create_log_file.write(mac_data.data(), mac_data.size());

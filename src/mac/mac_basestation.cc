@@ -117,13 +117,15 @@ int main(int argc, char* argv[]) {
       }
       if (cfg->Frame().NumUlDataSyms() > 0) {
         if ((FLAGS_fwd_udp_port != 0) && (!FLAGS_fwd_udp_address.empty())) {
+          AGORA_LOG_ERROR("IN THE FWD PORT");
           receiver = std::make_unique<MacReceiver>(
-              cfg.get(), cfg->MacDataBytesNumPerframe(Direction::kDownlink),
+              cfg.get(), cfg->MacDataBytesNumPerframe(Direction::kUplink),
               cfg->BsServerAddr(), cfg->BsMacTxPort(), FLAGS_fwd_udp_address,
               FLAGS_fwd_udp_port, FLAGS_num_receiver_threads, thread_start);
         } else {
+          AGORA_LOG_ERROR("NOT IN FWD PORT");
           receiver = std::make_unique<MacReceiver>(
-              cfg.get(), cfg->MacDataBytesNumPerframe(Direction::kDownlink),
+              cfg.get(), cfg->MacDataBytesNumPerframe(Direction::kUplink),
               cfg->BsServerAddr(), cfg->BsMacTxPort(),
               FLAGS_num_receiver_threads, thread_start);
         }

@@ -19,7 +19,7 @@
 static const std::string kMacSendFromAddress = "127.0.0.1";
 static constexpr uint16_t kMacSendFromPort = 0;
 
-//#define USE_UDP_DATA_SOURCE
+#define USE_UDP_DATA_SOURCE
 static constexpr bool kDebugPrintSender = false;
 static constexpr size_t kFrameLoadAdvance = 10;
 static constexpr size_t kBufferInit = 10;
@@ -482,10 +482,13 @@ void* MacSender::DataUpdateThread(size_t tid, size_t num_data_sources) {
     // Assumes that the num_data_sources are spread evenly between threads
     sources.emplace_back(std::make_unique<VideoReceiver>(
         VideoReceiver::kVideoStreamRxPort + (tid * num_data_sources) + source));
+    AGORA_LOG_ERROR("Creating a video reciever with RxPort " +
+                    std::to_string(VideoReceiver::kVideoStreamRxPort));
 #else
     ///\todo need a list of file names for this
-    std::cout<<"HEY \n Hey\nHey\nHey\nHey. I'm printing the data filename:\n.";
-    std::cout<<data_filename_<<std::endl<<std::flush;
+    std::cout
+        << "HEY \n Hey\nHey\nHey\nHey. I'm printing the data filename:\n.";
+    std::cout << data_filename_ << std::endl << std::flush;
     sources.emplace_back(std::make_unique<FileReceiver>(data_filename_));
 #endif
   }

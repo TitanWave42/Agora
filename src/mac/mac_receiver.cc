@@ -41,7 +41,11 @@ MacReceiver::MacReceiver(Config* const cfg, size_t num_frame_data_bytes,
       udp_dest_address_(std::move(fwd_data_udp_address)),
       rx_thread_num_(rx_thread_num),
       core_id_(core_offset),
-      cfg_(cfg) {}
+      cfg_(cfg) {
+  AGORA_LOG_WARN("udp_dest_address: " + udp_dest_address_);
+  //AGORA_LOG_WARN("udp_dest_port: " + std::to_string(udp_dest_port_))
+  AGORA_LOG_WARN("enable_udp_output_" + std::to_string(enable_udp_output_))
+}
 
 std::vector<std::thread> MacReceiver::StartRecv() {
   std::vector<std::thread> created_threads;
@@ -78,13 +82,17 @@ void* MacReceiver::LoopRecv(size_t tid) {
   // Create a rx buffer
   const size_t max_packet_length = data_bytes_;
   auto* rx_buffer = new std::byte[max_packet_length];
+  std::cout << "Max packet length: " << max_packet_length << std::endl
+            << std::flush;
 
   while ((SignalHandler::GotExitSignal() == false) &&
          (cfg_->Running() == true)) {
     const ssize_t recvlen = udp_server->Recv(phy_address_, phy_port_ + ue_id,
                                              &rx_buffer[0u], max_packet_length);
+    std::cout << "recvlen: " << recvlen << std::endl << std::flush;
+    AGORA_LOG_INFO("recvlen: %lld\n", recvlen);
     if (recvlen < 0) {
-      std::cout<<"recvlen < 0" <<std::endl<<std::flush;
+      std::cout << "recvlen < 0" << std::endl << std::flush;
       std::perror("recv failed");
       throw std::runtime_error("Receiver: recv failed");
     } else if ((recvlen > 0) &&

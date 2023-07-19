@@ -46,8 +46,7 @@ void Channel::ApplyChan(const arma::cx_fmat& fmat_src, arma::cx_fmat& fmat_dst,
   if (is_newChan) {
     switch (chan_model_) {
       case kAwgn: {
-        
-        std::cout<<"Channel Model AWGN"<<std::endl<<std::flush;
+        std::cout << "Channel Model AWGN" << std::endl << std::flush;
         //throw std::runtime_error("AWGN");
         arma::fmat rmat(ue_ant_, bs_ant_, arma::fill::ones);
         arma::fmat imat(ue_ant_, bs_ant_, arma::fill::ones);
@@ -58,7 +57,7 @@ void Channel::ApplyChan(const arma::cx_fmat& fmat_src, arma::cx_fmat& fmat_dst,
       case kRayleigh:
         // Simple Uncorrelated Rayleigh Channel - Flat fading (single tap)
         {
-          std::cout<<"Channel Model Rayleigh"<<std::endl<<std::flush;
+          std::cout << "Channel Model Rayleigh" << std::endl << std::flush;
           //throw std::runtime_error("RAY");
 
           arma::fmat rmat(ue_ant_, bs_ant_, arma::fill::randn);
@@ -85,14 +84,16 @@ void Channel::ApplyChan(const arma::cx_fmat& fmat_src, arma::cx_fmat& fmat_dst,
   Awgn(fmat_h, fmat_dst);
 
   if (kPrintChannelOutput) {
-    std::cout<<"Printing channel snr: " << std::to_string(channel_snr_db_)<<std::endl;
+    std::cout << "Printing channel snr: " << std::to_string(channel_snr_db_)
+              << std::endl;
 
     Utils::PrintMat(h_, "H");
   }
 }
 
 void Channel::Awgn(const arma::cx_fmat& src, arma::cx_fmat& dst) const {
-  std::cout<<"Printing channel snr: " << std::to_string(channel_snr_db_)<<std::endl;
+  std::cout << "Printing channel snr: " << std::to_string(channel_snr_db_)
+            << std::endl;
   if (channel_snr_db_ < 120.0f) {
     const int n_row = src.n_rows;
     const int n_col = src.n_cols;

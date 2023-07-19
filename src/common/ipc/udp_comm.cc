@@ -4,8 +4,6 @@
  */
 #include "udp_comm.h"
 
-#include <iostream>
-
 #include <arpa/inet.h>
 #include <fcntl.h>
 #include <netdb.h>
@@ -13,6 +11,7 @@
 #include <unistd.h>
 
 #include <cstring> /* std::strerror, std::memset, std::memcpy */
+#include <iostream>
 #include <stdexcept>
 #include <utility>
 
@@ -376,23 +375,21 @@ ssize_t UDPComm::Recv(std::byte* buf, size_t len) const {
 
   //AGORA_LOG_WARN("RET val: " + std::to_string(ret) + "\n");
   if (ret == 0) {
-    std::cout<<"ret: " + std::to_string(ret) <<std::endl<<std::flush;
+    std::cout << "ret: " + std::to_string(ret) << std::endl << std::flush;
   }
-  
 
   if (ret == -1) {
     if ((errno == EAGAIN) || (errno == EWOULDBLOCK) ||
         (errno == ECONNREFUSED)) {
-
-          // if (errno==EAGAIN) {
-          //   AGORA_LOG_WARN("EAGIN");
-          // }
-          // if (errno==EWOULDBLOCK) {
-          //   AGORA_LOG_WARN("EWOULDBLOCK");
-          // }
-          // if (errno==ECONNREFUSED) {
-          //   AGORA_LOG_WARN("ECONNREFUSED");
-          // }
+      // if (errno==EAGAIN) {
+      //   AGORA_LOG_WARN("EAGIN");
+      // }
+      // if (errno==EWOULDBLOCK) {
+      //   AGORA_LOG_WARN("EWOULDBLOCK");
+      // }
+      // if (errno==ECONNREFUSED) {
+      //   AGORA_LOG_WARN("ECONNREFUSED");
+      // }
       // These errors mean that there's no data to receive
       ret = 0;
     } else {
@@ -400,7 +397,7 @@ ssize_t UDPComm::Recv(std::byte* buf, size_t len) const {
                       std::strerror(errno), errno);
     }
   } else if (ret == 0) {
-    std::cout<<"Line 403\n"<<std::flush;
+    std::cout << "Line 403\n" << std::flush;
     AGORA_LOG_ERROR("UDPComm: recv() failed with return of 0\n");
   }
   return ret;
