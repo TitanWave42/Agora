@@ -11,7 +11,7 @@
 #include "udp_client.h"
 #include "udp_server.h"
 
-static const bool kDebugMacReceiver = true;
+static const bool kDebugMacReceiver = false;
 static const std::string kMacRxAddress = "";
 static const std::string kMacTxAddress = "127.0.0.1";
 static constexpr uint16_t kMacTxPort = 0;
@@ -89,8 +89,6 @@ void* MacReceiver::LoopRecv(size_t tid) {
          (cfg_->Running() == true)) {
     const ssize_t recvlen = udp_server->Recv(phy_address_, phy_port_ + ue_id,
                                              &rx_buffer[0u], max_packet_length);
-    std::cout << "recvlen: " << recvlen << std::endl << std::flush;
-    AGORA_LOG_INFO("recvlen: %lld\n", recvlen);
     if (recvlen < 0) {
       std::cout << "recvlen < 0" << std::endl << std::flush;
       std::perror("recv failed");
