@@ -153,8 +153,8 @@ int main(int argc, char* argv[]) {
       ret = EXIT_FAILURE;
     }
   }  // end context Config
-  delete[](frame_start);
-  delete[](frame_end);
+  delete[] (frame_start);
+  delete[] (frame_end);
   std::printf("Mac basestation application terminated!\n");
   PrintCoreAssignmentSummary();
   gflags::ShutDownCommandLineFlags();
