@@ -15,7 +15,7 @@ Channel::Channel(const Config* const config, std::string& in_channel_type,
     : cfg_(config),
       sim_chan_model_(std::move(in_channel_type)),
       channel_snr_db_(in_channel_snr) {
-  channel_snr_db_ = 121.0f;
+  //channel_snr_db_ = 121.0f;
   bs_ant_ = cfg_->BsAntNum();
   ue_ant_ = cfg_->UeAntNum();
   n_samps_ = cfg_->SampsPerSymbol();
@@ -107,9 +107,9 @@ void Channel::Awgn(const arma::cx_fmat& src, arma::cx_fmat& dst) const {
     // arma::cx_fmat noise = arma::cx_fmat(x, y);
 
     // Add noise to signal
-    // noise *= noise_samp_std_;
-    // dst = src + noise;
-    dst = src;
+    noise *= noise_samp_std_;
+    dst = src + noise;
+    // dst = src;
 
     // Check SNR
     if (kPrintSNRCheck) {
