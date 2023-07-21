@@ -27,6 +27,8 @@
 #include "simd_types.h"
 #include "utils_ldpc.h"
 
+#include "mcs.h"
+
 using json = nlohmann::json;
 
 static constexpr size_t kMacAlignmentBytes = 64u;
@@ -689,10 +691,19 @@ Config::Config(std::string jsonfilename)
 
   // LDPC Coding and Modulation configurations
   ul_mcs_params_ = this->Parse(tdd_conf, "ul_mcs");
-  this->UpdateUlMCS(ul_mcs_params_);
+  //this->UpdateUlMCS(ul_mcs_params_);
 
   dl_mcs_params_ = this->Parse(tdd_conf, "dl_mcs");
-  this->UpdateDlMCS(dl_mcs_params_);
+
+  //Create a modulation and coding object to handling mcs behaviors in the config.
+  Mcs mcs(ul_mcs_params_, dl_mcs_params_, ofdm_data_num_);
+  //mcs.Create_Modulation_Tables();
+
+  ul_ldpc_config_ = mcs.Ul_Ldpc_Config();
+  dl_ldpc_config_ = mcs.Dl_Ldpc_Config();
+  
+
+  //this->UpdateDlMCS(dl_mcs_params_);
   this->DumpMcsInfo();
   this->UpdateCtrlMCS();
 
@@ -916,7 +927,9 @@ inline size_t SelectZc(size_t base_graph, size_t code_rate,
   return zc;
 }
 
+//-------------------------
 void Config::UpdateUlMCS(const json& ul_mcs) {
+  
   if (ul_mcs.find("mcs_index") == ul_mcs.end()) {
     ul_modulation_ = ul_mcs.value("modulation", "16QAM");
     ul_mod_order_bits_ = kModulStringMap.at(ul_modulation_);
@@ -940,6 +953,9 @@ void Config::UpdateUlMCS(const json& ul_mcs) {
     ul_code_rate_ = GetCodeRate(ul_mcs_index_);
     ul_modulation_ = MapModToStr(ul_mod_order_bits_);
   }
+
+  //ul_mod_table_ = modulation_tables_.ul_tables[current_mcs_.modulation_type];
+
   InitModulationTable(this->ul_mod_table_, ul_mod_order_bits_);
 
   // TODO: find the optimal base_graph
@@ -1098,6 +1114,8 @@ void Config::DumpMcsInfo() {
            dl_ldpc_config_.NumRows()),
       dl_ldpc_config_.NumRows(), dl_modulation_.c_str());
 }
+
+//-------------------------
 
 void Config::GenPilots() {
   if ((kUseArgos == true) || (kUseUHD == true) || (kUsePureUHD == true)) {

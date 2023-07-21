@@ -552,6 +552,10 @@ class Config {
                              cb_id * num_bytes_per_cb];
   }
 
+
+//EVENTUALLY UPDATE THIS FUNCTION TO TAKE num_byte_per_cb as an argument
+//because the num_bytes_per_cb is determined by the MCS and is effectively
+//How much data we can read from the date buffer.
   /// Get info bits for this symbol, user and code block ID
   inline int8_t* GetInfoBits(Table<int8_t>& info_bits, Direction dir,
                              size_t symbol_id, size_t ue_id,
