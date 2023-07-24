@@ -39,12 +39,12 @@ struct Initial_Mcs_Properties {
 class Mcs {
 
   public:
-    explicit Mcs(nlohmann::json ul_mcs_params_, nlohmann::json dl_mcs_params_, size_t ofdm_data_num);
+    explicit Mcs(nlohmann::json ul_mcs_params, nlohmann::json dl_mcs_params, size_t ofdm_data_num);
     ~Mcs();
 
 
-    LDPCconfig Ul_Ldpc_Config();
-    LDPCconfig Dl_Ldpc_Config();
+    // LDPCconfig get_Ul_Ldpc_Config();
+    // LDPCconfig get_Dl_Ldpc_Config();
 
     void Create_Modulation_Tables();
     void Update_MCS_Schemes(size_t current_frame_number);
@@ -57,6 +57,8 @@ class Mcs {
     
     
   private:
+    nlohmann::json ul_mcs_;
+    nlohmann::json dl_mcs_;
     MCS_Scheme current_ul_mcs_;
     MCS_Scheme current_dl_mcs_;
 
@@ -64,17 +66,14 @@ class Mcs {
     MCS_Scheme next_dl_mcs_;
 
     Modulation_Tables modulation_tables_;
-
-    const nlohmann::json& ul_mcs_;
-    Config* conf_;
-    LDPCconfig ul_ldpc_config_; //Uplink LDPC parameters
-    LDPCconfig dl_ldpc_config_; //Downlink LDPC parameters
+    LDPCconfig* ul_ldpc_config_; //Uplink LDPC parameters
+    LDPCconfig* dl_ldpc_config_; //Downlink LDPC parameters
 
     Initial_Mcs_Properties initial_ul_mcs_properties_;
     Initial_Mcs_Properties initial_dl_mcs_properties_;
     
-    void Initialize_Ul_Mcs(const  nlohmann::json& ul_mcs);
-    void Initialize_Dl_Mcs(const  nlohmann::json& dl_mcs);
+    void Initialize_Ul_Mcs(const  nlohmann::json ul_mcs);
+    void Initialize_Dl_Mcs(const  nlohmann::json dl_mcs);
 
     void Update_Ul_MCS_Scheme(size_t current_frame_number);
     void Update_Dl_MCS_Scheme(size_t current_frame_number);

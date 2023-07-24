@@ -699,8 +699,8 @@ Config::Config(std::string jsonfilename)
   Mcs mcs(ul_mcs_params_, dl_mcs_params_, ofdm_data_num_);
   //mcs.Create_Modulation_Tables();
 
-  ul_ldpc_config_ = mcs.Ul_Ldpc_Config();
-  dl_ldpc_config_ = mcs.Dl_Ldpc_Config();
+  // ul_ldpc_config_ = mcs.Ul_Ldpc_Config();
+  // dl_ldpc_config_ = mcs.Dl_Ldpc_Config();
   
 
   //this->UpdateDlMCS(dl_mcs_params_);
