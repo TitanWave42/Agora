@@ -20,14 +20,13 @@
 #include "fivegconfig.h"
 #include "gettime.h"
 #include "logger.h"
+#include "mcs.h"
 #include "message.h"
 #include "modulation.h"
 #include "phy_ldpc_decoder_5gnr.h"
 #include "scrambler.h"
 #include "simd_types.h"
 #include "utils_ldpc.h"
-
-#include "mcs.h"
 
 using json = nlohmann::json;
 
@@ -695,13 +694,12 @@ Config::Config(std::string jsonfilename)
 
   dl_mcs_params_ = this->Parse(tdd_conf, "dl_mcs");
 
-  //Create a modulation and coding object to handling mcs behaviors in the config.
-  Mcs mcs(ul_mcs_params_, dl_mcs_params_, ofdm_data_num_);
-  //mcs.Create_Modulation_Tables();
+  // //Create a modulation and coding object to handling mcs behaviors in the config.
+  // Mcs mcs(ul_mcs_params_, dl_mcs_params_, ofdm_data_num_);
+  // //mcs.Create_Modulation_Tables();
 
   // ul_ldpc_config_ = mcs.Ul_Ldpc_Config();
   // dl_ldpc_config_ = mcs.Dl_Ldpc_Config();
-  
 
   //this->UpdateDlMCS(dl_mcs_params_);
   this->DumpMcsInfo();
@@ -719,89 +717,6 @@ Config::Config(std::string jsonfilename)
   if (!kUseArgos) {
     RtAssert(packet_length_ < 9000,
              "Packet size must be smaller than jumbo frame");
-  }
-
-  ul_num_bytes_per_cb_ = ul_ldpc_config_.NumCbLen() / 8;
-  ul_num_padding_bytes_per_cb_ =
-      Roundup<64>(ul_num_bytes_per_cb_) - ul_num_bytes_per_cb_;
-  ul_data_bytes_num_persymbol_ =
-      ul_num_bytes_per_cb_ * ul_ldpc_config_.NumBlocksInSymbol();
-  ul_mac_packet_length_ = ul_data_bytes_num_persymbol_;
-
-  //((cb_len_bits / zc_size) - 1) * (zc_size / 8) + kProcBytes(32)
-  const size_t ul_ldpc_input_min =
-      (((ul_ldpc_config_.NumCbLen() / ul_ldpc_config_.ExpansionFactor()) - 1) *
-           (ul_ldpc_config_.ExpansionFactor() / 8) +
-       32);
-  const size_t ul_ldpc_sugg_input = LdpcEncodingInputBufSize(
-      ul_ldpc_config_.BaseGraph(), ul_ldpc_config_.ExpansionFactor());
-
-  if (ul_ldpc_input_min >
-      (ul_num_bytes_per_cb_ + ul_num_padding_bytes_per_cb_)) {
-    // Can cause a lot of wasted space, specifically the second argument of the max
-    const size_t increased_padding =
-        Roundup<64>(ul_ldpc_sugg_input) - ul_num_bytes_per_cb_;
-
-    AGORA_LOG_WARN(
-        "LDPC required Input Buffer size exceeds uplink code block size!, "
-        "Increased cb padding from %zu to %zu uplink CB Bytes %zu, LDPC "
-        "Input Min for zc 64:256: %zu\n",
-        ul_num_padding_bytes_per_cb_, increased_padding, ul_num_bytes_per_cb_,
-        ul_ldpc_input_min);
-    ul_num_padding_bytes_per_cb_ = increased_padding;
-  }
-
-  // Smallest over the air packet structure
-  RtAssert(this->frame_.NumULSyms() == 0 ||
-               ul_mac_packet_length_ > sizeof(MacPacketHeaderPacked),
-           "Uplink MAC Packet size must be larger than MAC header size");
-  ul_mac_data_length_max_ =
-      ul_mac_packet_length_ - sizeof(MacPacketHeaderPacked);
-
-  ul_mac_packets_perframe_ = this->frame_.NumUlDataSyms();
-  ul_mac_data_bytes_num_perframe_ =
-      ul_mac_data_length_max_ * ul_mac_packets_perframe_;
-  ul_mac_bytes_num_perframe_ = ul_mac_packet_length_ * ul_mac_packets_perframe_;
-
-  dl_num_bytes_per_cb_ = dl_ldpc_config_.NumCbLen() / 8;
-  dl_num_padding_bytes_per_cb_ =
-      Roundup<64>(dl_num_bytes_per_cb_) - dl_num_bytes_per_cb_;
-  dl_data_bytes_num_persymbol_ =
-      dl_num_bytes_per_cb_ * dl_ldpc_config_.NumBlocksInSymbol();
-  dl_mac_packet_length_ = dl_data_bytes_num_persymbol_;
-  // Smallest over the air packet structure
-  RtAssert(this->frame_.NumDLSyms() == 0 ||
-               dl_mac_packet_length_ > sizeof(MacPacketHeaderPacked),
-           "Downlink MAC Packet size must be larger than MAC header size");
-  dl_mac_data_length_max_ =
-      dl_mac_packet_length_ - sizeof(MacPacketHeaderPacked);
-
-  dl_mac_packets_perframe_ = this->frame_.NumDlDataSyms();
-  dl_mac_data_bytes_num_perframe_ =
-      dl_mac_data_length_max_ * dl_mac_packets_perframe_;
-  dl_mac_bytes_num_perframe_ = dl_mac_packet_length_ * dl_mac_packets_perframe_;
-
-  //((cb_len_bits / zc_size) - 1) * (zc_size / 8) + kProcBytes(32)
-  const size_t dl_ldpc_input_min =
-      (((dl_ldpc_config_.NumCbLen() / dl_ldpc_config_.ExpansionFactor()) - 1) *
-           (dl_ldpc_config_.ExpansionFactor() / 8) +
-       32);
-  const size_t dl_ldpc_sugg_input = LdpcEncodingInputBufSize(
-      dl_ldpc_config_.BaseGraph(), dl_ldpc_config_.ExpansionFactor());
-
-  if (dl_ldpc_input_min >
-      (dl_num_bytes_per_cb_ + dl_num_padding_bytes_per_cb_)) {
-    // Can cause a lot of wasted space, specifically the second argument of the max
-    const size_t increased_padding =
-        Roundup<64>(dl_ldpc_sugg_input) - dl_num_bytes_per_cb_;
-
-    AGORA_LOG_WARN(
-        "LDPC required Input Buffer size exceeds downlink code block size!, "
-        "Increased cb padding from %zu to %zu Downlink CB Bytes %zu, LDPC "
-        "Input Min for zc 64:256: %zu\n",
-        dl_num_padding_bytes_per_cb_, increased_padding, dl_num_bytes_per_cb_,
-        dl_ldpc_input_min);
-    dl_num_padding_bytes_per_cb_ = increased_padding;
   }
 
   this->running_.store(true);
@@ -891,45 +806,8 @@ json Config::Parse(const json& in_json, const std::string& json_handle) {
   return out_json;
 }
 
-inline size_t SelectZc(size_t base_graph, size_t code_rate,
-                       size_t mod_order_bits, size_t num_sc, size_t cb_per_sym,
-                       const std::string& dir) {
-  size_t n_zc = sizeof(kZc) / sizeof(size_t);
-  std::vector<size_t> zc_vec(kZc, kZc + n_zc);
-  std::sort(zc_vec.begin(), zc_vec.end());
-  // According to cyclic_shift.cc cyclic shifter for zc
-  // larger than 256 has not been implemented, so we skip them here.
-  size_t max_zc_index =
-      (std::find(zc_vec.begin(), zc_vec.end(), kMaxSupportedZc) -
-       zc_vec.begin());
-  size_t max_uncoded_bits =
-      static_cast<size_t>(num_sc * code_rate * mod_order_bits / 1024.0);
-  size_t zc = SIZE_MAX;
-  size_t i = 0;
-  for (; i < max_zc_index; i++) {
-    if ((zc_vec.at(i) * LdpcNumInputCols(base_graph) * cb_per_sym <
-         max_uncoded_bits) &&
-        (zc_vec.at(i + 1) * LdpcNumInputCols(base_graph) * cb_per_sym >
-         max_uncoded_bits)) {
-      zc = zc_vec.at(i);
-      break;
-    }
-  }
-  if (zc == SIZE_MAX) {
-    AGORA_LOG_WARN(
-        "Exceeded possible range of LDPC lifting Zc for " + dir +
-            "! Setting lifting size to max possible value(%zu).\nThis may lead "
-            "to too many unused subcarriers. For better use of the PHY "
-            "resources, you may reduce your coding or modulation rate.\n",
-        kMaxSupportedZc);
-    zc = kMaxSupportedZc;
-  }
-  return zc;
-}
-
 //-------------------------
 void Config::UpdateUlMCS(const json& ul_mcs) {
-  
   if (ul_mcs.find("mcs_index") == ul_mcs.end()) {
     ul_modulation_ = ul_mcs.value("modulation", "16QAM");
     ul_mod_order_bits_ = kModulStringMap.at(ul_modulation_);
@@ -1360,7 +1238,7 @@ void Config::GenData() {
       this->ul_ldpc_config_.NumBlocksInSymbol() * this->ue_ant_num_;
 
   SimdAlignByteVector ul_scramble_buffer(
-      ul_num_bytes_per_cb_ + ul_num_padding_bytes_per_cb_, std::byte(0));
+      this->ul_num_bytes_per_cb_ + ul_num_padding_bytes_per_cb_, std::byte(0));
 
   int8_t* ldpc_input = nullptr;
   // Encode uplink bits
@@ -1386,14 +1264,14 @@ void Config::GenData() {
           scrambler->Scramble(
               ul_scramble_buffer.data(),
               GetInfoBits(ul_bits_, Direction::kUplink, i, j, k),
-              ul_num_bytes_per_cb_);
+              this->ul_num_bytes_per_cb_);
           ldpc_input = reinterpret_cast<int8_t*>(ul_scramble_buffer.data());
         } else {
           ldpc_input = GetInfoBits(ul_bits_, Direction::kUplink, i, j, k);
         }
         //Clean padding
-        if (ul_num_bytes_per_cb_ > 0) {
-          std::memset(&ldpc_input[ul_num_bytes_per_cb_], 0u,
+        if (this->ul_num_bytes_per_cb_ > 0) {
+          std::memset(&ldpc_input[this->ul_num_bytes_per_cb_], 0u,
                       ul_num_padding_bytes_per_cb_);
         }
         LdpcEncodeHelper(ul_ldpc_config_.BaseGraph(),
@@ -1480,7 +1358,7 @@ void Config::GenData() {
       this->dl_ldpc_config_.NumBlocksInSymbol() * this->ue_ant_num_;
 
   SimdAlignByteVector dl_scramble_buffer(
-      dl_num_bytes_per_cb_ + dl_num_padding_bytes_per_cb_, std::byte(0));
+      this->dl_num_bytes_per_cb_ + dl_num_padding_bytes_per_cb_, std::byte(0));
 
   Table<int8_t> dl_encoded_bits;
   dl_encoded_bits.Malloc(this->frame_.NumDLSyms() * dl_num_blocks_per_symbol,
@@ -1504,13 +1382,13 @@ void Config::GenData() {
           scrambler->Scramble(
               dl_scramble_buffer.data(),
               GetInfoBits(dl_bits_, Direction::kDownlink, i, j, k),
-              dl_num_bytes_per_cb_);
+              this->dl_num_bytes_per_cb_);
           ldpc_input = reinterpret_cast<int8_t*>(dl_scramble_buffer.data());
         } else {
           ldpc_input = GetInfoBits(dl_bits_, Direction::kDownlink, i, j, k);
         }
         if (dl_num_padding_bytes_per_cb_ > 0) {
-          std::memset(&ldpc_input[dl_num_bytes_per_cb_], 0u,
+          std::memset(&ldpc_input[this->dl_num_bytes_per_cb_], 0u,
                       dl_num_padding_bytes_per_cb_);
         }
 
@@ -1929,6 +1807,10 @@ SymbolType Config::GetSymbolType(size_t symbol_id) const {
   return kSymbolMap.at(this->frame_.FrameIdentifier().at(symbol_id));
 }
 
+FrameStats Config::Frame() {
+  return this->frame_;
+}
+
 void Config::Print() const {
   if (kDebugPrintConfiguration == true) {
     std::cout << "Freq Ghz: " << freq_ghz_ << std::endl
@@ -1979,6 +1861,10 @@ void Config::Print() const {
               << "DL Bytes per CB: " << dl_num_bytes_per_cb_ << std::endl
               << "FFT in rru: " << fft_in_rru_ << std::endl;
   }
+}
+
+size_t OfdmCaNum() {
+  return this->ofdm_ca_num;
 }
 
 extern "C" {

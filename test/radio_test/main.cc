@@ -11,6 +11,7 @@
 #include "rx_status_tracker.h"
 #include "signal_handler.h"
 #include "version_config.h"
+#include "mcs.h"
 
 DEFINE_string(
     conf_file,
@@ -43,6 +44,7 @@ int main(int argc, char* argv[]) {
   }
 
   std::unique_ptr<Config> cfg = std::make_unique<Config>(conf_file.c_str());
+  auto mcs = std::make_unique<Mcs>(cfg);
   cfg->GenData();
 
   int ret;

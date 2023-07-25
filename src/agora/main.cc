@@ -5,6 +5,7 @@
 #include "agora.h"
 #include "gflags/gflags.h"
 #include "logger.h"
+#include "mcs.h"
 #include "signal_handler.h"
 #include "version_config.h"
 
@@ -31,6 +32,7 @@ int main(int argc, char* argv[]) {
   }
 
   std::unique_ptr<Config> cfg = std::make_unique<Config>(conf_file.c_str());
+  auto mcs = std::make_unique<Mcs>(cfg);
   cfg->GenData();
 
   int ret;

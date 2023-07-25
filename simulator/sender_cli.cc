@@ -5,6 +5,7 @@
 #include <gflags/gflags.h>
 
 #include "logger.h"
+#include "mcs.h"
 #include "sender.h"
 #include "version_config.h"
 
@@ -30,6 +31,7 @@ int main(int argc, char* argv[]) {
 
   {
     auto cfg = std::make_unique<Config>(filename.c_str());
+    auto mcs = std::make_unique<Mcs>(cfg);
     cfg->GenData();
     {
       auto sender = std::make_unique<Sender>(

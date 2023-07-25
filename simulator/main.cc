@@ -2,6 +2,7 @@
  * @file main.cc
  * @brief Main file for the simulator executable
  */
+#include "mcs.h"
 #include "simulator.h"
 
 int main(int argc, char const* argv[]) {
@@ -28,6 +29,7 @@ int main(int argc, char const* argv[]) {
                 conf_file.c_str());
   }
   auto cfg = std::make_unique<Config>(conf_file.c_str());
+  auto mcs = std::make_unique<Mcs>(cfg);
   cfg->GenData();
   int ret;
   try {

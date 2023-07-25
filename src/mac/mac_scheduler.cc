@@ -4,6 +4,8 @@
  */
 #include "mac_scheduler.h"
 
+#include "mcs.h"
+
 MacScheduler::MacScheduler(Config* const cfg) : cfg_(cfg) {
   num_groups_ =
       (cfg_->SpatialStreamsNum() == cfg_->UeAntNum()) ? 1 : cfg_->UeAntNum();
@@ -35,6 +37,8 @@ MacScheduler::MacScheduler(Config* const cfg) : cfg_(cfg) {
       dl_mcs_buffer_[gp][ue] = cfg_->McsIndex(Direction::kDownlink);
     }
   }
+
+  //Mcs mcs(cfg);
 }
 
 MacScheduler::~MacScheduler() {

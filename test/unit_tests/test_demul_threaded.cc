@@ -6,6 +6,7 @@
 #include "config.h"
 #include "dodemul.h"
 #include "gettime.h"
+#include "mcs.h"
 #include "modulation.h"
 #include "phy_stats.h"
 #include "utils.h"
@@ -116,6 +117,7 @@ void MasterToWorkerDynamicWorker(
 TEST(TestDemul, VaryingConfig) {
   static constexpr size_t kNumIters = 10000;
   auto cfg = std::make_unique<Config>("files/config/ci/tddconfig-sim-ul.json");
+  auto mcs = std::make_unique<Mcs>(cfg);
   cfg->GenData();
 
   auto event_queue = moodycamel::ConcurrentQueue<EventData>(2 * kNumIters);

@@ -6,8 +6,8 @@
 #define MCS_H_
 
 #include "config.h"
-#include "utils.h"
 #include "nlohmann/json.hpp"
+#include "utils.h"
 
 const size_t kNumTables = 5;
 
@@ -37,48 +37,62 @@ struct Initial_Mcs_Properties {
 };
 
 class Mcs {
+ public:
+  explicit Mcs(Config* const cfg);
+  ~Mcs();
 
-  public:
-    explicit Mcs(nlohmann::json ul_mcs_params, nlohmann::json dl_mcs_params, size_t ofdm_data_num);
-    ~Mcs();
+  LDPCconfig Ul_Ldpc_Config();
+  LDPCconfig Dl_Ldpc_Config();
 
+  void Create_Modulation_Tables();
+  void Update_MCS_Schemes(size_t current_frame_number);
 
-    // LDPCconfig get_Ul_Ldpc_Config();
-    // LDPCconfig get_Dl_Ldpc_Config();
+  void Set_Next_Ul_MCS_Scheme(MCS_Scheme next_mcs_scheme);
+  void Set_Next_Dl_MCS_Scheme(MCS_Scheme next_mcs_scheme);
 
-    void Create_Modulation_Tables();
-    void Update_MCS_Schemes(size_t current_frame_number);
+  void Update_Ul_Ldpc_Config();
+  void Update_Dl_Ldpc_Config();
 
-    void Set_Next_Ul_MCS_Scheme(MCS_Scheme next_mcs_scheme);
-    void Set_Next_Dl_MCS_Scheme(MCS_Scheme next_mcs_scheme);
+ private:
+   // Number of bytes per code block
+  size_t ul_num_bytes_per_cb_;
+  size_t dl_num_bytes_per_cb_;
 
-    void Update_Ul_Ldpc_Config();
-    void Update_Dl_Ldpc_Config();
-    
-    
-  private:
-    nlohmann::json ul_mcs_;
-    nlohmann::json dl_mcs_;
-    MCS_Scheme current_ul_mcs_;
-    MCS_Scheme current_dl_mcs_;
-
-    MCS_Scheme next_ul_mcs_;
-    MCS_Scheme next_dl_mcs_;
-
-    Modulation_Tables modulation_tables_;
-    LDPCconfig* ul_ldpc_config_; //Uplink LDPC parameters
-    LDPCconfig* dl_ldpc_config_; //Downlink LDPC parameters
-
-    Initial_Mcs_Properties initial_ul_mcs_properties_;
-    Initial_Mcs_Properties initial_dl_mcs_properties_;
-    
-    void Initialize_Ul_Mcs(const  nlohmann::json ul_mcs);
-    void Initialize_Dl_Mcs(const  nlohmann::json dl_mcs);
-
-    void Update_Ul_MCS_Scheme(size_t current_frame_number);
-    void Update_Dl_MCS_Scheme(size_t current_frame_number);
+  // Number of padding bytes per code block
+  size_t ul_num_padding_bytes_per_cb_;
+  size_t dl_num_padding_bytes_per_cb_;
 
 
+  // The total number of uncoded uplink data bytes in each OFDM symbol
+  size_t ul_data_bytes_num_persymbol_;
+  
+  // The total number of uncoded downlink data bytes in each OFDM symbol
+  size_t dl_data_bytes_num_persymbol_;
+
+  nlohmann::json ul_mcs_;
+  nlohmann::json dl_mcs_;
+  MCS_Scheme current_ul_mcs_;
+  MCS_Scheme current_dl_mcs_;
+
+  MCS_Scheme next_ul_mcs_;
+  MCS_Scheme next_dl_mcs_;
+
+  Modulation_Tables modulation_tables_;
+  LDPCconfig ul_ldpc_config_;  //Uplink LDPC parameters
+  LDPCconfig dl_ldpc_config_;  //Downlink LDPC parameters
+  Config* const cfg_;
+  FrameStats frame_;
+  size_t ofdm_ca_num_;
+
+  Initial_Mcs_Properties initial_ul_mcs_properties_;
+  Initial_Mcs_Properties initial_dl_mcs_properties_;
+
+  void Initialize_Ul_Mcs(const nlohmann::json ul_mcs);
+  void Initialize_Dl_Mcs(const nlohmann::json dl_mcs);
+
+  void Update_Ul_MCS_Scheme(size_t current_frame_number);
+  void Update_Dl_MCS_Scheme(size_t current_frame_number);
+  void Update_Ldpc_Properties();
 };
 
 #endif  // MCS_H_

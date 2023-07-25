@@ -10,6 +10,7 @@
 #include "logger.h"
 #include "mac_receiver.h"
 #include "mac_sender.h"
+#include "mcs.h"
 #include "signal_handler.h"
 #include "version_config.h"
 
@@ -54,6 +55,8 @@ int main(int argc, char* argv[]) {
   int ret = EXIT_FAILURE;
   {
     auto cfg = std::make_unique<Config>(filename.c_str());
+    auto mcs = std::make_unique<Mcs>(cfg);
+
     cfg->GenData();
 
     // Generate pattern file for testing

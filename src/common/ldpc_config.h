@@ -24,9 +24,8 @@ class LDPCconfig {
         num_cb_len_(num_cb_len),
         num_cb_codew_len_(num_cb_codew_len),
         num_blocks_in_symbol_(num_blocks_in_symbol) {}
-  
-  //LDPCconfig() = default;
 
+  //LDPCconfig() = default;
 
   // Return the number of bytes in the information bit sequence for LDPC
   // encoding of one code block

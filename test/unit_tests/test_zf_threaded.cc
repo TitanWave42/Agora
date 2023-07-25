@@ -6,6 +6,7 @@
 #include "config.h"
 #include "dobeamweights.h"
 #include "gettime.h"
+#include "mcs.h"
 #include "utils.h"
 
 static constexpr size_t kNumWorkers = 14;
@@ -109,6 +110,7 @@ void MasterToWorkerDynamicWorker(
 TEST(TestZF, VaryingConfig) {
   static constexpr size_t kNumIters = 10000;
   auto cfg = std::make_unique<Config>("files/config/ci/tddconfig-sim-ul.json");
+  auto mcs = std::make_unique<Mcs>(cfg);
   cfg->GenData();
 
   auto event_queue = moodycamel::ConcurrentQueue<EventData>(2 * kNumIters);

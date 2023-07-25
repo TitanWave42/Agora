@@ -1,5 +1,6 @@
 #include "gflags/gflags.h"
 #include "radio_set_calibrate.h"
+#include "mcs.h"
 
 DEFINE_string(
     conf_file,
@@ -29,7 +30,9 @@ int main(int argc, char* argv[]) {
   }
 
   std::unique_ptr<Config> cfg = std::make_unique<Config>(conf_file.c_str());
+  auto mcs = std::make_unique<Mcs>(cfg);
   cfg->GenData();
+
   std::unique_ptr<RadioSetCalibrate> calib =
       std::make_unique<RadioSetCalibrate>(cfg.get(), calibration_type);
   if (calibration_type == "digital") {

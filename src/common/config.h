@@ -552,10 +552,9 @@ class Config {
                              cb_id * num_bytes_per_cb];
   }
 
-
-//EVENTUALLY UPDATE THIS FUNCTION TO TAKE num_byte_per_cb as an argument
-//because the num_bytes_per_cb is determined by the MCS and is effectively
-//How much data we can read from the date buffer.
+  //EVENTUALLY UPDATE THIS FUNCTION TO TAKE num_byte_per_cb as an argument
+  //because the num_bytes_per_cb is determined by the MCS and is effectively
+  //How much data we can read from the date buffer.
   /// Get info bits for this symbol, user and code block ID
   inline int8_t* GetInfoBits(Table<int8_t>& info_bits, Direction dir,
                              size_t symbol_id, size_t ue_id,
@@ -625,6 +624,9 @@ class Config {
   inline const std::vector<std::string>& UlTxFreqDataFiles() const {
     return ul_tx_f_data_files_;
   }
+
+  inline LDPCconfig UlMcsParams() { return this->ul_mcs_params_; }
+  inline LDPCconfig DlMcsParams() { return this->dl_mcs_params_; }
 
  private:
   void Print() const;
@@ -885,9 +887,6 @@ class Config {
   bool bigstation_mode_;      // If true, use pipeline-parallel scheduling
   bool correct_phase_shift_;  // If true, do phase shift correction
 
-  // The total number of uncoded uplink data bytes in each OFDM symbol
-  size_t ul_data_bytes_num_persymbol_;
-
   // The total number of uplink MAC payload data bytes in each Frame
   size_t ul_mac_data_bytes_num_perframe_;
 
@@ -899,9 +898,6 @@ class Config {
 
   // The length (in bytes) of a uplink MAC packet payload (data)
   size_t ul_mac_data_length_max_;
-
-  // The total number of uncoded downlink data bytes in each OFDM symbol
-  size_t dl_data_bytes_num_persymbol_;
 
   // The total number of downlink MAC payload data bytes in each Frame
   size_t dl_mac_data_bytes_num_perframe_;
@@ -985,14 +981,6 @@ class Config {
   size_t transport_block_size_;
 
   float noise_level_;
-
-  // Number of bytes per code block
-  size_t ul_num_bytes_per_cb_;
-  size_t dl_num_bytes_per_cb_;
-
-  // Number of padding bytes per code block
-  size_t ul_num_padding_bytes_per_cb_;
-  size_t dl_num_padding_bytes_per_cb_;
 
   bool fft_in_rru_;  // If true, the RRU does FFT instead of Agora
   const std::string config_filename_;

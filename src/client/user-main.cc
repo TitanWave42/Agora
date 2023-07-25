@@ -33,6 +33,8 @@ int main(int argc, char* argv[]) {
   }
 
   auto config = std::make_unique<Config>(filename.c_str());
+  auto mcs = std::make_unique<Mcs>(cfg);
+
   config->GenData();
   int ret;
   try {

@@ -4,12 +4,14 @@
 #include "config.h"
 #include "dobeamweights.h"
 #include "gettime.h"
+#include "mcs.h"
 #include "utils.h"
 
 /// Measure performance of zeroforcing
 TEST(TestZF, Perf) {
   static constexpr size_t kNumIters = 10000;
   auto cfg = std::make_unique<Config>("files/config/ci/tddconfig-sim-ul.json");
+  auto mcs = std::make_unique<Mcs>(cfg);
   cfg->GenData();
 
   int tid = 0;

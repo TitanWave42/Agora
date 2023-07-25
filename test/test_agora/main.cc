@@ -4,6 +4,7 @@
 #include "datatype_conversion.h"
 #include "gflags/gflags.h"
 #include "logger.h"
+#include "mcs.h"
 #include "signal_handler.h"
 
 static const bool kDebugPrintUlCorr = false;
@@ -197,6 +198,7 @@ int main(int argc, char* argv[]) {
   }
 
   auto cfg = std::make_unique<Config>(conf_file.c_str());
+  auto mcs = std::make_unique<Mcs>(cfg);
   cfg->GenData();
 
   int ret;
