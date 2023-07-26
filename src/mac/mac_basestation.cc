@@ -56,8 +56,8 @@ int main(int argc, char* argv[]) {
   int ret = EXIT_FAILURE;
   {
     auto cfg = std::make_unique<Config>(filename.c_str());
-    auto mcs = std::make_unique<Mcs>(cfg);
-    cfg->GenData();
+    auto mac_scheduler = std::make_unique<MacScheduler>(cfg);
+    mac_scheduler.mcs.GenData();
 
     // Generate pattern file for testing
     if (data_filename.empty()) {

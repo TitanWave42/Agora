@@ -31,8 +31,9 @@ int main(int argc, char* argv[]) {
 
   {
     auto cfg = std::make_unique<Config>(filename.c_str());
-    auto mcs = std::make_unique<Mcs>(cfg);
-    cfg->GenData();
+    auto mac_scheduler = std::make_unique<MacScheduler>(cfg);
+    mac_scheduler.mcs.GenData();
+
     {
       auto sender = std::make_unique<Sender>(
           cfg.get(), FLAGS_num_threads, FLAGS_core_offset, FLAGS_frame_duration,

@@ -7,48 +7,66 @@
 
 #include <stddef.h>
 
+#include "comms-constants.inc"
 #include "comms-lib.h"
 #include "config.h"
 #include "ldpc_config.h"
 #include "logger.h"
+#include "memory_manage.h"
 #include "modulation.h"
+#include "scrambler.h"
+#include "simd_types.h"
+#include "symbols.h"
 #include "utils.h"
 #include "utils_ldpc.h"
+
+static constexpr size_t kMaxSupportedZc = 256;
+
+/// Print the I/Q samples in the pilots
+static constexpr bool kDebugPrintPilot = false;
+
+static const std::string kLogFilepath =
+    TOSTRING(PROJECT_DIRECTORY) "/files/log/";
+static const std::string kExperimentFilepath =
+    TOSTRING(PROJECT_DIRECTORY) "/files/experiment/";
+static const std::string kUlDataFilePrefix =
+    kExperimentFilepath + "LDPC_orig_ul_data_";
+static const std::string kDlDataFilePrefix =
+    kExperimentFilepath + "LDPC_orig_dl_data_";
+static const std::string kUlDataFreqPrefix = kExperimentFilepath + "ul_data_f_";
 
 Mcs::Mcs(Config* const cfg)
     : ul_ldpc_config_(0, 0, 0, false, 0, 0, 0, 0),
       dl_ldpc_config_(0, 0, 0, false, 0, 0, 0, 0),
       cfg_(cfg) {
-  nlohmann::json ul_mcs_params = cfg_->UlMcsParams();
-  nlohmann::json dl_mcs_params = cfg_->DlMcsParams();
   size_t ofdm_data_num = cfg_->OfdmCaNum;
 
-  ul_mcs_ = cfg_->UlMcsParams();
-  dl_mcs_ = cfg_->DlMcsParams();
+  ul_mcs_params_ = cfg_->UlMcsParams();
+  dl_mcs_params_ = cfg_->DlMcsParams();
 
   Create_Modulation_Tables();
 
   this->frame_ = cfg_->Frame();
   ofdm_ca_num_ = cfg_->ofdm_ca_num_;
 
-  initial_ul_mcs_properties_.base_graph = ul_mcs_params.value("base_graph", 1);
+  initial_ul_mcs_properties_.base_graph = ul_mcs_params_.value("base_graph", 1);
   initial_ul_mcs_properties_.early_term =
-      ul_mcs_params.value("earlyTermination", true);
+      ul_mcs_params_.value("earlyTermination", true);
   initial_ul_mcs_properties_.max_decoder_iter =
-      ul_mcs_params.value("decoderIter", 5);
+      ul_mcs_params_.value("decoderIter", 5);
   initial_ul_mcs_properties_.ofdm_data_num = ofdm_data_num;
 
-  initial_dl_mcs_properties_.base_graph = dl_mcs_params.value("base_graph", 1);
+  initial_dl_mcs_properties_.base_graph = dl_mcs_params_.value("base_graph", 1);
   initial_dl_mcs_properties_.early_term =
-      dl_mcs_params.value("earlyTermination", true);
+      dl_mcs_params_.value("earlyTermination", true);
   initial_dl_mcs_properties_.max_decoder_iter =
-      dl_mcs_params.value("decoderIter", 5);
+      dl_mcs_params_.value("decoderIter", 5);
 
   //Initialize UL MCS
-  Initialize_Ul_Mcs(ul_mcs_);
+  Initialize_Ul_Mcs(ul_mcs_params_);
 
   //Initialize DL MCS
-  Initialize_Dl_Mcs(dl_mcs_);
+  Initialize_Dl_Mcs(dl_mcs_params_);
 
   //Update the LDPC configs
   Update_Ul_Ldpc_Config();
@@ -63,14 +81,15 @@ void Mcs::Initialize_Ul_Mcs(const nlohmann::json ul_mcs) {
   current_ul_mcs_.frame_number = 0;
   if (ul_mcs.find("mcs_index") == ul_mcs.end()) {
     std::string ul_modulation_type = ul_mcs.value("modulation", "16QAM");
-    current_ul_mcs_.modulation = kModulStringMap.at(ul_modulation_type);
+    current_ul_mcs_.modulation_table_index =
+        kModulStringMap.at(ul_modulation_type);
 
     double ul_code_rate_usr = ul_mcs.value("code_rate", 0.333);
     size_t code_rate_int =
         static_cast<size_t>(std::round(ul_code_rate_usr * 1024.0));
 
-    current_ul_mcs_.mcs_index =
-        CommsLib::GetMcsIndex(current_ul_mcs_.modulation, code_rate_int);
+    current_ul_mcs_.mcs_index = CommsLib::GetMcsIndex(
+        current_ul_mcs_.modulation_table_index, code_rate_int);
     current_ul_mcs_.code_rate = GetCodeRate(current_ul_mcs_.mcs_index);
     if (current_ul_mcs_.code_rate / 1024.0 != ul_code_rate_usr) {
       AGORA_LOG_WARN(
@@ -81,7 +100,8 @@ void Mcs::Initialize_Ul_Mcs(const nlohmann::json ul_mcs) {
   } else {
     current_ul_mcs_.mcs_index =
         ul_mcs.value("mcs_index", 10);  // 16QAM, 340/1024
-    current_ul_mcs_.modulation = GetModOrderBits(current_ul_mcs_.mcs_index);
+    current_ul_mcs_.modulation_table_index =
+        GetModOrderBits(current_ul_mcs_.mcs_index);
     current_ul_mcs_.code_rate = GetCodeRate(current_ul_mcs_.mcs_index);
   }
 }
@@ -90,13 +110,14 @@ void Mcs::Initialize_Dl_Mcs(const nlohmann::json dl_mcs) {
   current_dl_mcs_.frame_number = 0;
   if (dl_mcs.find("mcs_index") == dl_mcs.end()) {
     std::string dl_modulation_type = dl_mcs.value("modulation", "16QAM");
-    current_dl_mcs_.modulation = kModulStringMap.at(dl_modulation_type);
+    current_dl_mcs_.modulation_table_index =
+        kModulStringMap.at(dl_modulation_type);
 
     double dl_code_rate_usr = dl_mcs.value("code_rate", 0.333);
     size_t code_rate_int =
         static_cast<size_t>(std::round(dl_code_rate_usr * 1024.0));
-    current_dl_mcs_.mcs_index =
-        CommsLib::GetMcsIndex(current_dl_mcs_.modulation, code_rate_int);
+    current_dl_mcs_.mcs_index = CommsLib::GetMcsIndex(
+        current_dl_mcs_.modulation_table_index, code_rate_int);
     current_dl_mcs_.code_rate = GetCodeRate(current_dl_mcs_.mcs_index);
     if (current_dl_mcs_.code_rate / 1024.0 != dl_code_rate_usr) {
       AGORA_LOG_WARN(
@@ -107,7 +128,8 @@ void Mcs::Initialize_Dl_Mcs(const nlohmann::json dl_mcs) {
   } else {
     current_dl_mcs_.mcs_index =
         dl_mcs.value("mcs_index", 10);  // 16QAM, 340/1024
-    current_dl_mcs_.modulation = GetModOrderBits(current_dl_mcs_.mcs_index);
+    current_dl_mcs_.modulation_table_index =
+        GetModOrderBits(current_dl_mcs_.mcs_index);
     current_dl_mcs_.code_rate = GetCodeRate(current_dl_mcs_.mcs_index);
   }
 }
@@ -142,7 +164,7 @@ void Mcs::Update_Dl_MCS_Scheme(size_t current_frame_number) {
 
 void Mcs::Set_Next_Ul_MCS_Scheme(MCS_Scheme next_mcs_scheme) {
   next_ul_mcs_.frame_number = next_mcs_scheme.frame_number;
-  next_ul_mcs_.mcs_index = next_mcs_scheme.modulation;
+  next_ul_mcs_.mcs_index = next_mcs_scheme.modulation_table_index;
 }
 
 void Mcs::Set_Next_Dl_MCS_Scheme(MCS_Scheme next_mcs_scheme) {
@@ -176,10 +198,10 @@ void Mcs::Update_Ul_Ldpc_Config() {
 
   ul_ldpc_config_.NumBlocksInSymbol((cfg_->OfdmDataNum() * ul_mod_order_bits) /
                                     ul_ldpc_config_.NumCbCodewLen());
-  RtAssert((frame_.NumULSyms() == 0) ||
-               (ul_ldpc_config_.NumBlocksInSymbol() > 0),
-           "Uplink LDPC expansion factor is too large for number of OFDM data "
-           "subcarriers.");
+  RtAssert(
+      (frame_.NumULSyms() == 0) || (ul_ldpc_config_.NumBlocksInSymbol() > 0),
+      "Uplink LDPC expansion factor is too large for number of OFDM data "
+      "subcarriers.");
 }
 
 void Mcs::Update_Dl_Ldpc_Config() {
@@ -209,10 +231,10 @@ void Mcs::Update_Dl_Ldpc_Config() {
   dl_ldpc_config_.NumBlocksInSymbol(
       (initial_dl_mcs_properties_.ofdm_data_num * dl_mod_order_bits) /
       ul_ldpc_config_.NumCbCodewLen());
-  RtAssert((frame_.NumULSyms() == 0) ||
-               (ul_ldpc_config_.NumBlocksInSymbol() > 0),
-           "Uplink LDPC expansion factor is too large for number of OFDM data "
-           "subcarriers.");
+  RtAssert(
+      (frame_.NumULSyms() == 0) || (ul_ldpc_config_.NumBlocksInSymbol() > 0),
+      "Uplink LDPC expansion factor is too large for number of OFDM data "
+      "subcarriers.");
 }
 
 void Mcs::CalculateLdpcProperties() {
@@ -241,8 +263,8 @@ void Mcs::CalculateLdpcProperties() {
         "LDPC required Input Buffer size exceeds uplink code block size!, "
         "Increased cb padding from %zu to %zu uplink CB Bytes %zu, LDPC "
         "Input Min for zc 64:256: %zu\n",
-        ul_num_padding_bytes_per_cb_, increased_padding,
-        ul_num_bytes_per_cb_, ul_ldpc_input_min);
+        ul_num_padding_bytes_per_cb_, increased_padding, ul_num_bytes_per_cb_,
+        ul_ldpc_input_min);
     ul_num_padding_bytes_per_cb_ = increased_padding;
   }
 
@@ -302,6 +324,121 @@ void Mcs::CalculateLdpcProperties() {
   }
 }
 
+void Config::GenPilots() {
+  if ((kUseArgos == true) || (kUseUHD == true) || (kUsePureUHD == true)) {
+    std::vector<std::vector<double>> gold_ifft =
+        CommsLib::GetSequence(128, CommsLib::kGoldIfft);
+    std::vector<std::complex<int16_t>> gold_ifft_ci16 =
+        Utils::DoubleToCint16(gold_ifft);
+    for (size_t i = 0; i < 128; i++) {
+      this->gold_cf32_.emplace_back(gold_ifft[0][i], gold_ifft[1][i]);
+    }
+
+    std::vector<std::vector<double>> sts_seq =
+        CommsLib::GetSequence(0, CommsLib::kStsSeq);
+    std::vector<std::complex<int16_t>> sts_seq_ci16 =
+        Utils::DoubleToCint16(sts_seq);
+
+    // Populate STS (stsReps repetitions)
+    int sts_reps = 15;
+    for (int i = 0; i < sts_reps; i++) {
+      cfg_->beacon_ci16_.insert(cfg_->beacon_ci16_.end(), sts_seq_ci16.begin(),
+                                sts_seq_ci16.end());
+    }
+
+    // Populate gold sequence (two reps, 128 each)
+    int gold_reps = 2;
+    for (int i = 0; i < gold_reps; i++) {
+      cfg_->beacon_ci16_.insert(cfg_->beacon_ci16_.end(),
+                                gold_ifft_ci16.begin(), gold_ifft_ci16.end());
+    }
+
+    cfg_->beacon_len_ = cfg_->beacon_ci16_.size();
+
+    if (this->samps_per_symbol_ <
+        (cfg_->beacon_len_ + cfg_->ofdm_tx_zero_prefix_ +
+         cfg_->ofdm_tx_zero_postfix_)) {
+      std::string msg = "Minimum supported symbol_size is ";
+      msg += std::to_string(this->beacon_len_);
+      throw std::invalid_argument(msg);
+    }
+
+    this->beacon_ = Utils::Cint16ToUint32(this->beacon_ci16_, false, "QI");
+    this->coeffs_ = Utils::Cint16ToUint32(gold_ifft_ci16, true, "QI");
+
+    // Add addition padding for beacon sent from host
+    int frac_beacon = this->samps_per_symbol_ % this->beacon_len_;
+    std::vector<std::complex<int16_t>> pre_beacon(this->ofdm_tx_zero_prefix_,
+                                                  0);
+    std::vector<std::complex<int16_t>> post_beacon(
+        this->ofdm_tx_zero_postfix_ + frac_beacon, 0);
+    this->beacon_ci16_.insert(this->beacon_ci16_.begin(), pre_beacon.begin(),
+                              pre_beacon.end());
+    this->beacon_ci16_.insert(this->beacon_ci16_.end(), post_beacon.begin(),
+                              post_beacon.end());
+  }
+
+  // Generate common pilots based on Zadoff-Chu sequence for channel estimation
+  auto zc_seq_double =
+      CommsLib::GetSequence(this->ofdm_data_num_, CommsLib::kLteZadoffChu);
+  auto zc_seq = Utils::DoubleToCfloat(zc_seq_double);
+  this->common_pilot_ =
+      CommsLib::SeqCyclicShift(zc_seq, M_PI / 4);  // Used in LTE SRS
+
+  this->pilots_ = static_cast<complex_float*>(Agora_memory::PaddedAlignedAlloc(
+      Agora_memory::Alignment_t::kAlign64,
+      this->ofdm_data_num_ * sizeof(complex_float)));
+  this->pilots_sgn_ =
+      static_cast<complex_float*>(Agora_memory::PaddedAlignedAlloc(
+          Agora_memory::Alignment_t::kAlign64,
+          this->ofdm_data_num_ *
+              sizeof(complex_float)));  // used in CSI estimation
+  for (size_t i = 0; i < ofdm_data_num_; i++) {
+    this->pilots_[i] = {this->common_pilot_[i].real(),
+                        this->common_pilot_[i].imag()};
+    auto pilot_sgn = this->common_pilot_[i] /
+                     (float)std::pow(std::abs(this->common_pilot_[i]), 2);
+    this->pilots_sgn_[i] = {pilot_sgn.real(), pilot_sgn.imag()};
+  }
+
+  RtAssert(pilot_ifft_ == nullptr, "pilot_ifft_ should be null");
+  AllocBuffer1d(&pilot_ifft_, this->ofdm_ca_num_,
+                Agora_memory::Alignment_t::kAlign64, 1);
+
+  for (size_t j = 0; j < ofdm_data_num_; j++) {
+    // FFT Shift
+    const size_t k = j + ofdm_data_start_ >= ofdm_ca_num_ / 2
+                         ? j + ofdm_data_start_ - ofdm_ca_num_ / 2
+                         : j + ofdm_data_start_ + ofdm_ca_num_ / 2;
+    pilot_ifft_[k] = this->pilots_[j];
+  }
+  CommsLib::IFFT(pilot_ifft_, this->ofdm_ca_num_, false);
+
+  // Generate UE-specific pilots based on Zadoff-Chu sequence for phase tracking
+  this->ue_specific_pilot_.Malloc(this->ue_ant_num_, this->ofdm_data_num_,
+                                  Agora_memory::Alignment_t::kAlign64);
+  this->ue_specific_pilot_t_.Calloc(this->ue_ant_num_, this->samps_per_symbol_,
+                                    Agora_memory::Alignment_t::kAlign64);
+
+  ue_pilot_ifft_.Calloc(this->ue_ant_num_, this->ofdm_ca_num_,
+                        Agora_memory::Alignment_t::kAlign64);
+  for (size_t i = 0; i < ue_ant_num_; i++) {
+    auto zc_ue_pilot_i = CommsLib::SeqCyclicShift(
+        zc_seq,
+        (i + this->ue_ant_offset_) * (float)M_PI / 6);  // LTE DMRS
+    for (size_t j = 0; j < this->ofdm_data_num_; j++) {
+      this->ue_specific_pilot_[i][j] = {zc_ue_pilot_i[j].real(),
+                                        zc_ue_pilot_i[j].imag()};
+      // FFT Shift
+      const size_t k = j + ofdm_data_start_ >= ofdm_ca_num_ / 2
+                           ? j + ofdm_data_start_ - ofdm_ca_num_ / 2
+                           : j + ofdm_data_start_ + ofdm_ca_num_ / 2;
+      ue_pilot_ifft_[i][k] = this->ue_specific_pilot_[i][j];
+    }
+    CommsLib::IFFT(ue_pilot_ifft_[i], ofdm_ca_num_, false);
+  }
+}
+
 void Config::GenData() {
   this->GenPilots();
   // Get uplink and downlink raw bits either from file or random numbers
@@ -323,8 +460,7 @@ void Config::GenData() {
   ul_bits_.Calloc(frame_.NumULSyms(),
                   ul_num_bytes_per_ue_pad * this->ue_ant_num_,
                   Agora_memory::Alignment_t::kAlign64);
-  ul_iq_f_.Calloc(frame_.NumULSyms(),
-                  this->ofdm_data_num_ * this->ue_ant_num_,
+  ul_iq_f_.Calloc(frame_.NumULSyms(), this->ofdm_data_num_ * this->ue_ant_num_,
                   Agora_memory::Alignment_t::kAlign64);
   ul_iq_t_.Calloc(frame_.NumULSyms(),
                   this->samps_per_symbol_ * this->ue_ant_num_,
@@ -356,8 +492,8 @@ void Config::GenData() {
       throw std::runtime_error("Config: Failed to open antenna file");
     }
 
-    for (size_t i = frame_.ClientUlPilotSymbols();
-         i < frame_.NumULSyms(); i++) {
+    for (size_t i = frame_.ClientUlPilotSymbols(); i < frame_.NumULSyms();
+         i++) {
       if (std::fseek(fd, (ul_data_bytes_num_persymbol_ * this->ue_ant_offset_),
                      SEEK_CUR) != 0) {
         AGORA_LOG_ERROR(
@@ -481,8 +617,7 @@ void Config::GenData() {
 
   // Generate freq-domain uplink symbols
   Table<complex_float> ul_iq_ifft;
-  ul_iq_ifft.Calloc(frame_.NumULSyms(),
-                    this->ofdm_ca_num_ * this->ue_ant_num_,
+  ul_iq_ifft.Calloc(frame_.NumULSyms(), this->ofdm_ca_num_ * this->ue_ant_num_,
                     Agora_memory::Alignment_t::kAlign64);
   std::vector<FILE*> vec_fp_tx;
   if (kOutputUlScData) {
@@ -625,12 +760,10 @@ void Config::GenData() {
   }
 
   // Find normalization factor through searching for max value in IFFT results
-  float ul_max_mag =
-      CommsLib::FindMaxAbs(ul_iq_ifft, frame_.NumULSyms(),
-                           this->ue_ant_num_ * this->ofdm_ca_num_);
-  float dl_max_mag =
-      CommsLib::FindMaxAbs(dl_iq_ifft, frame_.NumDLSyms(),
-                           this->ue_ant_num_ * this->ofdm_ca_num_);
+  float ul_max_mag = CommsLib::FindMaxAbs(
+      ul_iq_ifft, frame_.NumULSyms(), this->ue_ant_num_ * this->ofdm_ca_num_);
+  float dl_max_mag = CommsLib::FindMaxAbs(
+      dl_iq_ifft, frame_.NumDLSyms(), this->ue_ant_num_ * this->ofdm_ca_num_);
   float ue_pilot_max_mag = CommsLib::FindMaxAbs(
       ue_pilot_ifft_, this->ue_ant_num_, this->ofdm_ca_num_);
   float pilot_max_mag = CommsLib::FindMaxAbs(pilot_ifft_, this->ofdm_ca_num_);
@@ -700,8 +833,7 @@ void Config::GenData() {
   this->pilot_ue_ci16_.resize(ue_ant_num_);
   for (size_t ue_id = 0; ue_id < this->ue_ant_num_; ue_id++) {
     this->pilot_ue_ci16_.at(ue_id).resize(frame_.NumPilotSyms());
-    for (size_t pilot_idx = 0; pilot_idx < frame_.NumPilotSyms();
-         pilot_idx++) {
+    for (size_t pilot_idx = 0; pilot_idx < frame_.NumPilotSyms(); pilot_idx++) {
       this->pilot_ue_ci16_.at(ue_id).at(pilot_idx).resize(samps_per_symbol_, 0);
       if (this->freq_orthogonal_pilot_ || ue_id == pilot_idx) {
         std::vector<arma::uword> pilot_sc_list;

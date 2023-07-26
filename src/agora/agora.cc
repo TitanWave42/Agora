@@ -46,10 +46,10 @@ static const std::vector<Agora_recorder::RecorderWorker::RecorderWorkerTypes>
                        kRecorderWorkerMultiFile};
 #endif
 
-Agora::Agora(Config* const cfg)
+Agora::Agora(MacScheduler* const mac_scheduler)
     : base_worker_core_offset_(cfg->CoreOffset() + 1 + cfg->SocketThreadNum()),
-      config_(cfg),
-      mac_sched_(std::make_unique<MacScheduler>(cfg)),
+      config_(mac_scheduler->Cfg()),
+      mac_sched_(mac_scheduler),
       stats_(std::make_unique<Stats>(cfg)),
       phy_stats_(std::make_unique<PhyStats>(cfg, Direction::kUplink)),
       agora_memory_(std::make_unique<AgoraBuffer>(cfg)) {
@@ -65,6 +65,7 @@ Agora::Agora(Config* const cfg)
   // correctly.
   frame_tracking_.cur_sche_frame_id_ = 0;
   frame_tracking_.cur_proc_frame_id_ = 0;
+
 
   InitializeQueues();
   InitializeCounters();

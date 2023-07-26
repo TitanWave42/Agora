@@ -6,6 +6,7 @@
 #define MAC_SCHEDULER_H_
 
 #include "config.h"
+#include "mcs.h"
 
 class MacScheduler {
  public:
@@ -19,6 +20,8 @@ class MacScheduler {
   size_t ScheduledUeUlMcs(size_t frame_id, size_t ue_id);
   size_t ScheduledUeDlMcs(size_t frame_id, size_t ue_id);
 
+  inline Config* Cfg() { return this->cfg_; }
+
  private:
   size_t num_groups_;
   Table<int> schedule_buffer_;
@@ -26,6 +29,7 @@ class MacScheduler {
   Table<size_t> ul_mcs_buffer_;
   Table<size_t> dl_mcs_buffer_;
   Config* const cfg_;
+  Mcs* const mcs_;
 };
 
 #endif  // MAC_SCHEDULER_H_

@@ -7,6 +7,7 @@
 
 #include "concurrent_queue_wrapper.h"
 #include "phy_ldpc_decoder_5gnr.h"
+//#include "mac_scheduler.h"
 
 static constexpr bool kPrintLLRData = false;
 static constexpr bool kPrintDecodedData = false;
@@ -32,7 +33,8 @@ DoDecode::DoDecode(
 DoDecode::~DoDecode() { std::free(resp_var_nodes_); }
 
 EventData DoDecode::Launch(size_t tag) {
-  const LDPCconfig& ldpc_config = cfg_->LdpcConfig(Direction::kUplink);
+  const LDPCconfig& ldpc_config =
+      mac_sched_->mcs->LdpcConfig(Direction::kUplink);
   const size_t frame_id = gen_tag_t(tag).frame_id_;
   const size_t symbol_id = gen_tag_t(tag).symbol_id_;
   const size_t symbol_idx_ul = cfg_->Frame().GetULSymbolIdx(symbol_id);

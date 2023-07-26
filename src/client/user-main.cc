@@ -33,9 +33,8 @@ int main(int argc, char* argv[]) {
   }
 
   auto config = std::make_unique<Config>(filename.c_str());
-  auto mcs = std::make_unique<Mcs>(cfg);
-
-  config->GenData();
+  auto mac_scheduler = std::make_unique<MacScheduler>(cfg);
+  mac_scheduler.mcs.GenData();
   int ret;
   try {
     SignalHandler signal_handler;

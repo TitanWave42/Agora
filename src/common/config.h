@@ -243,65 +243,6 @@ class Config {
   inline float Scale() const { return this->scale_; }
   inline bool BigstationMode() const { return this->bigstation_mode_; }
   inline size_t DlPacketLength() const { return this->dl_packet_length_; }
-  inline std::string Modulation(Direction dir) const {
-    return dir == Direction::kUplink ? this->ul_modulation_
-                                     : this->dl_modulation_;
-  }
-  inline size_t ModOrderBits(Direction dir) const {
-    return dir == Direction::kUplink ? this->ul_mod_order_bits_
-                                     : this->dl_mod_order_bits_;
-  }
-  inline size_t NumBytesPerCb(Direction dir) const {
-    return dir == Direction::kUplink ? this->ul_num_bytes_per_cb_
-                                     : this->dl_num_bytes_per_cb_;
-  }
-  inline size_t NumPaddingBytesPerCb(Direction dir) const {
-    return dir == Direction::kUplink ? this->ul_num_padding_bytes_per_cb_
-                                     : this->dl_num_padding_bytes_per_cb_;
-  }
-  inline size_t MacDataBytesNumPerframe(Direction dir) const {
-    return dir == Direction::kUplink ? this->ul_mac_data_bytes_num_perframe_
-                                     : this->dl_mac_data_bytes_num_perframe_;
-  }
-  inline size_t MacBytesNumPerframe(Direction dir) const {
-    return dir == Direction::kUplink ? this->ul_mac_bytes_num_perframe_
-                                     : this->dl_mac_bytes_num_perframe_;
-  }
-
-  inline size_t MacPacketLength(Direction dir) const {
-    return dir == Direction::kUplink ? this->ul_mac_packet_length_
-                                     : this->dl_mac_packet_length_;
-  }
-  inline size_t MacPayloadMaxLength(Direction dir) const {
-    return dir == Direction::kUplink ? this->ul_mac_data_length_max_
-                                     : this->dl_mac_data_length_max_;
-  }
-  inline size_t MacPacketsPerframe(Direction dir) const {
-    return dir == Direction::kUplink ? this->ul_mac_packets_perframe_
-                                     : this->dl_mac_packets_perframe_;
-  }
-  inline const LDPCconfig& LdpcConfig(Direction dir) const {
-    return dir == Direction::kUplink ? this->ul_ldpc_config_
-                                     : this->dl_ldpc_config_;
-  }
-  inline const LDPCconfig& BcLdpcConfig() const {
-    return dl_bcast_ldpc_config_;
-  }
-  inline Table<complex_float>& ModTable(Direction dir) {
-    return dir == Direction::kUplink ? this->ul_mod_table_
-                                     : this->dl_mod_table_;
-  }
-  inline const nlohmann::json& MCSParams(Direction dir) const {
-    return dir == Direction::kUplink ? this->ul_mcs_params_
-                                     : this->dl_mcs_params_;
-  }
-  inline size_t SubcarrierPerCodeBlock(Direction dir) const {
-    return this->LdpcConfig(dir).NumCbCodewLen() / this->ModOrderBits(dir);
-  }
-  inline size_t McsIndex(Direction dir) const {
-    return dir == Direction::kUplink ? this->ul_mcs_index_
-                                     : this->dl_mcs_index_;
-  }
 
   inline bool ScrambleEnabled() const { return this->scramble_enabled_; }
 
@@ -442,6 +383,24 @@ class Config {
     return ((frame_id % kFrameWnd) * this->frame_.NumDataSyms() + symbol_id);
   }
 
+    /// Get encoded_buffer for this frame, symbol, user and code block ID
+  inline int8_t* GetModBitsBuf(Table<int8_t>& mod_bits_buffer, Direction dir,
+                               size_t frame_id, size_t symbol_id, size_t ue_id,
+                               size_t sc_id) const {
+    size_t total_data_symbol_id;
+    size_t ofdm_data_num;
+    if (dir == Direction::kDownlink) {
+      total_data_symbol_id = GetTotalDataSymbolIdxDl(frame_id, symbol_id);
+      ofdm_data_num = GetOFDMDataNum();
+    } else {
+      total_data_symbol_id = GetTotalDataSymbolIdxUl(frame_id, symbol_id);
+      ofdm_data_num = this->ofdm_data_num_;
+    }
+
+    return &mod_bits_buffer[total_data_symbol_id]
+                           [Roundup<64>(ofdm_data_num) * ue_id + sc_id];
+  }
+
   /// Return total number of uplink data symbols of all frames in a buffer
   /// that holds data of kFrameWnd frames
   inline size_t GetTotalDataSymbolIdxUl(size_t frame_id,
@@ -531,65 +490,6 @@ class Config {
     return &calib_buffer[frame_slot][sc_id * bs_ant_num_];
   }
 
-  /// Get mac bits for this frame, symbol, user and code block ID
-  inline int8_t* GetMacBits(Table<int8_t>& info_bits, Direction dir,
-                            size_t frame_id, size_t symbol_id, size_t ue_id,
-                            size_t cb_id) const {
-    size_t mac_bytes_perframe;
-    size_t num_bytes_per_cb;
-    size_t mac_packet_length;
-    if (dir == Direction::kDownlink) {
-      mac_bytes_perframe = this->dl_mac_bytes_num_perframe_;
-      num_bytes_per_cb = this->dl_num_bytes_per_cb_;
-      mac_packet_length = this->dl_mac_packet_length_;
-    } else {
-      mac_bytes_perframe = ul_mac_bytes_num_perframe_;
-      num_bytes_per_cb = this->ul_num_bytes_per_cb_;
-      mac_packet_length = this->ul_mac_packet_length_;
-    }
-    return &info_bits[ue_id][(frame_id % kFrameWnd) * mac_bytes_perframe +
-                             symbol_id * mac_packet_length +
-                             cb_id * num_bytes_per_cb];
-  }
-
-  //EVENTUALLY UPDATE THIS FUNCTION TO TAKE num_byte_per_cb as an argument
-  //because the num_bytes_per_cb is determined by the MCS and is effectively
-  //How much data we can read from the date buffer.
-  /// Get info bits for this symbol, user and code block ID
-  inline int8_t* GetInfoBits(Table<int8_t>& info_bits, Direction dir,
-                             size_t symbol_id, size_t ue_id,
-                             size_t cb_id) const {
-    size_t num_bytes_per_cb;
-    size_t num_blocks_in_symbol;
-    if (dir == Direction::kDownlink) {
-      num_bytes_per_cb = this->dl_num_bytes_per_cb_;
-      num_blocks_in_symbol = this->dl_ldpc_config_.NumBlocksInSymbol();
-    } else {
-      num_bytes_per_cb = this->ul_num_bytes_per_cb_;
-      num_blocks_in_symbol = this->ul_ldpc_config_.NumBlocksInSymbol();
-    }
-    return &info_bits[symbol_id][Roundup<64>(num_bytes_per_cb) *
-                                 (num_blocks_in_symbol * ue_id + cb_id)];
-  }
-
-  /// Get encoded_buffer for this frame, symbol, user and code block ID
-  inline int8_t* GetModBitsBuf(Table<int8_t>& mod_bits_buffer, Direction dir,
-                               size_t frame_id, size_t symbol_id, size_t ue_id,
-                               size_t sc_id) const {
-    size_t total_data_symbol_id;
-    size_t ofdm_data_num;
-    if (dir == Direction::kDownlink) {
-      total_data_symbol_id = GetTotalDataSymbolIdxDl(frame_id, symbol_id);
-      ofdm_data_num = GetOFDMDataNum();
-    } else {
-      total_data_symbol_id = GetTotalDataSymbolIdxUl(frame_id, symbol_id);
-      ofdm_data_num = this->ofdm_data_num_;
-    }
-
-    return &mod_bits_buffer[total_data_symbol_id]
-                           [Roundup<64>(ofdm_data_num) * ue_id + sc_id];
-  }
-
   // Returns the number of pilot subcarriers in downlink symbols used for
   // phase tracking
   inline size_t GetOFDMPilotNum() const {
@@ -625,8 +525,8 @@ class Config {
     return ul_tx_f_data_files_;
   }
 
-  inline LDPCconfig UlMcsParams() { return this->ul_mcs_params_; }
-  inline LDPCconfig DlMcsParams() { return this->dl_mcs_params_; }
+  inline nlohmann::json UlMcsParams() { return this->ul_mcs_params_; }
+  inline nlohmann::json DlMcsParams() { return this->dl_mcs_params_; }
 
  private:
   void Print() const;

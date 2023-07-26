@@ -11,8 +11,8 @@
 TEST(TestZF, Perf) {
   static constexpr size_t kNumIters = 10000;
   auto cfg = std::make_unique<Config>("files/config/ci/tddconfig-sim-ul.json");
-  auto mcs = std::make_unique<Mcs>(cfg);
-  cfg->GenData();
+  auto mac_scheduler = std::make_unique<MacScheduler>(cfg);
+  mac_scheduler.mcs.GenData();
 
   int tid = 0;
 

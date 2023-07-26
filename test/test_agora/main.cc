@@ -198,8 +198,8 @@ int main(int argc, char* argv[]) {
   }
 
   auto cfg = std::make_unique<Config>(conf_file.c_str());
-  auto mcs = std::make_unique<Mcs>(cfg);
-  cfg->GenData();
+  auto mac_scheduler = std::make_unique<MacScheduler>(cfg);
+  mac_scheduler.mcs.GenData();
 
   int ret;
   try {

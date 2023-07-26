@@ -32,8 +32,8 @@ int main(int argc, char* argv[]) {
   }
 
   std::unique_ptr<Config> cfg = std::make_unique<Config>(conf_file.c_str());
-  auto mcs = std::make_unique<Mcs>(cfg);
-  cfg->GenData();
+  auto mac_scheduler = std::make_unique<MacScheduler>(cfg);
+  mac_scheduler.mcs.GenData();
 
   int ret;
   try {
@@ -41,7 +41,7 @@ int main(int argc, char* argv[]) {
 
     // Register signal handler to handle kill signal
     signal_handler.SetupSignalHandlers();
-    std::unique_ptr<Agora> agora_cli = std::make_unique<Agora>(cfg.get());
+    std::unique_ptr<Agora> agora_cli = std::make_unique<Agora>(mac_scheduler.get());
     agora_cli->Start();
     ret = EXIT_SUCCESS;
   } catch (SignalException& e) {
