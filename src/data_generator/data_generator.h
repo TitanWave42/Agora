@@ -12,6 +12,8 @@
 
 #include "config.h"
 #include "ldpc_config.h"
+#include "mac_scheduler.h"
+#include "mcs.h"
 #include "memory_manage.h"
 #include "message.h"
 
@@ -122,6 +124,7 @@ class DataGenerator {
   Config* cfg_;         // The global Agora config
   uint64_t seed_;
   const Profile profile_;  // The pattern of the input byte sequence
+  MacScheduler* mac_sched_;
 };
 
 #endif  // DATA_GENERATOR_H_

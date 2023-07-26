@@ -52,7 +52,7 @@ Agora::Agora(MacScheduler* const mac_scheduler)
       mac_sched_(mac_scheduler),
       stats_(std::make_unique<Stats>(cfg)),
       phy_stats_(std::make_unique<PhyStats>(cfg, Direction::kUplink)),
-      agora_memory_(std::make_unique<AgoraBuffer>(cfg)) {
+      agora_memory_(std::make_unique<AgoraBuffer>(mac_scheduler)) {
   AGORA_LOG_INFO("Agora: project directory [%s], RDTSC frequency = %.2f GHz\n",
                  kProjectDirectory.c_str(), cfg->FreqGhz());
 
@@ -65,7 +65,6 @@ Agora::Agora(MacScheduler* const mac_scheduler)
   // correctly.
   frame_tracking_.cur_sche_frame_id_ = 0;
   frame_tracking_.cur_proc_frame_id_ = 0;
-
 
   InitializeQueues();
   InitializeCounters();

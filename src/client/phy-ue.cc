@@ -50,7 +50,8 @@ PhyUe::PhyUe(Config* config)
       decoded_buffer_(
           kFrameWnd, config->Frame().NumDLSyms(), config->UeAntNum(),
           config->LdpcConfig(Direction::kDownlink).NumBlocksInSymbol() *
-              Roundup<64>(config->NumBytesPerCb(Direction::kDownlink))) {
+              Roundup<64>(
+                  mac_sched_->GetMcs()->NumBytesPerCb(Direction::kDownlink))) {
   srand(time(nullptr));
   // TODO take into account the UeAntOffset to allow for multiple PhyUe
   // instances

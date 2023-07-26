@@ -4,7 +4,8 @@
  */
 #include "mac_scheduler.h"
 
-MacScheduler::MacScheduler(Config* const cfg) : cfg_(cfg), mcs_(cfg) {
+MacScheduler::MacScheduler(Config* const cfg) : cfg_(cfg) {
+  mcs_ = std::make_unique<Mcs>(cfg);
   num_groups_ =
       (cfg_->SpatialStreamsNum() == cfg_->UeAntNum()) ? 1 : cfg_->UeAntNum();
   schedule_buffer_.Calloc(num_groups_, cfg_->UeAntNum() * cfg_->OfdmDataNum(),
@@ -31,8 +32,8 @@ MacScheduler::MacScheduler(Config* const cfg) : cfg_(cfg), mcs_(cfg) {
                         Agora_memory::Alignment_t::kAlign64);
   for (size_t gp = 0u; gp < num_groups_; gp++) {
     for (size_t ue = 0; ue < cfg_->UeAntNum(); ue++) {
-      ul_mcs_buffer_[gp][ue] = cfg_->McsIndex(Direction::kUplink);
-      dl_mcs_buffer_[gp][ue] = cfg_->McsIndex(Direction::kDownlink);
+      ul_mcs_buffer_[gp][ue] = mcs_->McsIndex(Direction::kUplink);
+      dl_mcs_buffer_[gp][ue] = mcs_->McsIndex(Direction::kDownlink);
     }
   }
 }

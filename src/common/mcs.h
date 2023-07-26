@@ -8,6 +8,7 @@
 #include "config.h"
 #include "nlohmann/json.hpp"
 #include "utils.h"
+#include "memory_manage.h"
 
 const size_t kNumTables = 5;
 
@@ -116,6 +117,23 @@ class Mcs {
                                      : this->dl_mcs_index_;
   }
 
+  /// Get info bits for this symbol, user and code block ID
+  inline int8_t* GetInfoBits(Table<int8_t>& info_bits, Direction dir,
+                             size_t symbol_id, size_t ue_id,
+                             size_t cb_id) const {
+    size_t num_bytes_per_cb;
+    size_t num_blocks_in_symbol;
+    if (dir == Direction::kDownlink) {
+      num_bytes_per_cb = this->dl_num_bytes_per_cb_;
+      num_blocks_in_symbol = this->dl_ldpc_config_.NumBlocksInSymbol();
+    } else {
+      num_bytes_per_cb = this->ul_num_bytes_per_cb_;
+      num_blocks_in_symbol = this->ul_ldpc_config_.NumBlocksInSymbol();
+    }
+    return &info_bits[symbol_id][Roundup<64>(num_bytes_per_cb) *
+                                 (num_blocks_in_symbol * ue_id + cb_id)];
+  }
+
   //EVENTUALLY UPDATE THIS FUNCTION TO TAKE num_byte_per_cb as an argument
   //because the num_bytes_per_cb is determined by the MCS and is effectively
   //How much data we can read from the date buffer.
@@ -141,9 +159,24 @@ class Mcs {
                              cb_id * num_bytes_per_cb];
   }
 
+  void GenData();
+  void GenPilots();
 
+  void DumpMcsInfo();
+  void UpdateCtrlMCS();
+
+  inline const arma::uvec& PilotUeSc(size_t ue_id) const {
+  return this->pilot_ue_sc_.at(ue_id);
 
  private:
+  static constexpr size_t kCbPerSymbol = 1;
+
+    /// List of subcarriers used per UE to transmit pilot
+  std::vector<arma::uvec> pilot_ue_sc_;
+
+  Table<complex_float> ue_specific_pilot_;
+  Table<std::complex<int16_t>> ue_specific_pilot_t_;
+
   LDPCconfig dl_bcast_ldpc_config_;  // Downlink Broadcast LDPC parameters
 
   size_t ul_mac_data_bytes_num_perframe_;
@@ -224,6 +257,7 @@ class Mcs {
   void Update_Ul_MCS_Scheme(size_t current_frame_number);
   void Update_Dl_MCS_Scheme(size_t current_frame_number);
   void Update_Ldpc_Properties();
+  void CalculateLdpcProperties();
 };
 
 #endif  // MCS_H_

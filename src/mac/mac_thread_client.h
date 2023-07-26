@@ -11,6 +11,7 @@
 #include "config.h"
 #include "crc.h"
 #include "gettime.h"
+#include "mac_scheduler.h"
 #include "message.h"
 #include "ran_config.h"
 #include "symbols.h"
@@ -53,6 +54,7 @@ class MacThreadClient {
   void RunEventLoop();
 
  private:
+  MacScheduler* mac_sched_;
   // Receive events from Agora PHY master thread. Forwards
   // to appropriate function in MAC.
   void ProcessRxFromPhy();

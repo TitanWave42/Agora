@@ -17,7 +17,7 @@ static const std::string kStatsDataFilename =
 static const std::string kStatsDetailedDataFilename =
     kStatsOutputFilePath + "timeresult_detail.txt";
 
-Stats::Stats(const Config* const cfg)
+Stats::Stats(Config* const cfg)
     : config_(cfg),
       task_thread_num_(cfg->WorkerThreadNum()),
       fft_thread_num_(cfg->FftThreadNum()),
@@ -28,6 +28,7 @@ Stats::Stats(const Config* const cfg)
       creation_tsc_(GetTime::Rdtsc()) {
   frame_start_.Calloc(config_->SocketThreadNum(), kNumStatsFrames,
                       Agora_memory::Alignment_t::kAlign64);
+  mac_sched_ = std::make_unique<MacScheduler>(cfg);
 }
 
 Stats::~Stats() { frame_start_.Free(); }
@@ -378,7 +379,9 @@ void Stats::PrintSummary() {
       double encode_frames =
           (static_cast<double>(
               num_tasks.at(static_cast<size_t>(DoerType::kEncode)))) /
-          (this->config_->LdpcConfig(Direction::kDownlink).NumBlocksInSymbol() *
+          (this->mac_sched_->GetMcs()
+               ->LdpcConfig(Direction::kDownlink)
+               .NumBlocksInSymbol() *
            this->config_->UeAntNum() * this->config_->Frame().NumDLSyms());
       std::printf("Downlink totals (tasks, frames): ");
       std::printf("CSI (%zu, %.2f), ",
@@ -411,7 +414,9 @@ void Stats::PrintSummary() {
       double decode_frames =
           (static_cast<double>(
               num_tasks.at(static_cast<size_t>(DoerType::kDecode)))) /
-          (this->config_->LdpcConfig(Direction::kUplink).NumBlocksInSymbol() *
+          (this->mac_sched_->GetMcs()
+               ->LdpcConfig(Direction::kUplink)
+               .NumBlocksInSymbol() *
            this->config_->UeAntNum() * this->config_->Frame().NumULSyms());
       std::printf("Uplink totals (tasks, frames): ");
       std::printf("CSI (%zu, %.2f), ",

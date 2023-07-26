@@ -34,7 +34,7 @@ DoDecode::~DoDecode() { std::free(resp_var_nodes_); }
 
 EventData DoDecode::Launch(size_t tag) {
   const LDPCconfig& ldpc_config =
-      mac_sched_->mcs->LdpcConfig(Direction::kUplink);
+      mac_sched_->GetMcs()->LdpcConfig(Direction::kUplink);
   const size_t frame_id = gen_tag_t(tag).frame_id_;
   const size_t symbol_id = gen_tag_t(tag).symbol_id_;
   const size_t symbol_idx_ul = cfg_->Frame().GetULSymbolIdx(symbol_id);
@@ -45,7 +45,8 @@ EventData DoDecode::Launch(size_t tag) {
   const size_t sched_ue_id = (cb_id / ldpc_config.NumBlocksInSymbol());
   const size_t ue_id = mac_sched_->ScheduledUeIndex(frame_id, 0, sched_ue_id);
   const size_t frame_slot = (frame_id % kFrameWnd);
-  const size_t num_bytes_per_cb = cfg_->NumBytesPerCb(Direction::kUplink);
+  const size_t num_bytes_per_cb =
+      mac_sched_->GetMcs()->NumBytesPerCb(Direction::kUplink);
   if (kDebugPrintInTask == true) {
     std::printf(
         "In doDecode thread %d: frame: %zu, symbol: %zu, code block: "
@@ -77,7 +78,7 @@ EventData DoDecode::Launch(size_t tag) {
 
   int8_t* llr_buffer_ptr =
       demod_buffers_[frame_slot][symbol_idx_ul][sched_ue_id] +
-      (cfg_->ModOrderBits(Direction::kUplink) *
+      (mac_sched_->GetMcs()->ModOrderBits(Direction::kUplink) *
        (ldpc_config.NumCbCodewLen() * cur_cb_id));
 
   uint8_t* decoded_buffer_ptr =
@@ -124,9 +125,9 @@ EventData DoDecode::Launch(size_t tag) {
     size_t block_error(0);
     for (size_t i = 0; i < num_bytes_per_cb; i++) {
       uint8_t rx_byte = decoded_buffer_ptr[i];
-      auto tx_byte = static_cast<uint8_t>(
-          cfg_->GetInfoBits(cfg_->UlBits(), Direction::kUplink, symbol_idx_ul,
-                            ue_id, cur_cb_id)[i]);
+      auto tx_byte = static_cast<uint8_t>(mac_sched_->GetMcs()->GetInfoBits(
+          cfg_->UlBits(), Direction::kUplink, symbol_idx_ul, ue_id,
+          cur_cb_id)[i]);
       phy_stats_->UpdateBitErrors(ue_id, symbol_offset, frame_slot, tx_byte,
                                   rx_byte);
       if (rx_byte != tx_byte) {

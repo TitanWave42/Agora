@@ -67,8 +67,8 @@ int main(int argc, char* argv[]) {
           "Generating test binary file for user uplink %s.  Frames: "
           "%zu, Packets: %zu, Packet Size: %zu\n",
           data_filename.c_str(), cfg->FramesToTest(),
-          cfg->MacPacketsPerframe(Direction::kUplink),
-          cfg->MacPayloadMaxLength(Direction::kUplink));
+          mac_scheduler->GetMcs()->MacPacketsPerframe(Direction::kUplink),
+          mac_scheduler->GetMcs()->MacPayloadMaxLength(Direction::kUplink));
 
       create_file.open(
           data_filename,
@@ -78,8 +78,10 @@ int main(int argc, char* argv[]) {
       std::vector<char> mac_data;
       mac_data.resize(cfg->MacPayloadMaxLength(Direction::kUplink));
 
-      for (size_t i = 0; i < (cfg->FramesToTest() *
-                              cfg->MacPacketsPerframe(Direction::kUplink));
+      for (size_t i = 0;
+           i <
+           (cfg->FramesToTest() *
+            mac_scheduler->GetMcs()->MacPacketsPerframe(Direction::kUplink));
            i++) {
         std::fill(mac_data.begin(), mac_data.end(), (char)i);
         create_file.write(mac_data.data(), mac_data.size());
@@ -106,8 +108,8 @@ int main(int argc, char* argv[]) {
         sender = std::make_unique<MacSender>(
             cfg.get(), data_filename, cfg->MacPacketLength(Direction::kUplink),
             cfg->MacPayloadMaxLength(Direction::kUplink),
-            cfg->MacPacketsPerframe(Direction::kUplink), cfg->UeServerAddr(),
-            cfg->UeMacRxPort(),
+            mac_scheduler->GetMcs()->MacPacketsPerframe(Direction::kUplink),
+            cfg->UeServerAddr(), cfg->UeMacRxPort(),
             std::bind(&FrameStats::GetULDataSymbol, cfg->Frame(),
                       std::placeholders::_1),
             thread_start, FLAGS_num_sender_worker_threads,

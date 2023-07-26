@@ -302,7 +302,7 @@ class Config {
 
   inline const std::vector<uint32_t>& Pilot() const { return this->pilot_; };
   inline const std::vector<uint32_t>& Beacon() const { return this->beacon_; };
-  // inline const complex_float *pilots (void ) const { return this->pilots_; };
+  inline const complex_float* Pilots (void) const { return this->pilots_; };
   inline const complex_float* PilotsSgn() const { return this->pilots_sgn_; };
   inline const std::vector<std::complex<float>>& CommonPilot() const {
     return this->common_pilot_;
@@ -383,7 +383,7 @@ class Config {
     return ((frame_id % kFrameWnd) * this->frame_.NumDataSyms() + symbol_id);
   }
 
-    /// Get encoded_buffer for this frame, symbol, user and code block ID
+  /// Get encoded_buffer for this frame, symbol, user and code block ID
   inline int8_t* GetModBitsBuf(Table<int8_t>& mod_bits_buffer, Direction dir,
                                size_t frame_id, size_t symbol_id, size_t ue_id,
                                size_t sc_id) const {
@@ -642,9 +642,6 @@ class Config {
 
   /// I/Q samples of pilots per UE antenna per pilot symbol
   std::vector<std::vector<std::vector<std::complex<int16_t>>>> pilot_ue_ci16_;
-
-  /// List of subcarriers used per UE to transmit pilot
-  std::vector<arma::uvec> pilot_ue_sc_;
 
   std::vector<uint32_t> pilot_;
   std::vector<uint32_t> beacon_;

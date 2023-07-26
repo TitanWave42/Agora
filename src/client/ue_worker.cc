@@ -418,17 +418,18 @@ void UeWorker::DoDemul(size_t tag) {
 
     int8_t* demod_ptr =
         demod_buffer_[frame_slot][dl_symbol_id][ant_id] +
-        (config_.ModOrderBits(Direction::kDownlink) * base_sc_id);
+        (mac_sched_.GetMcs().ModOrderBits(Direction::kDownlink) * base_sc_id);
 
     Demodulate(equal_ptr, demod_ptr, config_.GetOFDMDataNum(),
-               config_.ModOrderBits(Direction::kDownlink), kDownlinkHardDemod);
+               mac_sched_.GetMcs().ModOrderBits(Direction::kDownlink),
+               kDownlinkHardDemod);
 
     if (kDownlinkHardDemod && (kPrintPhyStats || kEnableCsvLog) &&
         (dl_symbol_id >= config_.Frame().ClientDlPilotSymbols())) {
       phy_stats_.UpdateDecodedBits(
           ant_id, total_dl_symbol_id, frame_slot,
           config_.GetOFDMDataNum() *
-              config_.ModOrderBits(Direction::kDownlink));
+              mac_sched_.GetMcs().ModOrderBits(Direction::kDownlink));
       phy_stats_.IncrementDecodedBlocks(ant_id, total_dl_symbol_id, frame_slot);
       int8_t* tx_bytes = config_.GetModBitsBuf(
           config_.DlModBits(), Direction::kDownlink, 0, dl_symbol_id,
@@ -478,7 +479,8 @@ void UeWorker::DoDecodeUe(DoDecodeClient* decoder, size_t tag) {
   const size_t symbol_id = gen_tag_t(tag).symbol_id_;
   const size_t ant_id = gen_tag_t(tag).ant_id_;
   if (mac_sched_.IsUeScheduled(frame_id, 0u, ant_id)) {
-    const LDPCconfig& ldpc_config = config_.LdpcConfig(Direction::kDownlink);
+    const LDPCconfig& ldpc_config =
+        mac_sched_.GetMcs().LdpcConfig(Direction::kDownlink);
     for (size_t cb_id = 0; cb_id < ldpc_config.NumBlocksInSymbol(); cb_id++) {
       // For now, call for each cb
       if (kDebugPrintDecode) {
@@ -511,7 +513,8 @@ void UeWorker::DoEncodeUe(DoEncode* encoder, size_t tag) {
   const size_t symbol_id = gen_tag_t(tag).symbol_id_;
   const size_t ant_id = gen_tag_t(tag).ue_id_;
   if (mac_sched_.IsUeScheduled(frame_id, 0u, ant_id)) {
-    const LDPCconfig& ldpc_config = config_.LdpcConfig(Direction::kUplink);
+    const LDPCconfig& ldpc_config =
+        mac_sched_.GetMcs().LdpcConfig(Direction::kUplink);
 
     // For now, call for each cb
     for (size_t cb_id = 0; cb_id < ldpc_config.NumBlocksInSymbol(); cb_id++) {
@@ -566,8 +569,9 @@ void UeWorker::DoModul(size_t tag) {
 
     // TODO place directly into the correct location of the fft buffer
     for (size_t sc = 0; sc < config_.OfdmDataNum(); sc++) {
-      modul_buf[sc] = ModSingleUint8(static_cast<uint8_t>(ul_bits[sc]),
-                                     config_.ModTable(Direction::kUplink));
+      modul_buf[sc] =
+          ModSingleUint8(static_cast<uint8_t>(ul_bits[sc]),
+                         mac_sched_.GetMcs().ModTable(Direction::kUplink));
     }
   }
 

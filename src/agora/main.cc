@@ -41,7 +41,8 @@ int main(int argc, char* argv[]) {
 
     // Register signal handler to handle kill signal
     signal_handler.SetupSignalHandlers();
-    std::unique_ptr<Agora> agora_cli = std::make_unique<Agora>(mac_scheduler.get());
+    std::unique_ptr<Agora> agora_cli =
+        std::make_unique<Agora>(mac_scheduler.get());
     agora_cli->Start();
     ret = EXIT_SUCCESS;
   } catch (SignalException& e) {

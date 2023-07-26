@@ -9,10 +9,7 @@
 
 #include "comms-constants.inc"
 #include "comms-lib.h"
-#include "config.h"
-#include "ldpc_config.h"
 #include "logger.h"
-#include "memory_manage.h"
 #include "modulation.h"
 #include "scrambler.h"
 #include "simd_types.h"
@@ -34,6 +31,7 @@ static const std::string kUlDataFilePrefix =
 static const std::string kDlDataFilePrefix =
     kExperimentFilepath + "LDPC_orig_dl_data_";
 static const std::string kUlDataFreqPrefix = kExperimentFilepath + "ul_data_f_";
+static constexpr size_t kControlMCS = 5;  // QPSK, 379/1024
 
 Mcs::Mcs(Config* const cfg)
     : ul_ldpc_config_(0, 0, 0, false, 0, 0, 0, 0),
@@ -47,7 +45,7 @@ Mcs::Mcs(Config* const cfg)
   Create_Modulation_Tables();
 
   this->frame_ = cfg_->Frame();
-  ofdm_ca_num_ = cfg_->ofdm_ca_num_;
+  ofdm_ca_num_ = cfg_->OfdmCaNum();
 
   initial_ul_mcs_properties_.base_graph = ul_mcs_params_.value("base_graph", 1);
   initial_ul_mcs_properties_.early_term =
@@ -68,9 +66,9 @@ Mcs::Mcs(Config* const cfg)
   //Initialize DL MCS
   Initialize_Dl_Mcs(dl_mcs_params_);
 
-  //Update the LDPC configs
+  //Update the LDPC mac_sched->Cfg()s
   Update_Ul_Ldpc_Config();
-  Update_Dl_Ldpc_Config();
+  Update_Dl_Ldpc_Config - ();
 
   CalculateLdpcProperties();
 }
@@ -134,8 +132,10 @@ void Mcs::Initialize_Dl_Mcs(const nlohmann::json dl_mcs) {
   }
 }
 
+//I think Dim2 is the size of the table, but I'm not 100% sure about that
+//Will have to look at this if agora is producing the wrong answer
 void Mcs::Create_Modulation_Tables() {
-  for (int i = 0; i < modulation_tables_.dl_tables.size(); i++) {
+  for (int i = 0; i < modulation_tables_.dl_tables->Dim2(); i++) {
     InitModulationTable(modulation_tables_.dl_tables[i], (i + 1) * 2);
     InitModulationTable(modulation_tables_.ul_tables[i], (i + 1) * 2);
   }
@@ -151,7 +151,7 @@ void Mcs::Update_Ul_MCS_Scheme(size_t current_frame_number) {
     current_ul_mcs_.frame_number = current_frame_number;
     current_ul_mcs_.mcs_index = next_ul_mcs_.mcs_index;
   }
-  Update_Ul_Ldpc_Config();
+  Update_Ul_Ldpc_Config->Cfg()();
 }
 
 void Mcs::Update_Dl_MCS_Scheme(size_t current_frame_number) {
@@ -159,7 +159,7 @@ void Mcs::Update_Dl_MCS_Scheme(size_t current_frame_number) {
     current_dl_mcs_.frame_number = current_frame_number;
     current_dl_mcs_.mcs_index = next_dl_mcs_.mcs_index;
   }
-  Update_Dl_Ldpc_Config();
+  Update_Dl_Ldpc_Config->Cfg()();
 }
 
 void Mcs::Set_Next_Ul_MCS_Scheme(MCS_Scheme next_mcs_scheme) {
@@ -172,7 +172,7 @@ void Mcs::Set_Next_Dl_MCS_Scheme(MCS_Scheme next_mcs_scheme) {
   next_dl_mcs_.mcs_index = next_mcs_scheme.mcs_index;
 }
 
-void Mcs::Update_Ul_Ldpc_Config() {
+void Mcs::Update_Ul_Ldpc_Config->Cfg()() {
   uint16_t base_graph = initial_ul_mcs_properties_.base_graph;
 
   size_t ul_mod_order_bits = GetModOrderBits(current_ul_mcs_.mcs_index);
@@ -181,8 +181,9 @@ void Mcs::Update_Ul_Ldpc_Config() {
   Table<complex_float> ul_mod_table_ =
       modulation_tables_.ul_tables[ul_mod_order_bits / 2 - 1];
 
-  size_t zc = SelectZc(base_graph, ul_code_rate, ul_mod_order_bits,
-                       cfg_->OfdmDataNum, Config::kCbPerSymbol, "uplink");
+  size_t zc =
+      SelectZc(base_graph, ul_code_rate, ul_mod_order_bits, cfg_->OfdmDataNum,
+               mac_sched->Cfg()::kCbPerSymbol, "uplink");
 
   // Always positive since ul_code_rate is smaller than 1024
   size_t num_rows = static_cast<size_t>(std::round(
@@ -213,8 +214,9 @@ void Mcs::Update_Dl_Ldpc_Config() {
   Table<complex_float> dl_mod_table_ =
       modulation_tables_.dl_tables[dl_mod_order_bits / 2 - 1];
 
-  size_t zc = SelectZc(base_graph, dl_code_rate, dl_mod_order_bits,
-                       cfg_->OfdmDataNum, Config::kCbPerSymbol, "uplink");
+  size_t zc =
+      SelectZc(base_graph, dl_code_rate, dl_mod_order_bits, cfg_->OfdmDataNum,
+               mac_sched->Cfg()::kCbPerSymbol, "uplink");
 
   // Always positive since ul_code_rate is smaller than 1024
   size_t num_rows = static_cast<size_t>(std::round(
@@ -324,7 +326,7 @@ void Mcs::CalculateLdpcProperties() {
   }
 }
 
-void Config::GenPilots() {
+void Mcs::GenPilots() {
   if ((kUseArgos == true) || (kUseUHD == true) || (kUsePureUHD == true)) {
     std::vector<std::vector<double>> gold_ifft =
         CommsLib::GetSequence(128, CommsLib::kGoldIfft);
@@ -385,20 +387,20 @@ void Config::GenPilots() {
   this->common_pilot_ =
       CommsLib::SeqCyclicShift(zc_seq, M_PI / 4);  // Used in LTE SRS
 
-  this->pilots_ = static_cast<complex_float*>(Agora_memory::PaddedAlignedAlloc(
+  cfg_->Pilots() = static_cast<complex_float*>(Agora_memory::PaddedAlignedAlloc(
       Agora_memory::Alignment_t::kAlign64,
       this->ofdm_data_num_ * sizeof(complex_float)));
-  this->pilots_sgn_ =
+  this->PilotsSgn() =
       static_cast<complex_float*>(Agora_memory::PaddedAlignedAlloc(
           Agora_memory::Alignment_t::kAlign64,
           this->ofdm_data_num_ *
               sizeof(complex_float)));  // used in CSI estimation
   for (size_t i = 0; i < ofdm_data_num_; i++) {
-    this->pilots_[i] = {this->common_pilot_[i].real(),
+    this->Pilots()[i] = {this->common_pilot_[i].real(),
                         this->common_pilot_[i].imag()};
     auto pilot_sgn = this->common_pilot_[i] /
                      (float)std::pow(std::abs(this->common_pilot_[i]), 2);
-    this->pilots_sgn_[i] = {pilot_sgn.real(), pilot_sgn.imag()};
+    cfg_->PilotsSgn()[i] = {pilot_sgn.real(), pilot_sgn.imag()};
   }
 
   RtAssert(pilot_ifft_ == nullptr, "pilot_ifft_ should be null");
@@ -410,7 +412,7 @@ void Config::GenPilots() {
     const size_t k = j + ofdm_data_start_ >= ofdm_ca_num_ / 2
                          ? j + ofdm_data_start_ - ofdm_ca_num_ / 2
                          : j + ofdm_data_start_ + ofdm_ca_num_ / 2;
-    pilot_ifft_[k] = this->pilots_[j];
+    pilot_ifft_[k] = this->Pilots()[j];
   }
   CommsLib::IFFT(pilot_ifft_, this->ofdm_ca_num_, false);
 
@@ -439,7 +441,7 @@ void Config::GenPilots() {
   }
 }
 
-void Config::GenData() {
+void Mcs::GenData() {
   this->GenPilots();
   // Get uplink and downlink raw bits either from file or random numbers
   const size_t dl_num_bytes_per_ue_pad =
@@ -483,13 +485,13 @@ void Config::GenData() {
     const std::string ul_data_file =
         kUlDataFilePrefix + std::to_string(this->ofdm_ca_num_) + "_ant" +
         std::to_string(this->ue_ant_total_) + ".bin";
-    AGORA_LOG_SYMBOL("Config: Reading raw ul data from %s\n",
+    AGORA_LOG_SYMBOL("mac_sched->Cfg(): Reading raw ul data from %s\n",
                      ul_data_file.c_str());
     FILE* fd = std::fopen(ul_data_file.c_str(), "rb");
     if (fd == nullptr) {
       AGORA_LOG_ERROR("Failed to open antenna file %s. Error %s.\n",
                       ul_data_file.c_str(), strerror(errno));
-      throw std::runtime_error("Config: Failed to open antenna file");
+      throw std::runtime_error("mac_sched->Cfg(): Failed to open antenna file");
     }
 
     for (size_t i = frame_.ClientUlPilotSymbols(); i < frame_.NumULSyms();
@@ -532,13 +534,14 @@ void Config::GenData() {
         kDlDataFilePrefix + std::to_string(this->ofdm_ca_num_) + "_ant" +
         std::to_string(this->ue_ant_total_) + ".bin";
 
-    AGORA_LOG_SYMBOL("Config: Reading raw dl data from %s\n",
+    AGORA_LOG_SYMBOL("mac_sched->Cfg(): Reading raw dl data from %s\n",
                      dl_data_file.c_str());
     FILE* fd = std::fopen(dl_data_file.c_str(), "rb");
     if (fd == nullptr) {
       AGORA_LOG_ERROR("Failed to open antenna file %s. Error %s.\n",
                       dl_data_file.c_str(), strerror(errno));
-      throw std::runtime_error("Config: Failed to open dl antenna file");
+      throw std::runtime_error(
+          "mac_sched->Cfg(): Failed to open dl antenna file");
     }
 
     for (size_t i = this->frame_.ClientDlPilotSymbols();
@@ -635,7 +638,8 @@ void Config::GenData() {
       if (fp_tx_f == nullptr) {
         AGORA_LOG_ERROR("Failed to create ul sc data file %s. Error %s.\n",
                         filename_ul_data_f.c_str(), strerror(errno));
-        throw std::runtime_error("Config: Failed to create ul sc data file");
+        throw std::runtime_error(
+            "mac_sched->Cfg(): Failed to create ul sc data file");
       }
       vec_fp_tx.push_back(fp_tx_f);
     }
@@ -663,7 +667,8 @@ void Config::GenData() {
             std::fwrite(&ul_iq_ifft[i][u * ofdm_ca_num_], sizeof(complex_float),
                         ofdm_ca_num_, vec_fp_tx.at(u / num_ue_channels_));
         if (write_status != ofdm_ca_num_) {
-          AGORA_LOG_ERROR("Config: Failed to write ul sc data file\n");
+          AGORA_LOG_ERROR(
+              "mac_sched->Cfg(): Failed to write ul sc data file\n");
         }
       }
       CommsLib::IFFT(&ul_iq_ifft[i][u * ofdm_ca_num_], ofdm_ca_num_, false);
@@ -673,7 +678,8 @@ void Config::GenData() {
     for (size_t i = 0; i < vec_fp_tx.size(); i++) {
       const auto close_status = std::fclose(vec_fp_tx.at(i));
       if (close_status != 0) {
-        AGORA_LOG_ERROR("Config: Failed to close ul sc data file %zu\n", i);
+        AGORA_LOG_ERROR(
+            "mac_sched->Cfg(): Failed to close ul sc data file %zu\n", i);
       }
     }
   }
@@ -846,7 +852,7 @@ void Config::GenData() {
                                         : (org_sc + center_sc);
           if (this->freq_orthogonal_pilot_ == false ||
               sc_id % this->pilot_sc_group_size_ == ue_id) {
-            pilot_ifft_[shifted_sc] = this->pilots_[sc_id];
+            pilot_ifft_[shifted_sc] = cfg_->Pilots()[sc_id];
             pilot_sc_list.push_back(org_sc);
           } else {
             pilot_ifft_[shifted_sc].re = 0.0f;
@@ -865,7 +871,7 @@ void Config::GenData() {
   if (kDebugPrintPilot) {
     std::cout << "Pilot data = [" << std::endl;
     for (size_t sc_id = 0; sc_id < ofdm_data_num_; sc_id++) {
-      std::cout << pilots_[sc_id].re << "+1i*" << pilots_[sc_id].im << " ";
+      std::cout << cfg_->Pilots()[sc_id].re << "+1i*" << cfg_Pilots()[sc_id].im << " ";
     }
     std::cout << std::endl << "];" << std::endl;
     for (size_t ue_id = 0; ue_id < ue_ant_num_; ue_id++) {
@@ -933,6 +939,84 @@ inline size_t SelectZc(size_t base_graph, size_t code_rate,
   return zc;
 }
 
-LDPCconfig Mcs::Ul_Ldpc_Config() { return ul_ldpc_config_; }
+void Mcs::UpdateCtrlMCS() {
+  if (this->frame_.NumDlControlSyms() > 0) {
+    const size_t dl_bcast_mcs_index = kControlMCS;
+    const size_t bcast_base_graph =
+        1;  // TODO: For MCS < 5, base_graph 1 doesn't work
+    dl_bcast_mod_order_bits_ = GetModOrderBits(dl_bcast_mcs_index);
+    const size_t dl_bcast_code_rate = GetCodeRate(dl_bcast_mcs_index);
+    std::string dl_bcast_modulation = MapModToStr(dl_bcast_mod_order_bits_);
+    const int16_t max_decoder_iter = 5;
+    size_t bcast_zc =
+        SelectZc(bcast_base_graph, dl_bcast_code_rate, dl_bcast_mod_order_bits_,
+                 cfg_->GetOFDMCtrlNum(), kCbPerSymbol, "downlink broadcast");
 
-LDPCconfig Mcs::Dl_Ldpc_Config() { return dl_ldpc_config_; }
+    // Always positive since dl_code_rate is smaller than 1
+    size_t bcast_num_rows =
+        static_cast<size_t>(std::round(
+            1024.0 * LdpcNumInputCols(bcast_base_graph) / dl_bcast_code_rate)) -
+        (LdpcNumInputCols(bcast_base_graph) - 2);
+
+    uint32_t bcast_num_cb_len = LdpcNumInputBits(bcast_base_graph, bcast_zc);
+    uint32_t bcast_num_cb_codew_len =
+        LdpcNumEncodedBits(bcast_base_graph, bcast_zc, bcast_num_rows);
+    dl_bcast_ldpc_config_ =
+        LDPCconfig(bcast_base_graph, bcast_zc, max_decoder_iter, true,
+                   bcast_num_cb_len, bcast_num_cb_codew_len, bcast_num_rows, 0);
+
+    dl_bcast_ldpc_config_.NumBlocksInSymbol(
+        (cfg_->GetOFDMCtrlNum() * dl_bcast_mod_order_bits_) /
+        dl_bcast_ldpc_config_.NumCbCodewLen());
+    RtAssert(dl_bcast_ldpc_config_.NumBlocksInSymbol() > 0,
+             "Downlink Broadcast LDPC expansion factor is too large for number "
+             "of OFDM data "
+             "subcarriers.");
+    AGORA_LOG_INFO(
+        "Downlink Broadcast MCS Info: LDPC: Zc: %d, %zu code blocks per "
+        "symbol, "
+        "%d "
+        "information "
+        "bits per encoding, %d bits per encoded code word, decoder "
+        "iterations: %d, code rate %.3f (nRows = %zu), modulation %s\n",
+        dl_bcast_ldpc_config_.ExpansionFactor(),
+        dl_bcast_ldpc_config_.NumBlocksInSymbol(),
+        dl_bcast_ldpc_config_.NumCbLen(), dl_bcast_ldpc_config_.NumCbCodewLen(),
+        dl_bcast_ldpc_config_.MaxDecoderIter(),
+        1.f * LdpcNumInputCols(dl_bcast_ldpc_config_.BaseGraph()) /
+            (LdpcNumInputCols(dl_bcast_ldpc_config_.BaseGraph()) - 2 +
+             dl_bcast_ldpc_config_.NumRows()),
+        dl_bcast_ldpc_config_.NumRows(), dl_bcast_modulation.c_str());
+  }
+}
+
+void Mcs::DumpMcsInfo() {
+  AGORA_LOG_INFO(
+      "Uplink MCS Info: LDPC: Zc: %d, %zu code blocks per symbol, %d "
+      "information "
+      "bits per encoding, %d bits per encoded code word, decoder "
+      "iterations: %d, code rate %.3f (nRows = %zu), modulation %s\n",
+      ul_ldpc_config_.ExpansionFactor(), ul_ldpc_config_.NumBlocksInSymbol(),
+      ul_ldpc_config_.NumCbLen(), ul_ldpc_config_.NumCbCodewLen(),
+      ul_ldpc_config_.MaxDecoderIter(),
+      1.f * LdpcNumInputCols(ul_ldpc_config_.BaseGraph()) /
+          (LdpcNumInputCols(ul_ldpc_config_.BaseGraph()) - 2 +
+           ul_ldpc_config_.NumRows()),
+      ul_ldpc_config_.NumRows(), ul_modulation_.c_str());
+  AGORA_LOG_INFO(
+      "Downlink MCS Info: LDPC: Zc: %d, %zu code blocks per symbol, %d "
+      "information "
+      "bits per encoding, %d bits per encoded code word, decoder "
+      "iterations: %d, code rate %.3f (nRows = %zu), modulation %s\n",
+      dl_ldpc_config_.ExpansionFactor(), dl_ldpc_config_.NumBlocksInSymbol(),
+      dl_ldpc_config_.NumCbLen(), dl_ldpc_config_.NumCbCodewLen(),
+      dl_ldpc_config_.MaxDecoderIter(),
+      1.f * LdpcNumInputCols(dl_ldpc_config_.BaseGraph()) /
+          (LdpcNumInputCols(dl_ldpc_config_.BaseGraph()) - 2 +
+           dl_ldpc_config_.NumRows()),
+      dl_ldpc_config_.NumRows(), dl_modulation_.c_str());
+}
+
+LDPCconfig Mcs::Ul_Ldpc_Config() { return this->ul_ldpc_config_; }
+
+LDPCconfig Mcs::Dl_Ldpc_Config() { return this->dl_ldpc_config_; }

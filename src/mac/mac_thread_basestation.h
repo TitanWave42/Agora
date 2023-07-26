@@ -11,6 +11,7 @@
 #include "config.h"
 #include "crc.h"
 #include "gettime.h"
+#include "mac_scheduler.h"
 #include "message.h"
 #include "ran_config.h"
 #include "symbols.h"
@@ -78,6 +79,8 @@ class MacThreadBaseStation {
   void ProcessUdpPacketsFromAppsBs(const char* payload);
 
   Config* const cfg_;
+
+  MacScheduler* const mac_sched_;
 
   const double freq_ghz_;  // RDTSC frequency in GHz
   // We check for new MAC packets from applications every [tsc_delta_]

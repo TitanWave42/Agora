@@ -25,8 +25,8 @@ DoEncode::DoEncode(Config* in_config, int in_tid, Direction dir,
       mod_bits_buffer_(in_mod_bits_buffer),
       mac_sched_(mac_sched),
       scrambler_(std::make_unique<AgoraScrambler::Scrambler>()) {
-  const auto bg = cfg_->LdpcConfig(dir).BaseGraph();
-  const auto zc = cfg_->LdpcConfig(dir).ExpansionFactor();
+  const auto bg = mac_sched_->GetMcs()->LdpcConfig(dir).BaseGraph();
+  const auto zc = mac_sched_->GetMcs()->LdpcConfig(dir).ExpansionFactor();
 
   duration_stat_ = in_stats_manager->GetDurationStat(DoerType::kEncode, in_tid);
   parity_buffer_ = static_cast<int8_t*>(Agora_memory::PaddedAlignedAlloc(
@@ -36,8 +36,8 @@ DoEncode::DoEncode(Config* in_config, int in_tid, Direction dir,
       Agora_memory::Alignment_t::kAlign64, LdpcEncodingEncodedBufSize(bg, zc)));
   assert(encoded_buffer_temp_ != nullptr);
 
-  scrambler_buffer_bytes_ =
-      cfg_->NumBytesPerCb(dir) + cfg_->NumPaddingBytesPerCb(dir);
+  scrambler_buffer_bytes_ = mac_sched_->GetMcs()->NumBytesPerCb(dir) +
+                            cfg_->NumPaddingBytesPerCb(dir);
 
   scrambler_buffer_ = static_cast<int8_t*>(Agora_memory::PaddedAlignedAlloc(
       Agora_memory::Alignment_t::kAlign64, scrambler_buffer_bytes_));
@@ -53,7 +53,7 @@ DoEncode::~DoEncode() {
 }
 
 EventData DoEncode::Launch(size_t tag) {
-  const LDPCconfig& ldpc_config = cfg_->LdpcConfig(dir_);
+  const LDPCconfig& ldpc_config = mac_sched_->GetMcs()->LdpcConfig(dir_);
   const size_t frame_id = gen_tag_t(tag).frame_id_;
   const size_t symbol_id = gen_tag_t(tag).symbol_id_;
   const size_t cb_id = gen_tag_t(tag).cb_id_;
@@ -90,9 +90,9 @@ EventData DoEncode::Launch(size_t tag) {
   /// universal with raw_buffer_rollover_ the parameter.
   if (kEnableMac) {
     // All cb's per symbol are included in 1 mac packet
-    tx_data_ptr = cfg_->GetMacBits(raw_data_buffer_, dir_,
-                                   (frame_id % raw_buffer_rollover_),
-                                   symbol_idx_data, ue_id, cur_cb_id);
+    tx_data_ptr = mac_sched_->GetMcs()->GetMacBits(
+        raw_data_buffer_, dir_, (frame_id % raw_buffer_rollover_),
+        symbol_idx_data, ue_id, cur_cb_id);
 
     if (kPrintRawMacData) {
       auto* pkt = reinterpret_cast<MacPacketPacked*>(tx_data_ptr);
@@ -100,8 +100,9 @@ EventData DoEncode::Launch(size_t tag) {
           "In doEncode [%d] mac packet frame: %d, symbol: %zu:%d, ue_id: %d, "
           "data length %d, crc %d size %zu:%zu\n",
           tid_, pkt->Frame(), symbol_idx_data, pkt->Symbol(), pkt->Ue(),
-          pkt->PayloadLength(), pkt->Crc(), cfg_->MacPacketLength(dir_),
-          cfg_->NumBytesPerCb(dir_));
+          pkt->PayloadLength(), pkt->Crc(),
+          mac_sched_->GetMcs()->MacPacketLength(dir_),
+          mac_sched_->GetMcs()->NumBytesPerCb(dir_));
       std::printf("Data: ");
       for (size_t i = 0; i < cfg_->MacPayloadMaxLength(dir_); i++) {
         std::printf(" %02x", (uint8_t)(pkt->Data()[i]));
@@ -109,12 +110,12 @@ EventData DoEncode::Launch(size_t tag) {
       std::printf("\n");
     }
   } else {
-    tx_data_ptr =
-        cfg_->GetInfoBits(raw_data_buffer_, dir_, symbol_idx, ue_id, cur_cb_id);
+    tx_data_ptr = mac_sched_->GetMcs()->GetInfoBits(
+        raw_data_buffer_, dir_, symbol_idx, ue_id, cur_cb_id);
   }
 
   int8_t* ldpc_input = tx_data_ptr;
-  const size_t num_bytes_per_cb = cfg_->NumBytesPerCb(dir_);
+  const size_t num_bytes_per_cb = mac_sched_->GetMcs()->NumBytesPerCb(dir_);
 
   if (this->cfg_->ScrambleEnabled()) {
     scrambler_->Scramble(scrambler_buffer_, ldpc_input, num_bytes_per_cb);
@@ -166,7 +167,7 @@ EventData DoEncode::Launch(size_t tag) {
 
   if (kPrintEncodedData) {
     std::printf("Encoded data\n");
-    const size_t num_mod = cfg_->SubcarrierPerCodeBlock(dir_);
+    const size_t num_mod = mac_sched_->GetMcs()->SubcarrierPerCodeBlock(dir_);
     for (size_t i = 0; i < num_mod; i++) {
       std::printf("%u ", *(mod_buffer_ptr + i));
     }

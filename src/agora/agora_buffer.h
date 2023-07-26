@@ -13,6 +13,7 @@
 #include "concurrentqueue.h"
 #include "config.h"
 #include "mac_scheduler.h"
+#include "mcs.h"
 #include "memory_manage.h"
 #include "message.h"
 #include "symbols.h"
@@ -20,7 +21,7 @@
 
 class AgoraBuffer {
  public:
-  explicit AgoraBuffer(Config* const cfg);
+  explicit AgoraBuffer(MacScheduler* const mac_sched_);
   // Delete copy constructor and copy assignment
   AgoraBuffer(AgoraBuffer const&) = delete;
   AgoraBuffer& operator=(AgoraBuffer const&) = delete;
@@ -95,6 +96,7 @@ class AgoraBuffer {
   char* dl_socket_buffer_;
   Table<complex_float> calib_ul_buffer_;
   Table<complex_float> calib_dl_buffer_;
+  MacScheduler* mac_sched_;
 };
 
 struct SchedInfo {
