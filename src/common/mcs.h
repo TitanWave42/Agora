@@ -6,9 +6,10 @@
 #define MCS_H_
 
 #include "config.h"
+#include "memory_manage.h"
 #include "nlohmann/json.hpp"
 #include "utils.h"
-#include "memory_manage.h"
+//#include "comms-constants.inc"
 
 const size_t kNumTables = 5;
 
@@ -42,11 +43,8 @@ class Mcs {
   explicit Mcs(Config* const cfg);
   ~Mcs();
 
-  LDPCconfig Ul_Ldpc_Config();
-  LDPCconfig Dl_Ldpc_Config();
-
-  void Create_Modulation_Tables();
-  void Update_MCS_Schemes(size_t current_frame_number);
+  void CreateModulationTables();
+  void UpdateMcsSchemes(size_t current_frame_number);
 
   void Set_Next_Ul_MCS_Scheme(MCS_Scheme next_mcs_scheme);
   void Set_Next_Dl_MCS_Scheme(MCS_Scheme next_mcs_scheme);
@@ -132,7 +130,7 @@ class Mcs {
     }
     return &info_bits[symbol_id][Roundup<64>(num_bytes_per_cb) *
                                  (num_blocks_in_symbol * ue_id + cb_id)];
-  }
+  };
 
   //EVENTUALLY UPDATE THIS FUNCTION TO TAKE num_byte_per_cb as an argument
   //because the num_bytes_per_cb is determined by the MCS and is effectively
@@ -157,7 +155,7 @@ class Mcs {
     return &info_bits[ue_id][(frame_id % kFrameWnd) * mac_bytes_perframe +
                              symbol_id * mac_packet_length +
                              cb_id * num_bytes_per_cb];
-  }
+  };
 
   void GenData();
   void GenPilots();
@@ -166,12 +164,114 @@ class Mcs {
   void UpdateCtrlMCS();
 
   inline const arma::uvec& PilotUeSc(size_t ue_id) const {
-  return this->pilot_ue_sc_.at(ue_id);
+    return this->pilot_ue_sc_.at(ue_id);
+  }
+
+  inline std::vector<std::complex<int16_t>>& BeaconCi16() {
+    return this->beacon_ci16_;
+  };
+
+  LDPCconfig Ul_Ldpc_Config();
+  LDPCconfig Dl_Ldpc_Config();
+
+  inline std::vector<std::complex<int16_t>>& PilotUeCi16(size_t ue_id,
+                                                         size_t pilot_idx) {
+    return this->pilot_ue_ci16_.at(ue_id).at(pilot_idx);
+  };
+
+  inline const std::vector<uint32_t>& Pilot() const { return this->pilot_; };
+
+  inline const std::vector<std::complex<float>>& PilotCf32() const {
+    return this->pilot_cf32_;
+  };
+
+  inline float Scale() const { return this->scale_; }
+
+  inline Table<std::complex<int16_t>>& DlIqT() { return this->dl_iq_t_; }
+
+  inline const std::vector<std::string>& UlTxFreqDataFiles() const {
+    return ul_tx_f_data_files_;
+  }
+  /// Get encoded_buffer for this frame, symbol, user and code block ID
+  inline int8_t* GetModBitsBuf(Table<int8_t>& mod_bits_buffer, Direction dir,
+                               size_t frame_id, size_t symbol_id, size_t ue_id,
+                               size_t sc_id) const {
+    size_t total_data_symbol_id;
+    size_t ofdm_data_num;
+    if (dir == Direction::kDownlink) {
+      total_data_symbol_id = cfg_->GetTotalDataSymbolIdxDl(frame_id, symbol_id);
+      ofdm_data_num = cfg_->GetOFDMDataNum();
+    } else {
+      total_data_symbol_id = cfg_->GetTotalDataSymbolIdxUl(frame_id, symbol_id);
+      ofdm_data_num = cfg_->OfdmDataNum();
+    }
+
+    return &mod_bits_buffer[total_data_symbol_id]
+                           [Roundup<64>(ofdm_data_num) * ue_id + sc_id];
+  }
+
+  inline Table<int8_t>& DlModBits() { return this->dl_mod_bits_; }
+  inline Table<int8_t>& UlModBits() { return this->ul_mod_bits_; }
+  inline Table<int8_t>& DlBits() { return this->dl_bits_; }
+  inline Table<int8_t>& UlBits() { return this->ul_bits_; }
+  inline Table<std::complex<int16_t>>& UlIqT() { return this->ul_iq_t_; }
+
+  inline Table<complex_float>& UlIqF() { return this->ul_iq_f_; }
+  inline Table<complex_float>& DlIqF() { return this->dl_iq_f_; }
+
+  inline const complex_float* Pilots(void) const { return this->pilots_; };
+  inline const complex_float* PilotsSgn() const { return this->pilots_sgn_; };
+
 
  private:
+
+  complex_float* pilots_;
+  complex_float* pilots_sgn_;
+
+  Table<complex_float> dl_iq_f_;
+  Table<complex_float> ul_iq_f_;
+
+  Table<int8_t> ul_bits_;
+
+  Table<int8_t> dl_bits_;
+
+  Table<int8_t> ul_mod_bits_;
+
+  std::vector<std::string> ul_tx_f_data_files_;
+
+  float scale_;  // Scaling factor for all transmit symbols
+
+  Table<std::complex<int16_t>> dl_iq_t_;
+  Table<std::complex<int16_t>> ul_iq_t_;
+
+  Table<int8_t> dl_mod_bits_;
+
+  std::vector<uint32_t> pilot_;
+
+  std::vector<std::complex<float>> pilot_cf32_;
+
+  /// I/Q samples of pilots per UE antenna per pilot symbol
+  std::vector<std::vector<std::vector<std::complex<int16_t>>>> pilot_ue_ci16_;
+
+  complex_float* pilot_ifft_;
+
+  std::vector<std::complex<float>> gold_cf32_;
+
   static constexpr size_t kCbPerSymbol = 1;
 
-    /// List of subcarriers used per UE to transmit pilot
+  size_t beacon_len_;
+
+  std::vector<uint32_t> beacon_;
+  std::vector<uint32_t> coeffs_;
+
+  std::vector<std::complex<float>> common_pilot_;
+
+  std::vector<std::complex<int16_t>> beacon_ci16_;
+
+  LDPCconfig ul_ldpc_config_;  //Uplink LDPC parameters
+  LDPCconfig dl_ldpc_config_;  //Downlink LDPC parameters
+
+  /// List of subcarriers used per UE to transmit pilot
   std::vector<arma::uvec> pilot_ue_sc_;
 
   Table<complex_float> ue_specific_pilot_;
@@ -242,8 +342,9 @@ class Mcs {
   MCS_Scheme next_dl_mcs_;
 
   Modulation_Tables modulation_tables_;
-  LDPCconfig ul_ldpc_config_;  //Uplink LDPC parameters
-  LDPCconfig dl_ldpc_config_;  //Downlink LDPC parameters
+
+  Table<complex_float> ue_pilot_ifft_;
+
   Config* const cfg_;
   FrameStats frame_;
   size_t ofdm_ca_num_;
@@ -254,8 +355,8 @@ class Mcs {
   void Initialize_Ul_Mcs(const nlohmann::json ul_mcs);
   void Initialize_Dl_Mcs(const nlohmann::json dl_mcs);
 
-  void Update_Ul_MCS_Scheme(size_t current_frame_number);
-  void Update_Dl_MCS_Scheme(size_t current_frame_number);
+  void UpdateUlMcsScheme(size_t current_frame_number);
+  void UpdateDlMcsScheme(size_t current_frame_number);
   void Update_Ldpc_Properties();
   void CalculateLdpcProperties();
 };

@@ -30,7 +30,7 @@
 class Agora {
  public:
   /// Create an Agora object and start the worker threads
-  explicit Agora(Config* cfg);
+  explicit Agora(MscScheduler* cfg);
   ~Agora();
 
   void Start();  /// The main Agora event loop

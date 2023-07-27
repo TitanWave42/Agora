@@ -260,7 +260,7 @@ void MacThreadBaseStation::SendControlInformation() {
   // send RAN control information UE
   RBIndicator ri;
   ri.ue_id_ = next_radio_id_;
-  ri.mcs_index_ = mac_scheduler->GetMcs()->McsIndex(Direction::kUplink);
+  ri.mcs_index_ = mac_sched_->GetMcs()->McsIndex(Direction::kUplink);
   udp_comm_->Send(cfg_->UeServerAddr(), kMacBaseClientPort + ri.ue_id_,
                   reinterpret_cast<std::byte*>(&ri), sizeof(RBIndicator));
 

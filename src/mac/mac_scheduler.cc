@@ -4,8 +4,9 @@
  */
 #include "mac_scheduler.h"
 
-MacScheduler::MacScheduler(Config* const cfg) : cfg_(cfg) {
-  mcs_ = std::make_unique<Mcs>(cfg);
+MacScheduler::MacScheduler(Config* const cfg)
+    : cfg_(cfg), mcs_(std::make_unique<Mcs>(cfg)) {
+  //mcs_ = std::make_unique<Mcs>(cfg);
   num_groups_ =
       (cfg_->SpatialStreamsNum() == cfg_->UeAntNum()) ? 1 : cfg_->UeAntNum();
   schedule_buffer_.Calloc(num_groups_, cfg_->UeAntNum() * cfg_->OfdmDataNum(),

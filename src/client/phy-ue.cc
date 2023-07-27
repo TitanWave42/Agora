@@ -49,7 +49,9 @@ PhyUe::PhyUe(Config* config)
                     kMaxModType * Roundup<64>(config->GetOFDMDataNum())),
       decoded_buffer_(
           kFrameWnd, config->Frame().NumDLSyms(), config->UeAntNum(),
-          config->LdpcConfig(Direction::kDownlink).NumBlocksInSymbol() *
+          mac_sched_->GetMcs()
+                  ->LdpcConfig(Direction::kDownlink)
+                  .NumBlocksInSymbol() *
               Roundup<64>(
                   mac_sched_->GetMcs()->NumBytesPerCb(Direction::kDownlink))) {
   srand(time(nullptr));
@@ -651,9 +653,9 @@ void PhyUe::Start() {
                    "Radio buffer id does not match expected");
 
           const auto* pkt = reinterpret_cast<const MacPacketPacked*>(
-              &ul_bits_buffer_[ue_id]
-                              [radio_buf_id * config_->MacBytesNumPerframe(
-                                                  Direction::kUplink)]);
+              &ul_bits_buffer_[ue_id][radio_buf_id *
+                                      mac_sched_->GetMcs()->MacBytesNumPerframe(
+                                          Direction::kUplink)]);
 
           AGORA_LOG_TRACE(
               "PhyUe: frame %d symbol %d user %d @ offset %zu %zu @ location "
@@ -691,7 +693,7 @@ void PhyUe::Start() {
               ss << std::endl;
               pkt = reinterpret_cast<const MacPacketPacked*>(
                   reinterpret_cast<const uint8_t*>(pkt) +
-                  config_->MacPacketLength(Direction::kUplink));
+                  mac_sched_->GetMcs()->MacPacketLength(Direction::kUplink));
             }
             AGORA_LOG_INFO("%s\n", ss.str().c_str());
           }
@@ -907,7 +909,7 @@ void PhyUe::InitializeVarsFromCfg() {
 void PhyUe::InitializeUplinkBuffers() {
   // initialize ul data buffer
   ul_bits_buffer_size_ =
-      kFrameWnd * config_->MacBytesNumPerframe(Direction::kUplink);
+      kFrameWnd * mac_sched_->GetMcs()->MacBytesNumPerframe(Direction::kUplink);
   ul_bits_buffer_.Malloc(config_->UeAntNum(), ul_bits_buffer_size_,
                          Agora_memory::Alignment_t::kAlign64);
   ul_bits_buffer_status_.Calloc(config_->UeAntNum(), kFrameWnd,

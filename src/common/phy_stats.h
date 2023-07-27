@@ -8,6 +8,7 @@
 #include "armadillo"
 #include "common_typedef_sdk.h"
 #include "config.h"
+#include "mac_scheduler.h"
 #include "mat_logger.h"
 #include "memory_manage.h"
 #include "symbols.h"
@@ -66,6 +67,7 @@ class PhyStats {
 
  private:
   Config const* const config_;
+  MacScheduler* mac_sched_;
   Direction dir_;
   Table<size_t> decoded_bits_count_;
   Table<size_t> bit_error_count_;

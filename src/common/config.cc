@@ -36,6 +36,18 @@ static constexpr size_t kShortIdLen = 3;
 static constexpr size_t kVarNodesSize = 1024 * 1024 * sizeof(int16_t);
 static constexpr size_t kControlMCS = 5;  // QPSK, 379/1024
 
+//Eventually Will have to fully migrate this to MCS.
+static const std::string kLogFilepath =
+    TOSTRING(PROJECT_DIRECTORY) "/files/log/";
+static const std::string kExperimentFilepath =
+    TOSTRING(PROJECT_DIRECTORY) "/files/experiment/";
+static const std::string kUlDataFilePrefix =
+    kExperimentFilepath + "LDPC_orig_ul_data_";
+static const std::string kDlDataFilePrefix =
+    kExperimentFilepath + "LDPC_orig_dl_data_";
+static const std::string kUlDataFreqPrefix = kExperimentFilepath + "ul_data_f_";
+static constexpr size_t kControlMCS = 5;  // QPSK, 379/1024
+
 /// Print the I/Q samples in the pilots
 static constexpr bool kDebugPrintPilot = false;
 
@@ -45,7 +57,6 @@ Config::Config(std::string jsonfilename)
       dl_ldpc_config_(0, 0, 0, false, 0, 0, 0, 0),
       dl_bcast_ldpc_config_(0, 0, 0, false, 0, 0, 0, 0),
       frame_(""),
-      pilot_ifft_(nullptr),
       config_filename_(std::move(jsonfilename)) {
   auto time = std::time(nullptr);
   auto local_time = *std::localtime(&time);
@@ -56,8 +67,7 @@ Config::Config(std::string jsonfilename)
                std::to_string(local_time.tm_min) + "-" +
                std::to_string(local_time.tm_sec);
 
-  pilots_ = nullptr;
-  pilots_sgn_ = nullptr;
+  
 
   std::string conf;
   Utils::LoadTddConfig(config_filename_, conf);
@@ -561,7 +571,7 @@ Config::Config(std::string jsonfilename)
   // estimation for each user.
   size_t client_dl_pilot_syms = tdd_conf.value("client_dl_pilot_syms", 0);
   RtAssert(client_dl_pilot_syms <= frame_.NumDLSyms(),
-           "Number of DL pilot symbol exceeds number of DL symbols!");
+           "Number of ul_iq_t_DL pilot symbol exceeds number of DL symbols!");
   // client_ul_pilot_sym uses the first x 'U' symbols for downlink channel
   // estimation for each user.
   size_t client_ul_pilot_syms = tdd_conf.value("client_ul_pilot_syms", 0);
@@ -605,10 +615,6 @@ Config::Config(std::string jsonfilename)
 
   if (std::filesystem::is_directory(kExperimentFilepath) == false) {
     std::filesystem::create_directory(kExperimentFilepath);
-  }
-
-  if (std::filesystem::is_directory(kLogFilepath) == false) {
-    std::filesystem::create_directory(kLogFilepath);
   }
 
   // set trace file path
@@ -685,7 +691,7 @@ Config::Config(std::string jsonfilename)
 
   // //Create a modulation and coding object to handling mcs behaviors in the config.
   // Mcs mcs(ul_mcs_params_, dl_mcs_params_, ofdm_data_num_);
-  // //mcs.Create_Modulation_Tables();
+  // //mcs.CreateModulationTables();
 
   // ul_ldpc_config_ = mcs.Ul_Ldpc_Config();
   // dl_ldpc_config_ = mcs.Dl_Ldpc_Config();
@@ -794,250 +800,15 @@ json Config::Parse(const json& in_json, const std::string& json_handle) {
   return out_json;
 }
 
-//-------------------------
-void Config::UpdateUlMCS(const json& ul_mcs) {
-  if (ul_mcs.find("mcs_index") == ul_mcs.end()) {
-    ul_modulation_ = ul_mcs.value("modulation", "16QAM");
-    ul_mod_order_bits_ = kModulStringMap.at(ul_modulation_);
 
-    double ul_code_rate_usr = ul_mcs.value("code_rate", 0.333);
-    size_t code_rate_int =
-        static_cast<size_t>(std::round(ul_code_rate_usr * 1024.0));
 
-    ul_mcs_index_ = CommsLib::GetMcsIndex(ul_mod_order_bits_, code_rate_int);
-    ul_code_rate_ = GetCodeRate(ul_mcs_index_);
-    if (ul_code_rate_ / 1024.0 != ul_code_rate_usr) {
-      AGORA_LOG_WARN(
-          "Rounded the user-defined uplink code rate to the closest standard "
-          "rate %zu/1024.\n",
-          ul_code_rate_);
-    }
-  } else {
-    ul_mcs_index_ = ul_mcs.value("mcs_index", 10);  // 16QAM, 340/1024
-    ul_mod_order_bits_ = GetModOrderBits(ul_mcs_index_);
-    ul_modulation_ = MapModToStr(ul_mod_order_bits_);
-    ul_code_rate_ = GetCodeRate(ul_mcs_index_);
-    ul_modulation_ = MapModToStr(ul_mod_order_bits_);
-  }
 
-  //ul_mod_table_ = modulation_tables_.ul_tables[current_mcs_.modulation_type];
-
-  InitModulationTable(this->ul_mod_table_, ul_mod_order_bits_);
-
-  // TODO: find the optimal base_graph
-  uint16_t base_graph = ul_mcs.value("base_graph", 1);
-  bool early_term = ul_mcs.value("earlyTermination", true);
-  int16_t max_decoder_iter = ul_mcs.value("decoderIter", 5);
-
-  size_t zc = SelectZc(base_graph, ul_code_rate_, ul_mod_order_bits_,
-                       ofdm_data_num_, kCbPerSymbol, "uplink");
-
-  // Always positive since ul_code_rate is smaller than 1024
-  size_t num_rows =
-      static_cast<size_t>(
-          std::round(1024.0 * LdpcNumInputCols(base_graph) / ul_code_rate_)) -
-      (LdpcNumInputCols(base_graph) - 2);
-
-  uint32_t num_cb_len = LdpcNumInputBits(base_graph, zc);
-  uint32_t num_cb_codew_len = LdpcNumEncodedBits(base_graph, zc, num_rows);
-  ul_ldpc_config_ = LDPCconfig(base_graph, zc, max_decoder_iter, early_term,
-                               num_cb_len, num_cb_codew_len, num_rows, 0);
-
-  ul_ldpc_config_.NumBlocksInSymbol((ofdm_data_num_ * ul_mod_order_bits_) /
-                                    ul_ldpc_config_.NumCbCodewLen());
-  RtAssert(
-      (frame_.NumULSyms() == 0) || (ul_ldpc_config_.NumBlocksInSymbol() > 0),
-      "Uplink LDPC expansion factor is too large for number of OFDM data "
-      "subcarriers.");
-}
-
-void Config::UpdateDlMCS(const json& dl_mcs) {
-  if (dl_mcs.find("mcs_index") == dl_mcs.end()) {
-    dl_modulation_ = dl_mcs.value("modulation", "16QAM");
-    dl_mod_order_bits_ = kModulStringMap.at(dl_modulation_);
-
-    double dl_code_rate_usr = dl_mcs.value("code_rate", 0.333);
-    size_t code_rate_int =
-        static_cast<size_t>(std::round(dl_code_rate_usr * 1024.0));
-    dl_mcs_index_ = CommsLib::GetMcsIndex(dl_mod_order_bits_, code_rate_int);
-    dl_code_rate_ = GetCodeRate(dl_mcs_index_);
-    if (dl_code_rate_ / 1024.0 != dl_code_rate_usr) {
-      AGORA_LOG_WARN(
-          "Rounded the user-defined downlink code rate to the closest standard "
-          "rate %zu/1024.\n",
-          dl_code_rate_);
-    }
-  } else {
-    dl_mcs_index_ = dl_mcs.value("mcs_index", 10);  // 16QAM, 340/1024
-    dl_mod_order_bits_ = GetModOrderBits(dl_mcs_index_);
-    dl_modulation_ = MapModToStr(dl_mod_order_bits_);
-    dl_code_rate_ = GetCodeRate(dl_mcs_index_);
-    dl_modulation_ = MapModToStr(dl_mod_order_bits_);
-  }
-  InitModulationTable(this->dl_mod_table_, dl_mod_order_bits_);
-
-  // TODO: find the optimal base_graph
-  uint16_t base_graph = dl_mcs.value("base_graph", 1);
-  bool early_term = dl_mcs.value("earlyTermination", true);
-  int16_t max_decoder_iter = dl_mcs.value("decoderIter", 5);
-
-  size_t zc = SelectZc(base_graph, dl_code_rate_, dl_mod_order_bits_,
-                       GetOFDMDataNum(), kCbPerSymbol, "downlink");
-
-  // Always positive since dl_code_rate is smaller than 1024
-  size_t num_rows =
-      static_cast<size_t>(
-          std::round(1024.0 * LdpcNumInputCols(base_graph) / dl_code_rate_)) -
-      (LdpcNumInputCols(base_graph) - 2);
-
-  uint32_t num_cb_len = LdpcNumInputBits(base_graph, zc);
-  uint32_t num_cb_codew_len = LdpcNumEncodedBits(base_graph, zc, num_rows);
-  dl_ldpc_config_ = LDPCconfig(base_graph, zc, max_decoder_iter, early_term,
-                               num_cb_len, num_cb_codew_len, num_rows, 0);
-
-  dl_ldpc_config_.NumBlocksInSymbol((GetOFDMDataNum() * dl_mod_order_bits_) /
-                                    dl_ldpc_config_.NumCbCodewLen());
-  RtAssert(
-      this->frame_.NumDLSyms() == 0 || dl_ldpc_config_.NumBlocksInSymbol() > 0,
-      "Downlink LDPC expansion factor is too large for number of OFDM data "
-      "subcarriers.");
-}
-
-size_t Config::DecodeBroadcastSlots(const int16_t* const bcast_iq_samps) {
-  size_t start_tsc = GetTime::WorkerRdtsc();
-  size_t delay_offset = (ofdm_rx_zero_prefix_client_ + cp_len_) * 2;
-  complex_float* bcast_fft_buff = static_cast<complex_float*>(
-      Agora_memory::PaddedAlignedAlloc(Agora_memory::Alignment_t::kAlign64,
-                                       ofdm_ca_num_ * sizeof(float) * 2));
-  SimdConvertShortToFloat(&bcast_iq_samps[delay_offset],
-                          reinterpret_cast<float*>(bcast_fft_buff),
-                          ofdm_ca_num_ * 2);
-  CommsLib::FFT(bcast_fft_buff, ofdm_ca_num_);
-  CommsLib::FFTShift(bcast_fft_buff, ofdm_ca_num_);
-  auto* bcast_buff_complex = reinterpret_cast<arma::cx_float*>(bcast_fft_buff);
-
-  const size_t sc_num = GetOFDMCtrlNum();
-  const size_t ctrl_sc_num =
-      dl_bcast_ldpc_config_.NumCbCodewLen() / dl_bcast_mod_order_bits_;
-  std::vector<arma::cx_float> csi_buff(ofdm_data_num_);
-  arma::cx_float* eq_buff =
-      static_cast<arma::cx_float*>(Agora_memory::PaddedAlignedAlloc(
-          Agora_memory::Alignment_t::kAlign64, sc_num * sizeof(float) * 2));
-
-  // estimate channel from pilot subcarriers
-  float phase_shift = 0;
-  for (size_t j = 0; j < ofdm_data_num_; j++) {
-    size_t sc_id = j + ofdm_data_start_;
-    complex_float p = pilots_[j];
-    if (j % ofdm_pilot_spacing_ == 0) {
-      csi_buff.at(j) = (bcast_buff_complex[sc_id] / arma::cx_float(p.re, p.im));
-    } else {
-      ///\todo not correct when 0th subcarrier is not pilot
-      csi_buff.at(j) = csi_buff.at(j - 1);
-      if (j % ofdm_pilot_spacing_ == 1) {
-        phase_shift += arg((bcast_buff_complex[sc_id] / csi_buff.at(j)) *
-                           arma::cx_float(p.re, -p.im));
-      }
-    }
-  }
-  phase_shift /= this->GetOFDMPilotNum();
-  for (size_t j = 0; j < ofdm_data_num_; j++) {
-    size_t sc_id = j + ofdm_data_start_;
-    if (this->IsControlSubcarrier(j) == true) {
-      eq_buff[GetOFDMCtrlIndex(j)] =
-          (bcast_buff_complex[sc_id] / csi_buff.at(j)) *
-          exp(arma::cx_float(0, -phase_shift));
-    }
-  }
-  int8_t* demod_buff_ptr = static_cast<int8_t*>(
-      Agora_memory::PaddedAlignedAlloc(Agora_memory::Alignment_t::kAlign64,
-                                       dl_bcast_mod_order_bits_ * ctrl_sc_num));
-  Demodulate(reinterpret_cast<float*>(&eq_buff[0]), demod_buff_ptr,
-             2 * ctrl_sc_num, dl_bcast_mod_order_bits_, false);
-
-  const int num_bcast_bytes = BitsToBytes(dl_bcast_ldpc_config_.NumCbLen());
-  std::vector<uint8_t> decode_buff(num_bcast_bytes, 0u);
-
-  DataGenerator::GetDecodedData(demod_buff_ptr, &decode_buff.at(0),
-                                dl_bcast_ldpc_config_, num_bcast_bytes,
-                                scramble_enabled_);
-  FreeBuffer1d(&bcast_fft_buff);
-  FreeBuffer1d(&eq_buff);
-  FreeBuffer1d(&demod_buff_ptr);
-  const double duration =
-      GetTime::CyclesToUs(GetTime::WorkerRdtsc() - start_tsc, freq_ghz_);
-  if (kDebugPrintInTask) {
-    std::printf("DecodeBroadcast completed in %2.2f us\n", duration);
-  }
-  return (reinterpret_cast<size_t*>(decode_buff.data()))[0];
-}
-
-void Config::GenBroadcastSlots(
-    std::vector<std::complex<int16_t>*>& bcast_iq_samps,
-    std::vector<size_t> ctrl_msg) {
-  ///\todo enable a vector of bytes to TX'ed in each symbol
-  assert(bcast_iq_samps.size() == this->frame_.NumDlControlSyms());
-  const size_t start_tsc = GetTime::WorkerRdtsc();
-
-  int num_bcast_bytes = BitsToBytes(dl_bcast_ldpc_config_.NumCbLen());
-  std::vector<int8_t> bcast_bits_buffer(num_bcast_bytes, 0);
-
-  Table<complex_float> dl_bcast_mod_table;
-  InitModulationTable(dl_bcast_mod_table, dl_bcast_mod_order_bits_);
-
-  for (size_t i = 0; i < this->frame_.NumDlControlSyms(); i++) {
-    std::memcpy(bcast_bits_buffer.data(), ctrl_msg.data(), sizeof(size_t));
-
-    const auto coded_bits_ptr = DataGenerator::GenCodeblock(
-        dl_bcast_ldpc_config_, &bcast_bits_buffer.at(0), num_bcast_bytes,
-        scramble_enabled_);
-
-    auto modulated_vector =
-        DataGenerator::GetModulation(&coded_bits_ptr[0], dl_bcast_mod_table,
-                                     dl_bcast_ldpc_config_.NumCbCodewLen(),
-                                     ofdm_data_num_, dl_bcast_mod_order_bits_);
-    auto mapped_symbol = DataGenerator::MapOFDMSymbol(
-        this, modulated_vector, pilots_, SymbolType::kControl);
-    auto ofdm_symbol = DataGenerator::BinForIfft(this, mapped_symbol, true);
-    CommsLib::IFFT(&ofdm_symbol[0], ofdm_ca_num_, false);
-    // additional 2^2 (6dB) power backoff
-    float dl_bcast_scale =
-        2 * CommsLib::FindMaxAbs(&ofdm_symbol[0], ofdm_symbol.size());
-    CommsLib::Ifft2tx(&ofdm_symbol[0], bcast_iq_samps[i], this->ofdm_ca_num_,
-                      this->ofdm_tx_zero_prefix_, this->cp_len_,
-                      dl_bcast_scale);
-  }
-  dl_bcast_mod_table.Free();
-  const double duration =
-      GetTime::CyclesToUs(GetTime::WorkerRdtsc() - start_tsc, freq_ghz_);
-  if (kDebugPrintInTask) {
-    std::printf("GenBroadcast completed in %2.2f us\n", duration);
-  }
-}
 
 Config::~Config() {
-  if (pilots_ != nullptr) {
-    std::free(pilots_);
-    pilots_ = nullptr;
-  }
-  if (pilots_sgn_ != nullptr) {
-    std::free(pilots_sgn_);
-    pilots_sgn_ = nullptr;
-  }
   ue_specific_pilot_t_.Free();
   ue_specific_pilot_.Free();
-  ue_pilot_ifft_.Free();
-
   ul_mod_table_.Free();
   dl_mod_table_.Free();
-  dl_bits_.Free();
-  ul_bits_.Free();
-  ul_mod_bits_.Free();
-  dl_mod_bits_.Free();
-  dl_iq_f_.Free();
-  dl_iq_t_.Free();
-  ul_iq_f_.Free();
-  ul_iq_t_.Free();
 }
 
 /* TODO Inspect and document */
@@ -1137,7 +908,7 @@ SymbolType Config::GetSymbolType(size_t symbol_id) const {
   return kSymbolMap.at(this->frame_.FrameIdentifier().at(symbol_id));
 }
 
-FrameStats Config::Frame() { return this->frame_; }
+//FrameStats Config::Frame() { return this->frame_; }
 
 void Config::Print() const {
   if (kDebugPrintConfiguration == true) {
@@ -1185,15 +956,12 @@ void Config::Print() const {
               << "Max Frames: " << frames_to_test_ << std::endl
               << "Transport Block Size: " << transport_block_size_ << std::endl
               << "Noise Level: " << noise_level_ << std::endl
-              << "UL Bytes per CB: " << ul_num_bytes_per_cb_
+              //<< "UL Bytes per CB: " << ul_num_bytes_per_cb_
               << std::endl
               //<< "DL Bytes per CB: " << dl_num_bytes_per_cb_ << std::endl
               << "FFT in rru: " << fft_in_rru_ << std::endl;
   }
 }
-
-size_t OfdmCaNum() { return this->ofdm_ca_num; }
-
 extern "C" {
 __attribute__((visibility("default"))) Config* ConfigNew(char* filename) {
   auto* cfg = new Config(filename);

@@ -9,6 +9,7 @@
 
 #include "logger.h"
 #include "mac_receiver.h"
+#include "mac_scheduler.h"
 #include "mac_sender.h"
 #include "mcs.h"
 #include "signal_handler.h"
@@ -56,7 +57,7 @@ int main(int argc, char* argv[]) {
   {
     auto cfg = std::make_unique<Config>(filename.c_str());
     auto mac_scheduler = std::make_unique<MacScheduler>(cfg);
-    mac_scheduler.mcs.GenData();
+    mac_scheduler->GetMcs->GenData();
 
     // Generate pattern file for testing
     if (data_filename.empty()) {
@@ -76,7 +77,8 @@ int main(int argc, char* argv[]) {
       assert(create_file.is_open() == true);
 
       std::vector<char> mac_data;
-      mac_data.resize(cfg->MacPayloadMaxLength(Direction::kUplink));
+      mac_data.resize(
+          mac_scheduler->GetMcs()->MacPayloadMaxLength(Direction::kUplink));
 
       for (size_t i = 0;
            i <
@@ -106,8 +108,9 @@ int main(int argc, char* argv[]) {
       signal_handler.SetupSignalHandlers();
       if (cfg->Frame().NumUlDataSyms() > 0) {
         sender = std::make_unique<MacSender>(
-            cfg.get(), data_filename, cfg->MacPacketLength(Direction::kUplink),
-            cfg->MacPayloadMaxLength(Direction::kUplink),
+            cfg.get(), data_filename,
+            mac_scheduler->GetMcs()->MacPacketLength(Direction::kUplink),
+            mac_scheduler->GetMcs()->MacPayloadMaxLength(Direction::kUplink),
             mac_scheduler->GetMcs()->MacPacketsPerframe(Direction::kUplink),
             cfg->UeServerAddr(), cfg->UeMacRxPort(),
             std::bind(&FrameStats::GetULDataSymbol, cfg->Frame(),
@@ -122,12 +125,16 @@ int main(int argc, char* argv[]) {
       if (cfg->Frame().NumDlDataSyms() > 0) {
         if ((FLAGS_fwd_udp_port != 0) && (!FLAGS_fwd_udp_address.empty())) {
           receiver = std::make_unique<MacReceiver>(
-              cfg.get(), cfg->MacDataBytesNumPerframe(Direction::kDownlink),
+              cfg.get(),
+              mac_scheduler->GetMcs()->MacDataBytesNumPerframe(
+                  Direction::kDownlink),
               cfg->UeServerAddr(), cfg->UeMacTxPort(), FLAGS_fwd_udp_address,
               FLAGS_fwd_udp_port, FLAGS_num_receiver_threads, thread_start);
         } else {
           receiver = std::make_unique<MacReceiver>(
-              cfg.get(), cfg->MacDataBytesNumPerframe(Direction::kDownlink),
+              cfg.get(),
+              mac_scheduler->GetMcs()->MacDataBytesNumPerframe(
+                  Direction::kDownlink),
               cfg->UeServerAddr(), cfg->UeMacTxPort(),
               FLAGS_num_receiver_threads, thread_start);
         }

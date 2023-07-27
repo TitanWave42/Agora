@@ -46,7 +46,7 @@ static const std::vector<Agora_recorder::RecorderWorker::RecorderWorkerTypes>
                        kRecorderWorkerMultiFile};
 #endif
 
-Agora::Agora(MacScheduler* const mac_scheduler)
+Agora::Agora(MacScheduler* mac_scheduler)
     : base_worker_core_offset_(cfg->CoreOffset() + 1 + cfg->SocketThreadNum()),
       config_(mac_scheduler->Cfg()),
       mac_sched_(mac_scheduler),
@@ -247,8 +247,9 @@ void Agora::ScheduleSubcarriers(EventType event_type, size_t frame_id,
 void Agora::ScheduleCodeblocks(EventType event_type, Direction dir,
                                size_t frame_id, size_t symbol_idx) {
   auto base_tag = gen_tag_t::FrmSymCb(frame_id, symbol_idx, 0);
-  const size_t num_tasks = config_->SpatialStreamsNum() *
-                           config_->LdpcConfig(dir).NumBlocksInSymbol();
+  const size_t num_tasks =
+      config_->SpatialStreamsNum() *
+      mac_sched_->GetMcs()->LdpcConfig(dir).NumBlocksInSymbol();
   size_t num_blocks = num_tasks / config_->EncodeBlockSize();
   const size_t num_remainder = num_tasks % config_->EncodeBlockSize();
   if (num_remainder > 0) {
@@ -567,9 +568,11 @@ void Agora::Start() {
           const size_t ue_id = rx_mac_tag_t(event.tags_[0u]).tid_;
           const size_t radio_buf_id = rx_mac_tag_t(event.tags_[0u]).offset_;
           const auto* pkt = reinterpret_cast<const MacPacketPacked*>(
-              &agora_memory_->GetDlBits()[ue_id][radio_buf_id *
-                                                 config_->MacBytesNumPerframe(
-                                                     Direction::kDownlink)]);
+              &agora_memory_
+                   ->GetDlBits()[ue_id]
+                                [radio_buf_id *
+                                 mac_sched_->GetMcs()->MacBytesNumPerframe(
+                                     Direction::kDownlink)]);
 
           AGORA_LOG_INFO("Agora: frame %d @ offset %zu %zu @ location %zu\n",
                          pkt->Frame(), ue_id, radio_buf_id,
@@ -590,7 +593,7 @@ void Agora::Start() {
               ss << std::endl;
               pkt = reinterpret_cast<const MacPacketPacked*>(
                   reinterpret_cast<const uint8_t*>(pkt) +
-                  config_->MacPacketLength(Direction::kDownlink));
+                  mac_sched_->GetMcs()->MacPacketLength(Direction::kDownlink));
             }
             AGORA_LOG_INFO("%s\n", ss.str().c_str());
           }
@@ -941,7 +944,8 @@ void Agora::HandleEventFft(size_t tag) {
 }
 
 void Agora::UpdateRanConfig(RanConfig rc) {
-  nlohmann::json msc_params = config_->MCSParams(Direction::kUplink);
+  nlohmann::json msc_params =
+      mac_sched_->GetMcs()->MCSParams(Direction::kUplink);
   msc_params["mcs_index"] = rc.mcs_index_;
   config_->UpdateUlMCS(msc_params);
 }
@@ -1072,7 +1076,7 @@ void Agora::InitializeCounters() {
 
   decode_counters_.Init(
       cfg->Frame().NumULSyms(),
-      cfg->LdpcConfig(Direction::kUplink).NumBlocksInSymbol() *
+      mac_sched_->GetMcs()->LdpcConfig(Direction::kUplink).NumBlocksInSymbol() *
           cfg->SpatialStreamsNum());
 
   tomac_counters_.Init(cfg->Frame().NumULSyms(), cfg->SpatialStreamsNum());
@@ -1080,10 +1084,11 @@ void Agora::InitializeCounters() {
   if (config_->Frame().NumDLSyms() > 0) {
     AGORA_LOG_TRACE("Agora: Initializing downlink buffers\n");
 
-    encode_counters_.Init(
-        config_->Frame().NumDlDataSyms(),
-        config_->LdpcConfig(Direction::kDownlink).NumBlocksInSymbol() *
-            config_->SpatialStreamsNum());
+    encode_counters_.Init(config_->Frame().NumDlDataSyms(),
+                          mac_sched_->GetMcs()
+                                  ->LdpcConfig(Direction::kDownlink)
+                                  .NumBlocksInSymbol() *
+                              config_->SpatialStreamsNum());
     encode_cur_frame_for_symbol_ =
         std::vector<size_t>(config_->Frame().NumDLSyms(), SIZE_MAX);
     ifft_cur_frame_for_symbol_ =
@@ -1160,8 +1165,8 @@ void Agora::InitializeThreads() {
 void Agora::SaveDecodeDataToFile(int frame_id) {
   const auto& cfg = config_;
   const size_t num_decoded_bytes =
-      cfg->NumBytesPerCb(Direction::kUplink) *
-      cfg->LdpcConfig(Direction::kUplink).NumBlocksInSymbol();
+      mac_sched_->GetMcs()->NumBytesPerCb(Direction::kUplink) *
+      mac_sched_->GetMcs()->LdpcConfig(Direction::kUplink).NumBlocksInSymbol();
 
   AGORA_LOG_INFO("Saving decode data to %s\n", kDecodeDataFilename.c_str());
   auto* fp = std::fopen(kDecodeDataFilename.c_str(), "wb");
@@ -1313,9 +1318,9 @@ bool Agora::CheckFrameComplete(size_t frame_id) {
 }
 
 extern "C" {
-EXPORT Agora* AgoraNew(Config* cfg) {
+EXPORT Agora* AgoraNew(MacScheduler* mac_sched) {
   AGORA_LOG_TRACE("Size of Agora: %zu\n", sizeof(Agora*));
-  auto* agora = new Agora(cfg);
+  auto* agora = new Agora(mac_sched);
 
   return agora;
 }

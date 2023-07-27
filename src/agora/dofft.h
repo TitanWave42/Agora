@@ -17,6 +17,7 @@
 #include "phy_stats.h"
 #include "stats.h"
 #include "symbols.h"
+#include "mac_scheduler.h"
 
 class DoFFT : public Doer {
  public:
@@ -110,6 +111,7 @@ class DoFFT : public Doer {
   DurationStat* duration_stat_fft_;
   DurationStat* duration_stat_csi_;
   PhyStats* phy_stats_;
+  std::unique_ptr<MacScheduler> mac_sched_;
 };
 
 #endif  // DOFFT_H_

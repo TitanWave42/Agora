@@ -37,7 +37,7 @@ DoEncode::DoEncode(Config* in_config, int in_tid, Direction dir,
   assert(encoded_buffer_temp_ != nullptr);
 
   scrambler_buffer_bytes_ = mac_sched_->GetMcs()->NumBytesPerCb(dir) +
-                            cfg_->NumPaddingBytesPerCb(dir);
+                            mac_sched_->GetMcs()->NumPaddingBytesPerCb(dir);
 
   scrambler_buffer_ = static_cast<int8_t*>(Agora_memory::PaddedAlignedAlloc(
       Agora_memory::Alignment_t::kAlign64, scrambler_buffer_bytes_));
@@ -104,7 +104,8 @@ EventData DoEncode::Launch(size_t tag) {
           mac_sched_->GetMcs()->MacPacketLength(dir_),
           mac_sched_->GetMcs()->NumBytesPerCb(dir_));
       std::printf("Data: ");
-      for (size_t i = 0; i < cfg_->MacPayloadMaxLength(dir_); i++) {
+      for (size_t i = 0; i < mac_sched_->GetMcs()->MacPayloadMaxLength(dir_);
+           i++) {
         std::printf(" %02x", (uint8_t)(pkt->Data()[i]));
       }
       std::printf("\n");
@@ -163,7 +164,7 @@ EventData DoEncode::Launch(size_t tag) {
   AdaptBitsForMod(reinterpret_cast<uint8_t*>(encoded_buffer_temp_),
                   reinterpret_cast<uint8_t*>(mod_buffer_ptr),
                   BitsToBytes(ldpc_config.NumCbCodewLen()),
-                  cfg_->ModOrderBits(dir_));
+                  mac_sched_->GetMcs()->ModOrderBits(dir_));
 
   if (kPrintEncodedData) {
     std::printf("Encoded data\n");

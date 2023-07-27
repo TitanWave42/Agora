@@ -21,7 +21,7 @@ class MacScheduler {
   size_t ScheduledUeDlMcs(size_t frame_id, size_t ue_id);
 
   inline Config* Cfg() { return this->cfg_; }
-  inline Mcs* GetMcs() { return this->mcs_; }
+  inline std::unique_ptr<Mcs> GetMcs() { return this->mcs_; }
 
  private:
   size_t num_groups_;
@@ -30,7 +30,7 @@ class MacScheduler {
   Table<size_t> ul_mcs_buffer_;
   Table<size_t> dl_mcs_buffer_;
   Config* const cfg_;
-  Mcs* mcs_;
+  std::unique_ptr<Mcs> mcs_;
 };
 
 #endif  // MAC_SCHEDULER_H_

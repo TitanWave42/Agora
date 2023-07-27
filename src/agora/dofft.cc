@@ -23,7 +23,7 @@ DoFFT::DoFFT(Config* config, size_t tid, Table<complex_float>& data_buffer,
       csi_buffers_(csi_buffers),
       calib_dl_buffer_(calib_dl_buffer),
       calib_ul_buffer_(calib_ul_buffer),
-      phy_stats_(in_phy_stats) {
+      phy_stats_(in_phy_stats), mac_sched_(std::unique_prt<MacScheduler>(config)) {
   duration_stat_fft_ = stats_manager->GetDurationStat(DoerType::kFFT, tid);
   duration_stat_csi_ = stats_manager->GetDurationStat(DoerType::kCSI, tid);
   DftiCreateDescriptor(&mkl_handle_, DFTI_SINGLE, DFTI_COMPLEX, 1,
@@ -134,13 +134,13 @@ EventData DoFFT::Launch(size_t tag) {
       std::vector<std::complex<float>> samples_vec(
           rx_samps_tmp_, rx_samps_tmp_ + cfg_->SampsPerSymbol());
       std::vector<std::complex<float>> pilot_corr =
-          CommsLib::CorrelateAvx(samples_vec, cfg_->PilotCf32());
+          CommsLib::CorrelateAvx(samples_vec, mac_sched_->GetMcs()->PilotCf32());
       std::vector<float> pilot_corr_abs = CommsLib::Abs2Avx(pilot_corr);
       size_t peak_offset =
           std::max_element(pilot_corr_abs.begin(), pilot_corr_abs.end()) -
           pilot_corr_abs.begin();
       float peak = pilot_corr_abs[peak_offset];
-      size_t seq_len = cfg_->PilotCf32().size();
+      size_t seq_len = mac_sched_->GetMcs()->PilotCf32().size();
       size_t sig_offset = peak_offset < seq_len ? 0 : peak_offset - seq_len;
       printf(
           "In doFFT thread %d: frame: %zu, symbol: %zu, ant: %zu, "
@@ -330,14 +330,14 @@ void DoFFT::PartialTranspose(complex_float* out_buf, size_t ant_id,
       __m512 fft_result = _mm512_load_ps(reinterpret_cast<const float*>(src));
       if (symbol_type == SymbolType::kPilot) {
         __m512 pilot_tx = _mm512_set_ps(
-            cfg_->PilotsSgn()[sc_idx + 7].im, cfg_->PilotsSgn()[sc_idx + 7].re,
-            cfg_->PilotsSgn()[sc_idx + 6].im, cfg_->PilotsSgn()[sc_idx + 6].re,
-            cfg_->PilotsSgn()[sc_idx + 5].im, cfg_->PilotsSgn()[sc_idx + 5].re,
-            cfg_->PilotsSgn()[sc_idx + 4].im, cfg_->PilotsSgn()[sc_idx + 4].re,
-            cfg_->PilotsSgn()[sc_idx + 3].im, cfg_->PilotsSgn()[sc_idx + 3].re,
-            cfg_->PilotsSgn()[sc_idx + 2].im, cfg_->PilotsSgn()[sc_idx + 2].re,
-            cfg_->PilotsSgn()[sc_idx + 1].im, cfg_->PilotsSgn()[sc_idx + 1].re,
-            cfg_->PilotsSgn()[sc_idx].im, cfg_->PilotsSgn()[sc_idx].re);
+            mac_sched_->GetMcs()->PilotsSgn()[sc_idx + 7].im, mac_sched_->GetMcs()->PilotsSgn()[sc_idx + 7].re,
+            mac_sched_->GetMcs()->PilotsSgn()[sc_idx + 6].im, mac_sched_->GetMcs()->PilotsSgn()[sc_idx + 6].re,
+            mac_sched_->GetMcs()->PilotsSgn()[sc_idx + 5].im, mac_sched_->GetMcs()->PilotsSgn()[sc_idx + 5].re,
+            mac_sched_->GetMcs()->PilotsSgn()[sc_idx + 4].im, mac_sched_->GetMcs()->PilotsSgn()[sc_idx + 4].re,
+            mac_sched_->GetMcs()->PilotsSgn()[sc_idx + 3].im, mac_sched_->GetMcs()->PilotsSgn()[sc_idx + 3].re,
+            mac_sched_->GetMcs()->PilotsSgn()[sc_idx + 2].im, mac_sched_->GetMcs()->PilotsSgn()[sc_idx + 2].re,
+            mac_sched_->GetMcs()->PilotsSgn()[sc_idx + 1].im, mac_sched_->GetMcs()->PilotsSgn()[sc_idx + 1].re,
+            mac_sched_->GetMcs()->PilotsSgn()[sc_idx].im, mac_sched_->GetMcs()->PilotsSgn()[sc_idx].re);
         fft_result = CommsLib::M512ComplexCf32Mult(fft_result, pilot_tx, true);
       }
       _mm512_stream_ps(reinterpret_cast<float*>(dst), fft_result);
@@ -347,18 +347,18 @@ void DoFFT::PartialTranspose(complex_float* out_buf, size_t ant_id,
           _mm256_load_ps(reinterpret_cast<const float*>(src + 4));
       if (symbol_type == SymbolType::kPilot) {
         __m256 pilot_tx0 = _mm256_set_ps(
-            cfg_->PilotsSgn()[sc_idx + 3].im, cfg_->PilotsSgn()[sc_idx + 3].re,
-            cfg_->PilotsSgn()[sc_idx + 2].im, cfg_->PilotsSgn()[sc_idx + 2].re,
-            cfg_->PilotsSgn()[sc_idx + 1].im, cfg_->PilotsSgn()[sc_idx + 1].re,
-            cfg_->PilotsSgn()[sc_idx].im, cfg_->PilotsSgn()[sc_idx].re);
+            mac_sched_->GetMcs()->PilotsSgn()[sc_idx + 3].im, mac_sched_->GetMcs()->PilotsSgn()[sc_idx + 3].re,
+            mac_sched_->GetMcs()->PilotsSgn()[sc_idx + 2].im, mac_sched_->GetMcs()->PilotsSgn()[sc_idx + 2].re,
+            mac_sched_->GetMcs()->PilotsSgn()[sc_idx + 1].im, mac_sched_->GetMcs()->PilotsSgn()[sc_idx + 1].re,
+            mac_sched_->GetMcs()->PilotsSgn()[sc_idx].im, mac_sched_->GetMcs()->PilotsSgn()[sc_idx].re);
         fft_result0 =
             CommsLib::M256ComplexCf32Mult(fft_result0, pilot_tx0, true);
 
         __m256 pilot_tx1 = _mm256_set_ps(
-            cfg_->PilotsSgn()[sc_idx + 7].im, cfg_->PilotsSgn()[sc_idx + 7].re,
-            cfg_->PilotsSgn()[sc_idx + 6].im, cfg_->PilotsSgn()[sc_idx + 6].re,
-            cfg_->PilotsSgn()[sc_idx + 5].im, cfg_->PilotsSgn()[sc_idx + 5].re,
-            cfg_->PilotsSgn()[sc_idx + 4].im, cfg_->PilotsSgn()[sc_idx + 4].re);
+            mac_sched_->GetMcs()->PilotsSgn()[sc_idx + 7].im, mac_sched_->GetMcs()->PilotsSgn()[sc_idx + 7].re,
+            mac_sched_->GetMcs()->PilotsSgn()[sc_idx + 6].im, mac_sched_->GetMcs()->PilotsSgn()[sc_idx + 6].re,
+            mac_sched_->GetMcs()->PilotsSgn()[sc_idx + 5].im, mac_sched_->GetMcs()->PilotsSgn()[sc_idx + 5].re,
+            mac_sched_->GetMcs()->PilotsSgn()[sc_idx + 4].im, mac_sched_->GetMcs()->PilotsSgn()[sc_idx + 4].re);
         fft_result1 =
             CommsLib::M256ComplexCf32Mult(fft_result1, pilot_tx1, true);
       }

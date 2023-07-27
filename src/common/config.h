@@ -115,7 +115,6 @@ class Config {
   }
   inline std::string Channel() const { return this->channel_; }
   inline std::string UeChannel() const { return this->ue_channel_; }
-
   // Groups for Downlink Recip Cal
   // Returns antenna number for rec cal dl symbol
   // Assumes that there are the same number of dl cal symbols in each frame
@@ -240,7 +239,6 @@ class Config {
   }
   inline size_t PacketLength() const { return this->packet_length_; }
 
-  inline float Scale() const { return this->scale_; }
   inline bool BigstationMode() const { return this->bigstation_mode_; }
   inline size_t DlPacketLength() const { return this->dl_packet_length_; }
 
@@ -292,18 +290,14 @@ class Config {
   }
 
   inline const FrameStats& Frame() const { return this->frame_; }
-  inline const std::vector<std::complex<float>>& PilotCf32() const {
-    return this->pilot_cf32_;
-  };
-  inline const std::vector<std::complex<float>>& GoldCf32() const {
-    return this->gold_cf32_;
-  };
+
+  // inline const std::vector<std::complex<float>>& GoldCf32() const {
+  //   return this->gold_cf32_;
+  // };
   inline const std::vector<uint32_t>& Coeffs() const { return this->coeffs_; };
 
-  inline const std::vector<uint32_t>& Pilot() const { return this->pilot_; };
   inline const std::vector<uint32_t>& Beacon() const { return this->beacon_; };
-  inline const complex_float* Pilots (void) const { return this->pilots_; };
-  inline const complex_float* PilotsSgn() const { return this->pilots_sgn_; };
+
   inline const std::vector<std::complex<float>>& CommonPilot() const {
     return this->common_pilot_;
   };
@@ -331,25 +325,12 @@ class Config {
   inline std::vector<std::complex<int16_t>>& PilotCi16() {
     return this->pilot_ci16_;
   };
-  inline std::vector<std::complex<int16_t>>& PilotUeCi16(size_t ue_id,
-                                                         size_t pilot_idx) {
-    return this->pilot_ue_ci16_.at(ue_id).at(pilot_idx);
-  };
-  inline const arma::uvec& PilotUeSc(size_t ue_id) const {
-    return this->pilot_ue_sc_.at(ue_id);
-  };
+
   inline std::vector<std::complex<int16_t>>& BeaconCi16() {
     return this->beacon_ci16_;
   };
 
-  inline Table<int8_t>& DlBits() { return this->dl_bits_; }
-  inline Table<int8_t>& UlBits() { return this->ul_bits_; }
-  inline Table<int8_t>& DlModBits() { return this->dl_mod_bits_; }
-  inline Table<int8_t>& UlModBits() { return this->ul_mod_bits_; }
-  inline Table<complex_float>& UlIqF() { return this->ul_iq_f_; }
-  inline Table<complex_float>& DlIqF() { return this->dl_iq_f_; }
-  inline Table<std::complex<int16_t>>& UlIqT() { return this->ul_iq_t_; }
-  inline Table<std::complex<int16_t>>& DlIqT() { return this->dl_iq_t_; }
+  
 
   // Public functions
   void GenPilots();
@@ -381,24 +362,6 @@ class Config {
   /// that holds data of kFrameWnd frames
   inline size_t GetTotalDataSymbolIdx(size_t frame_id, size_t symbol_id) const {
     return ((frame_id % kFrameWnd) * this->frame_.NumDataSyms() + symbol_id);
-  }
-
-  /// Get encoded_buffer for this frame, symbol, user and code block ID
-  inline int8_t* GetModBitsBuf(Table<int8_t>& mod_bits_buffer, Direction dir,
-                               size_t frame_id, size_t symbol_id, size_t ue_id,
-                               size_t sc_id) const {
-    size_t total_data_symbol_id;
-    size_t ofdm_data_num;
-    if (dir == Direction::kDownlink) {
-      total_data_symbol_id = GetTotalDataSymbolIdxDl(frame_id, symbol_id);
-      ofdm_data_num = GetOFDMDataNum();
-    } else {
-      total_data_symbol_id = GetTotalDataSymbolIdxUl(frame_id, symbol_id);
-      ofdm_data_num = this->ofdm_data_num_;
-    }
-
-    return &mod_bits_buffer[total_data_symbol_id]
-                           [Roundup<64>(ofdm_data_num) * ue_id + sc_id];
   }
 
   /// Return total number of uplink data symbols of all frames in a buffer
@@ -521,12 +484,13 @@ class Config {
   inline const std::string& ConfigFilename() const { return config_filename_; }
   inline const std::string& TraceFilename() const { return trace_file_; }
   inline const std::string& Timestamp() const { return timestamp_; }
-  inline const std::vector<std::string>& UlTxFreqDataFiles() const {
-    return ul_tx_f_data_files_;
-  }
 
   inline nlohmann::json UlMcsParams() { return this->ul_mcs_params_; }
   inline nlohmann::json DlMcsParams() { return this->dl_mcs_params_; }
+
+  // inline size_t UlMacDataLengthMax() {return this->ul_mac_data_length_max_;}
+  // inline size_t UlMacDataBytesNumPerframe() { return this->ul_mac_data_bytes_num_perframe_;}
+  // insine size_t
 
  private:
   void Print() const;
@@ -590,15 +554,12 @@ class Config {
       ul_mod_order_bits_;  // Number of binary bits used for a modulation order
   std::string dl_modulation_;
   size_t dl_mod_order_bits_;
-  size_t dl_bcast_mod_order_bits_;
-
   // Modulation lookup table for mapping binary bits to constellation points
   Table<complex_float> ul_mod_table_;
   Table<complex_float> dl_mod_table_;
 
   LDPCconfig ul_ldpc_config_;        // Uplink LDPC parameters
   LDPCconfig dl_ldpc_config_;        // Downlink LDPC parameters
-  LDPCconfig dl_bcast_ldpc_config_;  // Downlink Broadcast LDPC parameters
   nlohmann::json ul_mcs_params_;     // Uplink Modulation and Coding (MCS)
   nlohmann::json dl_mcs_params_;     // Downlink Modulation and Coding (MCS)
   size_t ul_mcs_index_;
@@ -622,34 +583,16 @@ class Config {
   std::vector<size_t> dl_symbol_data_id_;
   std::vector<size_t> dl_symbol_ctrl_id_;
 
-  Table<int8_t> dl_bits_;
-  Table<int8_t> ul_bits_;
-  Table<int8_t> ul_mod_bits_;
-  Table<int8_t> dl_mod_bits_;
-  Table<complex_float> dl_iq_f_;
-  Table<complex_float> ul_iq_f_;
-  Table<std::complex<int16_t>> dl_iq_t_;
-  Table<std::complex<int16_t>> ul_iq_t_;
 
-  std::vector<std::complex<float>> gold_cf32_;
   std::vector<std::complex<int16_t>> beacon_ci16_;
   std::vector<uint32_t> coeffs_;
 
   /// I/Q samples of common pilot
   std::vector<std::complex<int16_t>> pilot_ci16_;
 
-  std::vector<std::complex<float>> pilot_cf32_;
-
-  /// I/Q samples of pilots per UE antenna per pilot symbol
-  std::vector<std::vector<std::vector<std::complex<int16_t>>>> pilot_ue_ci16_;
-
-  std::vector<uint32_t> pilot_;
   std::vector<uint32_t> beacon_;
-  complex_float* pilots_;
-  complex_float* pilots_sgn_;
-  complex_float* pilot_ifft_;
+
   Table<complex_float> ue_specific_pilot_;
-  Table<complex_float> ue_pilot_ifft_;
   Table<std::complex<int16_t>> ue_specific_pilot_t_;
   std::vector<std::complex<float>> common_pilot_;
 
@@ -779,8 +722,6 @@ class Config {
   std::vector<int> cl_tx_advance_;
   std::vector<float> cl_corr_scale_;
 
-  float scale_;  // Scaling factor for all transmit symbols
-
   bool bigstation_mode_;      // If true, use pipeline-parallel scheduling
   bool correct_phase_shift_;  // If true, do phase shift correction
 
@@ -883,6 +824,5 @@ class Config {
   const std::string config_filename_;
   std::string trace_file_;
   std::string timestamp_;
-  std::vector<std::string> ul_tx_f_data_files_;
 };
 #endif /* CONFIG_HPP_ */
