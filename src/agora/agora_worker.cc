@@ -56,7 +56,7 @@ void AgoraWorker::WorkerThread(int tid) {
       config_, tid, buffer_->GetCsi(), buffer_->GetCalibDl(),
       buffer_->GetCalibUl(), buffer_->GetCalibDlMsum(),
       buffer_->GetCalibUlMsum(), buffer_->GetCalib(),
-      buffer_->GetUlBeamMatrix(), buffer_->GetDlBeamMatrix(), mac_sched_,
+      buffer_->GetUlBeamMatrix(), buffer_->GetDlBeamMatrix(), mac_sched_.get(),
       phy_stats_, stats_);
 
   auto compute_fft = std::make_unique<DoFFT>(

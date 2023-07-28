@@ -30,7 +30,7 @@
 class Agora {
  public:
   /// Create an Agora object and start the worker threads
-  explicit Agora(MscScheduler cfg);
+  explicit Agora(MacScheduler mac_scheduler);
   ~Agora();
 
   void Start();  /// The main Agora event loop

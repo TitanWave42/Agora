@@ -1314,9 +1314,9 @@ bool Agora::CheckFrameComplete(size_t frame_id) {
 }
 
 extern "C" {
-EXPORT Agora* AgoraNew(MacScheduler mac_sched) {
+EXPORT Agora* AgoraNew(MacScheduler mac_scheduler) {
   AGORA_LOG_TRACE("Size of Agora: %zu\n", sizeof(Agora*));
-  auto* agora = new Agora(mac_sched);
+  auto* agora = new Agora(mac_scheduler);
 
   return agora;
 }

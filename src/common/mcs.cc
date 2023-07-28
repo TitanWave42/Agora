@@ -39,7 +39,8 @@ Mcs::Mcs(Config* const cfg)
       ul_ldpc_config_(0, 0, 0, false, 0, 0, 0, 0),
       dl_ldpc_config_(0, 0, 0, false, 0, 0, 0, 0),
       dl_bcast_ldpc_config_(0, 0, 0, false, 0, 0, 0, 0),
-      cfg_(cfg) {
+      cfg_(cfg),
+      frame_("") {
   pilots_ = nullptr;
   pilots_sgn_ = nullptr;
 
@@ -544,8 +545,8 @@ void Mcs::GenData() {
                      ul_data_file.c_str());
     FILE* fd = std::fopen(ul_data_file.c_str(), "rb");
     if (fd == nullptr) {
-      AGORA_LOG_ERROR("Failed to open antenna file %s. Error %s.\n",
-                      ul_data_file.c_str(), strerror(errno));
+      // AGORA_LOG_ERROR("Failed to open antenna file %s. Error %s.\n",
+      //                 ul_data_file.c_str(), strerror(errno));
       throw std::runtime_error("mac_sched->Cfg(): Failed to open antenna file");
     }
 

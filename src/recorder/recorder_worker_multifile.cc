@@ -26,7 +26,7 @@ RecorderWorkerMultiFile::RecorderWorkerMultiFile(const Config* in_cfg,
       num_antennas_(num_antennas),
       interval_(record_interval),
       rx_direction_(rx_direction),
-      mac_sched_(std::make_unique<MacScheduler>(in_cfg)) {}
+      mac_sched_(std::make_unique<MacScheduler>(in_cfg)) {} //just pass mac scheduler in
 
 RecorderWorkerMultiFile::~RecorderWorkerMultiFile() = default;
 
