@@ -46,17 +46,13 @@ static const std::string kUlDataFilePrefix =
 static const std::string kDlDataFilePrefix =
     kExperimentFilepath + "LDPC_orig_dl_data_";
 static const std::string kUlDataFreqPrefix = kExperimentFilepath + "ul_data_f_";
-static constexpr size_t kControlMCS = 5;  // QPSK, 379/1024
 
 /// Print the I/Q samples in the pilots
 static constexpr bool kDebugPrintPilot = false;
 
 Config::Config(std::string jsonfilename)
     : freq_ghz_(GetTime::MeasureRdtscFreq()),
-      ul_ldpc_config_(0, 0, 0, false, 0, 0, 0, 0),
-      dl_ldpc_config_(0, 0, 0, false, 0, 0, 0, 0),
-      dl_bcast_ldpc_config_(0, 0, 0, false, 0, 0, 0, 0),
-      frame_(""),
+      frame_(""), 
       config_filename_(std::move(jsonfilename)) {
   auto time = std::time(nullptr);
   auto local_time = *std::localtime(&time);
@@ -66,8 +62,6 @@ Config::Config(std::string jsonfilename)
                std::to_string(local_time.tm_hour) + "-" +
                std::to_string(local_time.tm_min) + "-" +
                std::to_string(local_time.tm_sec);
-
-  
 
   std::string conf;
   Utils::LoadTddConfig(config_filename_, conf);
@@ -745,9 +739,9 @@ Config::Config(std::string jsonfilename)
       "per frame,\n"
       "\t%zu OFDM subcarriers (%zu data subcarriers),\n"
       "\tUL modulation %s, DL modulation %s, Beamforming %s, \n"
-      "\t%zu UL codeblocks per symbol, "
+      //"\t%zu UL codeblocks per symbol, "
       "%zu UL bytes per code block,\n"
-      "\t%zu DL codeblocks per symbol, %zu DL bytes per code block,\n"
+      "%zu DL bytes per code block,\n"
       "\t%zu UL MAC data bytes per frame, "
       "\t%zu DL MAC data bytes per frame, "
       "\tFrame time %.3f usec\n"
@@ -764,7 +758,6 @@ Config::Config(std::string jsonfilename)
       bs_ant_num_, ue_ant_num_, frame_.NumPilotSyms(), frame_.NumULSyms(),
       frame_.NumDLSyms(), ofdm_ca_num_, ofdm_data_num_, ul_modulation_.c_str(),
       dl_modulation_.c_str(), beamforming_str_.c_str(),
-      ul_ldpc_config_.NumBlocksInSymbol(), dl_ldpc_config_.NumBlocksInSymbol(),
       ul_mac_data_bytes_num_perframe_, ul_mac_bytes_num_perframe_,
       dl_mac_data_bytes_num_perframe_, dl_mac_bytes_num_perframe_,
       this->GetFrameDurationSec() * 1e6,
@@ -799,10 +792,6 @@ json Config::Parse(const json& in_json, const std::string& json_handle) {
   ss.clear();
   return out_json;
 }
-
-
-
-
 
 Config::~Config() {
   ue_specific_pilot_t_.Free();
@@ -955,7 +944,8 @@ void Config::Print() const {
               << "Ue Channel: " << ue_channel_ << std::endl
               << "Max Frames: " << frames_to_test_ << std::endl
               << "Transport Block Size: " << transport_block_size_ << std::endl
-              << "Noise Level: " << noise_level_ << std::endl
+              << "Noise Level: " << noise_level_
+              << std::endl
               //<< "UL Bytes per CB: " << ul_num_bytes_per_cb_
               << std::endl
               //<< "DL Bytes per CB: " << dl_num_bytes_per_cb_ << std::endl

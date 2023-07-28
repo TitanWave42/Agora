@@ -100,7 +100,7 @@ void UeWorker::TaskThread(size_t core_offset) {
 
   auto encoder = std::make_unique<DoEncode>(
       &config_, (int)tid_, Direction::kUplink,
-      (kEnableMac == true) ? ul_bits_buffer_ : config_.UlBits(),
+      (kEnableMac == true) ? ul_bits_buffer_ : mac_sched_.UlBits(),
       (kEnableMac == true) ? kFrameWnd : 1, encoded_buffer_, &mac_sched_,
       &stats_);
 
@@ -348,7 +348,7 @@ void UeWorker::DoFftData(size_t tag) {
                                equ_buffer_ptr[data_sc_id]);
         }
         complex_float tx =
-            config_.DlIqF()[dl_symbol_id][ant * config_.OfdmDataNum() + j];
+            mac_sched_.DlIqF()[dl_symbol_id][ant * config_.OfdmDataNum() + j];
         evm += std::norm(equ_buffer_ptr[data_sc_id] -
                          arma::cx_float(tx.re, tx.im));
       }
@@ -357,7 +357,7 @@ void UeWorker::DoFftData(size_t tag) {
     evm = evm / config_.GetOFDMDataNum();
     if (kPrintEqualizedSymbols) {
       complex_float* tx =
-          &config_.DlIqF()[dl_symbol_id][ant_id * config_.OfdmDataNum()];
+          &mac_sched_.DlIqF()[dl_symbol_id][ant_id * config_.OfdmDataNum()];
       arma::cx_fvec x_vec(reinterpret_cast<arma::cx_float*>(tx),
                           config_.OfdmDataNum(), false);
       Utils::PrintVec(x_vec, std::string("x") +
@@ -418,10 +418,10 @@ void UeWorker::DoDemul(size_t tag) {
 
     int8_t* demod_ptr =
         demod_buffer_[frame_slot][dl_symbol_id][ant_id] +
-        (mac_sched_.GetMcs()->ModOrderBits(Direction::kDownlink) * base_sc_id);
+        (mac_sched_.ModOrderBits(Direction::kDownlink) * base_sc_id);
 
     Demodulate(equal_ptr, demod_ptr, config_.GetOFDMDataNum(),
-               mac_sched_.GetMcs()->ModOrderBits(Direction::kDownlink),
+               mac_sched_.ModOrderBits(Direction::kDownlink),
                kDownlinkHardDemod);
 
     if (kDownlinkHardDemod && (kPrintPhyStats || kEnableCsvLog) &&
@@ -429,10 +429,10 @@ void UeWorker::DoDemul(size_t tag) {
       phy_stats_.UpdateDecodedBits(
           ant_id, total_dl_symbol_id, frame_slot,
           config_.GetOFDMDataNum() *
-              mac_sched_.GetMcs()->ModOrderBits(Direction::kDownlink));
+              mac_sched_.ModOrderBits(Direction::kDownlink));
       phy_stats_.IncrementDecodedBlocks(ant_id, total_dl_symbol_id, frame_slot);
-      int8_t* tx_bytes = config_.GetModBitsBuf(
-          config_.DlModBits(), Direction::kDownlink, 0, dl_symbol_id,
+      int8_t* tx_bytes = mac_sched_.GetModBitsBuf(
+          mac_sched_.DlModBits(), Direction::kDownlink, 0, dl_symbol_id,
           kDebugDownlink ? 0 : ant_id, base_sc_id);
       size_t block_error(0);
       for (size_t i = 0; i < config_.GetOFDMDataNum(); i++) {
@@ -479,8 +479,7 @@ void UeWorker::DoDecodeUe(DoDecodeClient* decoder, size_t tag) {
   const size_t symbol_id = gen_tag_t(tag).symbol_id_;
   const size_t ant_id = gen_tag_t(tag).ant_id_;
   if (mac_sched_.IsUeScheduled(frame_id, 0u, ant_id)) {
-    const LDPCconfig& ldpc_config =
-        mac_sched_.GetMcs()->LdpcConfig(Direction::kDownlink);
+    const LDPCconfig& ldpc_config = mac_sched_.LdpcConfig(Direction::kDownlink);
     for (size_t cb_id = 0; cb_id < ldpc_config.NumBlocksInSymbol(); cb_id++) {
       // For now, call for each cb
       if (kDebugPrintDecode) {
@@ -513,8 +512,7 @@ void UeWorker::DoEncodeUe(DoEncode* encoder, size_t tag) {
   const size_t symbol_id = gen_tag_t(tag).symbol_id_;
   const size_t ant_id = gen_tag_t(tag).ue_id_;
   if (mac_sched_.IsUeScheduled(frame_id, 0u, ant_id)) {
-    const LDPCconfig& ldpc_config =
-        mac_sched_.GetMcs()->LdpcConfig(Direction::kUplink);
+    const LDPCconfig& ldpc_config = mac_sched_.LdpcConfig(Direction::kUplink);
 
     // For now, call for each cb
     for (size_t cb_id = 0; cb_id < ldpc_config.NumBlocksInSymbol(); cb_id++) {
@@ -553,7 +551,7 @@ void UeWorker::DoModul(size_t tag) {
     complex_float* modul_buf =
         &modul_buffer_[total_ul_data_symbol_id][ant_id * config_.OfdmDataNum()];
 
-    auto* ul_bits = config_.GetModBitsBuf(encoded_buffer_, Direction::kUplink,
+    auto* ul_bits = mac_sched_.GetModBitsBuf(encoded_buffer_, Direction::kUplink,
                                           frame_id, ul_symbol_idx, ant_id, 0);
 
     if (kDebugPrintModul) {
@@ -569,9 +567,8 @@ void UeWorker::DoModul(size_t tag) {
 
     // TODO place directly into the correct location of the fft buffer
     for (size_t sc = 0; sc < config_.OfdmDataNum(); sc++) {
-      modul_buf[sc] =
-          ModSingleUint8(static_cast<uint8_t>(ul_bits[sc]),
-                         mac_sched_.GetMcs()->ModTable(Direction::kUplink));
+      modul_buf[sc] = ModSingleUint8(static_cast<uint8_t>(ul_bits[sc]),
+                                     mac_sched_.ModTable(Direction::kUplink));
     }
   }
 
@@ -659,7 +656,7 @@ void UeWorker::DoIfft(size_t tag) {
                   config_.OfdmDataNum() * sizeof(complex_float));
       if (kDebugTxData) {
         const complex_float* data_truth =
-            &config_.UlIqF()[ul_symbol_idx][ant_id * config_.OfdmDataNum()];
+            &mac_sched_.UlIqF()[ul_symbol_idx][ant_id * config_.OfdmDataNum()];
         if (memcmp(data_truth, modul_buff,
                    config_.OfdmDataNum() * sizeof(complex_float)) == 0) {
           AGORA_LOG_INFO(
@@ -698,7 +695,7 @@ void UeWorker::DoIfft(size_t tag) {
 
     CommsLib::Ifft2tx(ifft_buff, tx_data_ptr, config_.OfdmCaNum(),
                       config_.OfdmTxZeroPrefix(), config_.CpLen(),
-                      config_.Scale());
+                      mac_sched_.Scale());
   } else {
     std::memset(tx_data_ptr, 0, 2 * sizeof(short) * config_.SampsPerSymbol());
   }

@@ -51,12 +51,11 @@ MacThreadClient::MacThreadClient(
 
   // The frame data will hold the data comming from the Phy (Received)
   for (auto& v : server_.frame_data_) {
-    v.resize(
-        mac_sched_->GetMcs()->MacDataBytesNumPerframe(Direction::kDownlink));
+    v.resize(mac_sched_->MacDataBytesNumPerframe(Direction::kDownlink));
   }
 
   const size_t udp_pkt_len =
-      mac_sched_->GetMcs()->MacDataBytesNumPerframe(Direction::kUplink);
+      mac_sched_->MacDataBytesNumPerframe(Direction::kUplink);
   udp_pkt_buf_.resize(udp_pkt_len + kUdpRxBufferPadding);
 
   // TODO: See if it makes more sense to split up the UE's by port here for
@@ -127,11 +126,11 @@ void MacThreadClient::ProcessCodeblocksFromPhy(EventData event) {
       cfg_->Frame().GetDLSymbol(num_pilot_symbols);
   const size_t data_symbol_index_end = cfg_->Frame().GetDLSymbolLast();
   const size_t mac_data_bytes_per_frame =
-      mac_sched_->GetMcs()->MacDataBytesNumPerframe(Direction::kDownlink);
+      mac_sched_->MacDataBytesNumPerframe(Direction::kDownlink);
   const size_t num_mac_packets_per_frame =
-      mac_sched_->GetMcs()->MacPacketsPerframe(Direction::kDownlink);
+      mac_sched_->MacPacketsPerframe(Direction::kDownlink);
   const size_t dest_packet_size =
-      mac_sched_->GetMcs()->MacPayloadMaxLength(Direction::kDownlink);
+      mac_sched_->MacPayloadMaxLength(Direction::kDownlink);
 
   const int8_t* src_data =
       decoded_buffer_[(frame_id % kFrameWnd)][symbol_array_index][ue_id];
@@ -154,9 +153,8 @@ void MacThreadClient::ProcessCodeblocksFromPhy(EventData event) {
     ss << "MacThreadClient: Received frame " << pkt->Frame() << ":" << frame_id
        << " symbol " << pkt->Symbol() << ":" << symbol_id << " user "
        << pkt->Ue() << ":" << ue_id << " length " << pkt->PayloadLength() << ":"
-       << mac_sched_->GetMcs()->MacPayloadMaxLength(Direction::kDownlink)
-       << " crc " << pkt->Crc() << " copied to offset " << frame_data_offset
-       << std::endl;
+       << mac_sched_->MacPayloadMaxLength(Direction::kDownlink) << " crc "
+       << pkt->Crc() << " copied to offset " << frame_data_offset << std::endl;
 
     if (kLogMacPackets) {
       ss << "Header Info:" << std::endl
@@ -166,8 +164,7 @@ void MacThreadClient::ProcessCodeblocksFromPhy(EventData event) {
          << "DATLEN: " << pkt->PayloadLength() << std::endl
          << "PAYLOAD:" << std::endl;
       for (size_t i = 0;
-           i < mac_sched_->GetMcs()->MacPayloadMaxLength(Direction::kDownlink);
-           i++) {
+           i < mac_sched_->MacPayloadMaxLength(Direction::kDownlink); i++) {
         ss << std::to_string(pkt->Data()[i]) << " ";
       }
       ss << std::endl;
@@ -232,8 +229,7 @@ void MacThreadClient::ProcessCodeblocksFromPhy(EventData event) {
         }
       }
       dest_offset += rx_packet_size;
-      src_offset +=
-          mac_sched_->GetMcs()->MacPayloadMaxLength(Direction::kDownlink);
+      src_offset += mac_sched_->MacPayloadMaxLength(Direction::kDownlink);
     }
 
     if (dest_offset > 0) {
@@ -281,9 +277,9 @@ void MacThreadClient::ProcessControlInformation() {
 
 void MacThreadClient::ProcessUdpPacketsFromApps(RBIndicator ri) {
   const size_t max_data_bytes_per_frame =
-      mac_sched_->GetMcs()->MacDataBytesNumPerframe(Direction::kUplink);
+      mac_sched_->MacDataBytesNumPerframe(Direction::kUplink);
   const size_t num_mac_packets_per_frame =
-      mac_sched_->GetMcs()->MacPacketsPerframe(Direction::kUplink);
+      mac_sched_->MacPacketsPerframe(Direction::kUplink);
 
   if (0 == max_data_bytes_per_frame) {
     return;
@@ -384,7 +380,7 @@ void MacThreadClient::ProcessUdpPacketsFromApps(RBIndicator ri) {
 void MacThreadClient::ProcessUdpPacketsFromAppsClient(const char* payload,
                                                       RBIndicator /*ri*/) {
   const size_t num_mac_packets_per_frame =
-      mac_sched_->GetMcs()->MacPacketsPerframe(Direction::kUplink);
+      mac_sched_->MacPacketsPerframe(Direction::kUplink);
   const size_t num_pilot_symbols = cfg_->Frame().ClientUlPilotSymbols();
   // Data integrity check
   size_t pkt_offset = 0;
@@ -467,7 +463,7 @@ void MacThreadClient::ProcessUdpPacketsFromAppsClient(const char* payload,
     const size_t dest_pkt_offset =
         ((radio_buf_id * num_mac_packets_per_frame) +
          (symbol_idx - num_pilot_symbols)) *
-        mac_sched_->GetMcs()->MacPacketLength(Direction::kUplink);
+        mac_sched_->MacPacketLength(Direction::kUplink);
 
     auto* pkt = reinterpret_cast<MacPacketPacked*>(
         &(*client_.ul_bits_buffer_)[next_radio_id_][dest_pkt_offset]);
@@ -489,7 +485,7 @@ void MacThreadClient::ProcessUdpPacketsFromAppsClient(const char* payload,
 
       ss << "MacThreadClient: created packet frame " << next_tx_frame_id_
          << ", pkt " << pkt_id << ", size "
-         << mac_sched_->GetMcs()->MacPayloadMaxLength(Direction::kUplink)
+         << mac_sched_->MacPayloadMaxLength(Direction::kUplink)
          << " radio buff id " << radio_buf_id << ", loc " << (size_t)pkt
          << " dest offset " << dest_pkt_offset << std::endl;
 

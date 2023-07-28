@@ -181,9 +181,8 @@ void DoPrecode::LoadInputData(size_t symbol_idx_dl,
         &dl_raw_data_[total_data_symbol_idx]
                      [cfg_->GetOFDMDataIndex(sc_id) +
                       Roundup<64>(cfg_->GetOFDMDataNum()) * sp_id];
-    data_ptr[sp_id] =
-        ModSingleUint8((uint8_t)(*raw_data_ptr),
-                       mac_sched_->GetMcs()->ModTable(Direction::kDownlink));
+    data_ptr[sp_id] = ModSingleUint8(
+        (uint8_t)(*raw_data_ptr), mac_sched_->ModTable(Direction::kDownlink));
   }
 }
 

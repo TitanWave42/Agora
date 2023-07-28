@@ -56,8 +56,8 @@ int main(int argc, char* argv[]) {
   int ret = EXIT_FAILURE;
   {
     auto cfg = std::make_unique<Config>(filename.c_str());
-    auto mac_scheduler = std::make_unique<MacScheduler>(cfg);
-    mac_scheduler->GetMcs->GenData();
+    auto mac_scheduler = std::make_unique<MacScheduler>(cfg.get());
+    mac_scheduler->GenData();
 
     // Generate pattern file for testing
     if (data_filename.empty()) {
@@ -68,8 +68,8 @@ int main(int argc, char* argv[]) {
           "Generating test binary file for user uplink %s.  Frames: "
           "%zu, Packets: %zu, Packet Size: %zu\n",
           data_filename.c_str(), cfg->FramesToTest(),
-          mac_scheduler->GetMcs()->MacPacketsPerframe(Direction::kUplink),
-          mac_scheduler->GetMcs()->MacPayloadMaxLength(Direction::kUplink));
+          mac_scheduler->MacPacketsPerframe(Direction::kUplink),
+          mac_scheduler->MacPayloadMaxLength(Direction::kUplink));
 
       create_file.open(
           data_filename,
@@ -77,13 +77,11 @@ int main(int argc, char* argv[]) {
       assert(create_file.is_open() == true);
 
       std::vector<char> mac_data;
-      mac_data.resize(
-          mac_scheduler->GetMcs()->MacPayloadMaxLength(Direction::kUplink));
+      mac_data.resize(mac_scheduler->MacPayloadMaxLength(Direction::kUplink));
 
       for (size_t i = 0;
-           i <
-           (cfg->FramesToTest() *
-            mac_scheduler->GetMcs()->MacPacketsPerframe(Direction::kUplink));
+           i < (cfg->FramesToTest() *
+                mac_scheduler->MacPacketsPerframe(Direction::kUplink));
            i++) {
         std::fill(mac_data.begin(), mac_data.end(), (char)i);
         create_file.write(mac_data.data(), mac_data.size());
@@ -109,9 +107,9 @@ int main(int argc, char* argv[]) {
       if (cfg->Frame().NumUlDataSyms() > 0) {
         sender = std::make_unique<MacSender>(
             cfg.get(), data_filename,
-            mac_scheduler->GetMcs()->MacPacketLength(Direction::kUplink),
-            mac_scheduler->GetMcs()->MacPayloadMaxLength(Direction::kUplink),
-            mac_scheduler->GetMcs()->MacPacketsPerframe(Direction::kUplink),
+            mac_scheduler->MacPacketLength(Direction::kUplink),
+            mac_scheduler->MacPayloadMaxLength(Direction::kUplink),
+            mac_scheduler->MacPacketsPerframe(Direction::kUplink),
             cfg->UeServerAddr(), cfg->UeMacRxPort(),
             std::bind(&FrameStats::GetULDataSymbol, cfg->Frame(),
                       std::placeholders::_1),
@@ -126,15 +124,13 @@ int main(int argc, char* argv[]) {
         if ((FLAGS_fwd_udp_port != 0) && (!FLAGS_fwd_udp_address.empty())) {
           receiver = std::make_unique<MacReceiver>(
               cfg.get(),
-              mac_scheduler->GetMcs()->MacDataBytesNumPerframe(
-                  Direction::kDownlink),
+              mac_scheduler->MacDataBytesNumPerframe(Direction::kDownlink),
               cfg->UeServerAddr(), cfg->UeMacTxPort(), FLAGS_fwd_udp_address,
               FLAGS_fwd_udp_port, FLAGS_num_receiver_threads, thread_start);
         } else {
           receiver = std::make_unique<MacReceiver>(
               cfg.get(),
-              mac_scheduler->GetMcs()->MacDataBytesNumPerframe(
-                  Direction::kDownlink),
+              mac_scheduler->MacDataBytesNumPerframe(Direction::kDownlink),
               cfg->UeServerAddr(), cfg->UeMacTxPort(),
               FLAGS_num_receiver_threads, thread_start);
         }

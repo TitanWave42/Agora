@@ -6,9 +6,12 @@
 #define MCS_H_
 
 #include "config.h"
+#include "framestats.h"
+#include "ldpc_config.h"
 #include "memory_manage.h"
 #include "nlohmann/json.hpp"
 #include "utils.h"
+
 //#include "comms-constants.inc"
 
 const size_t kNumTables = 5;
@@ -222,9 +225,11 @@ class Mcs {
   inline const complex_float* Pilots(void) const { return this->pilots_; };
   inline const complex_float* PilotsSgn() const { return this->pilots_sgn_; };
 
+  size_t DecodeBroadcastSlots(const int16_t* const bcast_iq_samps);
+  void GenBroadcastSlots(std::vector<std::complex<int16_t>*>& bcast_iq_samps,
+                         std::vector<size_t> ctrl_msg);
 
  private:
-
   complex_float* pilots_;
   complex_float* pilots_sgn_;
 

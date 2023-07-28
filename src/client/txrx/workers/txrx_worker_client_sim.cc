@@ -32,7 +32,8 @@ TxRxWorkerClientSim::TxRxWorkerClientSim(
       tx_pkt_pilot_(config->UeAntNum(),
                     std::vector<std::vector<uint8_t>>(
                         config->Frame().NumPilotSyms(),
-                        std::vector<uint8_t>(config->PacketLength(), 0u))) {
+                        std::vector<uint8_t>(config->PacketLength(), 0u))),
+      mac_sched_(std::make_unique<MacScheduler>(config)) {
   for (size_t interface = 0; interface < num_interfaces_; interface++) {
     const uint16_t local_port_id =
         config->UeServerPort() + interface + interface_offset_;
@@ -55,7 +56,7 @@ TxRxWorkerClientSim::TxRxWorkerClientSim(
       auto* pilot_pkt = reinterpret_cast<Packet*>(
           tx_pkt_pilot_.at(ue_id).at(pilot_idx).data());
       std::memcpy(pilot_pkt->data_,
-                  config->PilotUeCi16(ue_id, pilot_idx).data(),
+                  mac_sched_->PilotUeCi16(ue_id, pilot_idx).data(),
                   config->PacketLength() - Packet::kOffsetOfData);
     }
   }

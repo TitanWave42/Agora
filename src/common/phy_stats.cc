@@ -73,8 +73,8 @@ PhyStats::PhyStats(Config* const cfg, Direction dir)
     for (size_t i = 0; i < num_rxdata_symbols_; i++) {
       auto* iq_f_ptr = reinterpret_cast<arma::cx_float*>(
           (dir_ == Direction::kDownlink)
-              ? mac_sched_->GetMcs()->DlIqF()[cfg->Frame().ClientDlPilotSymbols() + i]
-              : mac_sched_->GetMcs()->UlIqF()[cfg->Frame().ClientUlPilotSymbols() + i]);
+              ? mac_sched_->DlIqF()[cfg->Frame().ClientDlPilotSymbols() + i]
+              : mac_sched_->UlIqF()[cfg->Frame().ClientUlPilotSymbols() + i]);
       arma::cx_fmat iq_f_mat(iq_f_ptr, cfg->OfdmDataNum(), cfg->UeAntNum(),
                              false);
       gt_cube_.slice(i) = iq_f_mat.st();
@@ -502,7 +502,7 @@ void PhyStats::UpdatePilotSnr(size_t frame_id, size_t ue_id, size_t ant_id,
   arma::fvec fft_abs_vec = arma::abs(fft_vec);
   arma::fvec fft_abs_mag = fft_abs_vec % fft_abs_vec;
   const float rssi_per_sc =
-      arma::mean(fft_abs_mag(mac_sched_->GetMcs()->PilotUeSc(ue_id)));
+      arma::mean(fft_abs_mag(mac_sched_->PilotUeSc(ue_id)));
   fft_abs_mag.shed_rows(config_->OfdmDataStart(), config_->OfdmDataStop() - 1);
   const float noise_per_sc = arma::mean(fft_abs_mag);
   const float snr = (rssi_per_sc - noise_per_sc) / noise_per_sc;

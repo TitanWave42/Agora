@@ -9,6 +9,7 @@
 #include <memory>
 #include <vector>
 
+#include "mac_scheduler.h"
 #include "message.h"
 #include "txrx_worker.h"
 #include "udp_comm.h"
@@ -40,5 +41,7 @@ class TxRxWorkerClientSim : public TxRxWorker {
 
   //Helper tx vectors
   std::vector<std::vector<std::vector<uint8_t>>> tx_pkt_pilot_;
+
+  std::unique_ptr<MacScheduler> mac_sched_;
 };
 #endif  // TXRX_WORKER_CLIENT_SIM_H_

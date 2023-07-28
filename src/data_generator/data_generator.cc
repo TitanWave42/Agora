@@ -56,37 +56,34 @@ void DataGenerator::DoDataGeneration(const std::string& directory) {
   }
   srand(time(nullptr));
   std::unique_ptr<DoCRC> crc_obj = std::make_unique<DoCRC>();
-  const size_t ul_cb_bytes =
-      mac_sched_->GetMcs()->NumBytesPerCb(Direction::kUplink);
-  LDPCconfig ul_ldpc_config =
-      mac_sched_->GetMcs()->LdpcConfig(Direction::kUplink);
+  const size_t ul_cb_bytes = mac_sched_->NumBytesPerCb(Direction::kUplink);
+  LDPCconfig ul_ldpc_config = mac_sched_->LdpcConfig(Direction::kUplink);
 
   // Step 1: Generate the information buffers (MAC Packets) and LDPC-encoded
   // buffers for uplink
   std::vector<std::vector<complex_float>> pre_ifft_data_syms;
   const size_t num_ul_mac_bytes =
-      this->mac_sched_->GetMcs()->MacBytesNumPerframe(Direction::kUplink);
+      this->mac_sched_->MacBytesNumPerframe(Direction::kUplink);
   if (num_ul_mac_bytes > 0) {
     std::vector<std::vector<int8_t>> ul_mac_info(cfg_->UeAntNum());
     AGORA_LOG_INFO("Total number of uplink MAC bytes: %zu\n", num_ul_mac_bytes);
     for (size_t ue_id = 0; ue_id < cfg_->UeAntNum(); ue_id++) {
       ul_mac_info.at(ue_id).resize(num_ul_mac_bytes);
-      for (size_t pkt_id = 0; pkt_id < mac_sched_->GetMcs()->MacPacketsPerframe(
-                                           Direction::kUplink);
+      for (size_t pkt_id = 0;
+           pkt_id < mac_sched_->MacPacketsPerframe(Direction::kUplink);
            pkt_id++) {
         size_t pkt_offset =
-            pkt_id * mac_sched_->GetMcs()->MacPacketLength(Direction::kUplink);
+            pkt_id * mac_sched_->MacPacketLength(Direction::kUplink);
         auto* pkt = reinterpret_cast<MacPacketPacked*>(
             &ul_mac_info.at(ue_id).at(pkt_offset));
 
         pkt->Set(0, pkt_id, ue_id,
-                 mac_sched_->GetMcs()->MacPayloadMaxLength(Direction::kUplink));
+                 mac_sched_->MacPayloadMaxLength(Direction::kUplink));
         this->GenMacData(pkt, ue_id);
-        pkt->Crc((uint16_t)(
-            crc_obj->CalculateCrc24(
-                pkt->Data(),
-                mac_sched_->GetMcs()->MacPayloadMaxLength(Direction::kUplink)) &
-            0xFFFF));
+        pkt->Crc((uint16_t)(crc_obj->CalculateCrc24(
+                                pkt->Data(), mac_sched_->MacPayloadMaxLength(
+                                                 Direction::kUplink)) &
+                            0xFFFF));
       }
     }
 
@@ -224,10 +221,8 @@ void DataGenerator::DoDataGeneration(const std::string& directory) {
         AdaptBitsForMod(
             reinterpret_cast<const uint8_t*>(ul_encoded_codewords.at(n).data()),
             odfm_symbol.data(),
-            this->mac_sched_->GetMcs()
-                ->LdpcConfig(Direction::kUplink)
-                .NumEncodedBytes(),
-            this->mac_sched_->GetMcs()->ModOrderBits(Direction::kUplink));
+            this->mac_sched_->LdpcConfig(Direction::kUplink).NumEncodedBytes(),
+            this->mac_sched_->ModOrderBits(Direction::kUplink));
         for (size_t f = 0; f < kOutputFrameNum; f++) {
           ul_ofdm_data.at(cl_sdr).at(f).at(ul_slot).at(cl_sdr_ch) = odfm_symbol;
         }
@@ -235,7 +230,7 @@ void DataGenerator::DoDataGeneration(const std::string& directory) {
       for (size_t i = 0; i < this->cfg_->UeNum(); i++) {
         const std::string filename_input =
             directory + kUlScBitsPrefix +
-            this->mac_sched_->GetMcs()->Modulation(Direction::kUplink) + "_" +
+            this->mac_sched_->Modulation(Direction::kUplink) + "_" +
             std::to_string(this->cfg_->OfdmDataNum()) + "_" +
             std::to_string(this->cfg_->OfdmCaNum()) + "_" +
             std::to_string(kOfdmSymbolPerSlot) + "_" +
@@ -275,10 +270,9 @@ void DataGenerator::DoDataGeneration(const std::string& directory) {
     for (size_t i = 0; i < num_ul_codeblocks; i++) {
       auto ofdm_symbol = DataGenerator::GetModulation(
           &ul_encoded_codewords.at(i)[0],
-          mac_sched_->GetMcs()->ModTable(Direction::kUplink),
-          mac_sched_->GetMcs()->LdpcConfig(Direction::kUplink).NumCbCodewLen(),
-          cfg_->OfdmDataNum(),
-          mac_sched_->GetMcs()->ModOrderBits(Direction::kUplink));
+          mac_sched_->ModTable(Direction::kUplink),
+          mac_sched_->LdpcConfig(Direction::kUplink).NumCbCodewLen(),
+          cfg_->OfdmDataNum(), mac_sched_->ModOrderBits(Direction::kUplink));
       ul_modulated_codewords.at(i) = DataGenerator::MapOFDMSymbol(
           cfg_, ofdm_symbol, nullptr, SymbolType::kUL);
     }
@@ -447,35 +441,32 @@ void DataGenerator::DoDataGeneration(const std::string& directory) {
    * Generate data for downlink test
    * ------------------------------------------------ */
   const LDPCconfig dl_ldpc_config =
-      this->mac_sched_->GetMcs()->LdpcConfig(Direction::kDownlink);
-  const size_t dl_cb_bytes =
-      mac_sched_->GetMcs()->NumBytesPerCb(Direction::kDownlink);
+      this->mac_sched_->LdpcConfig(Direction::kDownlink);
+  const size_t dl_cb_bytes = mac_sched_->NumBytesPerCb(Direction::kDownlink);
 
   if (this->cfg_->Frame().NumDLSyms() > 0) {
     const size_t num_dl_mac_bytes =
-        this->mac_sched_->GetMcs()->MacBytesNumPerframe(Direction::kDownlink);
+        this->mac_sched_->MacBytesNumPerframe(Direction::kDownlink);
     std::vector<std::vector<int8_t>> dl_mac_info(cfg_->UeAntNum());
     AGORA_LOG_SYMBOL("Total number of downlink MAC bytes: %zu\n",
                      num_dl_mac_bytes);
     for (size_t ue_id = 0; ue_id < cfg_->UeAntNum(); ue_id++) {
       dl_mac_info[ue_id].resize(num_dl_mac_bytes);
-      for (size_t pkt_id = 0; pkt_id < mac_sched_->GetMcs()->MacPacketsPerframe(
-                                           Direction::kDownlink);
+      for (size_t pkt_id = 0;
+           pkt_id < mac_sched_->MacPacketsPerframe(Direction::kDownlink);
            pkt_id++) {
-        size_t pkt_offset = pkt_id * mac_sched_->GetMcs()->MacPacketLength(
-                                         Direction::kDownlink);
+        size_t pkt_offset =
+            pkt_id * mac_sched_->MacPacketLength(Direction::kDownlink);
         auto* pkt = reinterpret_cast<MacPacketPacked*>(
             &dl_mac_info.at(ue_id).at(pkt_offset));
 
-        pkt->Set(
-            0, pkt_id, ue_id,
-            mac_sched_->GetMcs()->MacPayloadMaxLength(Direction::kDownlink));
+        pkt->Set(0, pkt_id, ue_id,
+                 mac_sched_->MacPayloadMaxLength(Direction::kDownlink));
         this->GenMacData(pkt, ue_id);
-        pkt->Crc((uint16_t)(
-            crc_obj->CalculateCrc24(pkt->Data(),
-                                    mac_sched_->GetMcs()->MacPayloadMaxLength(
-                                        Direction::kDownlink)) &
-            0xFFFF));
+        pkt->Crc((uint16_t)(crc_obj->CalculateCrc24(
+                                pkt->Data(), mac_sched_->MacPayloadMaxLength(
+                                                 Direction::kDownlink)) &
+                            0xFFFF));
       }
     }
 
@@ -553,12 +544,9 @@ void DataGenerator::DoDataGeneration(const std::string& directory) {
       const size_t ue_id = sym_offset / dl_ldpc_config.NumBlocksInSymbol();
       auto ofdm_symbol = DataGenerator::GetModulation(
           &dl_encoded_codewords.at(i)[0],
-          mac_sched_->GetMcs()->ModTable(Direction::kDownlink),
-          mac_sched_->GetMcs()
-              ->LdpcConfig(Direction::kDownlink)
-              .NumCbCodewLen(),
-          cfg_->OfdmDataNum(),
-          mac_sched_->GetMcs()->ModOrderBits(Direction::kDownlink));
+          mac_sched_->ModTable(Direction::kDownlink),
+          mac_sched_->LdpcConfig(Direction::kDownlink).NumCbCodewLen(),
+          cfg_->OfdmDataNum(), mac_sched_->ModOrderBits(Direction::kDownlink));
       dl_modulated_codewords.at(i) = DataGenerator::MapOFDMSymbol(
           cfg_, ofdm_symbol, ue_specific_pilot[ue_id], SymbolType::kDL);
     }

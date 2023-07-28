@@ -54,7 +54,7 @@ class MacThreadClient {
   void RunEventLoop();
 
  private:
-  MacScheduler* mac_sched_;
+  std::unique_ptr<MacScheduler> mac_sched_;
   // Receive events from Agora PHY master thread. Forwards
   // to appropriate function in MAC.
   void ProcessRxFromPhy();

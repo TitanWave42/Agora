@@ -80,7 +80,7 @@ class DoBeamWeights : public Doer {
   complex_float* calib_gather_buffer_;
   std::unique_ptr<arma::cx_fvec> calib_sc_vec_ptr_;
 
-  MacScheduler* mac_sched_;
+  std::unique_ptr<MacScheduler> mac_sched_;
   PhyStats* phy_stats_;
   arma::uvec ext_ref_id_;
   size_t num_ext_ref_;

@@ -9,6 +9,8 @@
 
 #include "comms-constants.inc"
 #include "comms-lib.h"
+#include "data_generator.h"
+#include "datatype_conversion.h"
 #include "logger.h"
 #include "modulation.h"
 #include "scrambler.h"
@@ -36,11 +38,11 @@ Mcs::Mcs(Config* const cfg)
     : pilot_ifft_(nullptr),
       ul_ldpc_config_(0, 0, 0, false, 0, 0, 0, 0),
       dl_ldpc_config_(0, 0, 0, false, 0, 0, 0, 0),
+      dl_bcast_ldpc_config_(0, 0, 0, false, 0, 0, 0, 0),
       cfg_(cfg) {
-
   pilots_ = nullptr;
   pilots_sgn_ = nullptr;
-  
+
   size_t ofdm_data_num = cfg_->OfdmCaNum();
 
   ul_mcs_params_ = cfg_->UlMcsParams();
@@ -82,7 +84,6 @@ Mcs::Mcs(Config* const cfg)
 }
 
 Mcs::~Mcs() {
-
   if (pilots_ != nullptr) {
     std::free(pilots_);
     pilots_ = nullptr;
@@ -449,14 +450,11 @@ void Mcs::GenPilots() {
   pilots_ = static_cast<complex_float*>(Agora_memory::PaddedAlignedAlloc(
       Agora_memory::Alignment_t::kAlign64,
       cfg_->OfdmDataNum() * sizeof(complex_float)));
-  pilots_sgn_ =
-      static_cast<complex_float*>(Agora_memory::PaddedAlignedAlloc(
-          Agora_memory::Alignment_t::kAlign64,
-          cfg_->OfdmDataNum() *
-              sizeof(complex_float)));  // used in CSI estimation
+  pilots_sgn_ = static_cast<complex_float*>(Agora_memory::PaddedAlignedAlloc(
+      Agora_memory::Alignment_t::kAlign64,
+      cfg_->OfdmDataNum() * sizeof(complex_float)));  // used in CSI estimation
   for (size_t i = 0; i < cfg_->OfdmDataNum(); i++) {
-    pilots_[i] = {this->common_pilot_[i].real(),
-                         this->common_pilot_[i].imag()};
+    pilots_[i] = {this->common_pilot_[i].real(), this->common_pilot_[i].imag()};
     auto pilot_sgn = this->common_pilot_[i] /
                      (float)std::pow(std::abs(this->common_pilot_[i]), 2);
     pilots_sgn_[i] = {pilot_sgn.real(), pilot_sgn.imag()};
@@ -555,7 +553,8 @@ void Mcs::GenData() {
          i++) {
       if (std::fseek(fd, (ul_data_bytes_num_persymbol_ * cfg_->UeAntOffset()),
                      SEEK_CUR) != 0) {
-        AGORA_LOG_ERROR(cfg_->UeAntTotal(),
+        AGORA_LOG_ERROR(
+            cfg_->UeAntTotal(),
             " *** Error: failed to seek propertly (pre) into %s file\n",
             ul_data_file.c_str());
         RtAssert(false,
@@ -571,11 +570,11 @@ void Mcs::GenData() {
               ul_data_file.c_str(), i, j, r, ul_data_bytes_num_persymbol_);
         }
       }
-      if (std::fseek(fd,
-                     ul_data_bytes_num_persymbol_ *
-                         (cfg_->UeAntTotal() - cfg_->UeAntOffset() -
-                          cfg_->UeAntNum()),
-                     SEEK_CUR) != 0) {
+      if (std::fseek(
+              fd,
+              ul_data_bytes_num_persymbol_ *
+                  (cfg_->UeAntTotal() - cfg_->UeAntOffset() - cfg_->UeAntNum()),
+              SEEK_CUR) != 0) {
         AGORA_LOG_ERROR(
             " *** Error: failed to seek propertly (post) into %s file\n",
             ul_data_file.c_str());
@@ -684,8 +683,9 @@ void Mcs::GenData() {
     for (size_t i = 0; i < cfg_->UeNum(); i++) {
       const std::string filename_ul_data_f =
           kUlDataFreqPrefix + ul_modulation_ + "_" +
-          std::to_string(cfg_->OfdmDataNum()) + "_" + std::to_string(ofdm_ca_num_) +
-          "_" + std::to_string(kOfdmSymbolPerSlot) + "_" +
+          std::to_string(cfg_->OfdmDataNum()) + "_" +
+          std::to_string(ofdm_ca_num_) + "_" +
+          std::to_string(kOfdmSymbolPerSlot) + "_" +
           std::to_string(frame_.NumULSyms()) + "_" +
           std::to_string(kOutputFrameNum) + "_" + cfg_->UeChannel() + "_" +
           std::to_string(i) + ".bin";
@@ -935,8 +935,7 @@ void Mcs::GenData() {
   if (kDebugPrintPilot) {
     std::cout << "Pilot data = [" << std::endl;
     for (size_t sc_id = 0; sc_id < cfg_->OfdmDataNum(); sc_id++) {
-      std::cout << pilots_[sc_id].re << "+1i*"
-                << pilots_[sc_id].im << " ";
+      std::cout << pilots_[sc_id].re << "+1i*" << pilots_[sc_id].im << " ";
     }
     std::cout << std::endl << "];" << std::endl;
     for (size_t ue_id = 0; ue_id < cfg_->UeAntNum(); ue_id++) {
@@ -981,7 +980,7 @@ size_t Mcs::DecodeBroadcastSlots(const int16_t* const bcast_iq_samps) {
   CommsLib::FFTShift(bcast_fft_buff, cfg_->OfdmCaNum());
   auto* bcast_buff_complex = reinterpret_cast<arma::cx_float*>(bcast_fft_buff);
 
-  const size_t sc_num = GetOFDMCtrlNum();
+  const size_t sc_num = cfg_->GetOFDMCtrlNum();
   const size_t ctrl_sc_num =
       dl_bcast_ldpc_config_.NumCbCodewLen() / dl_bcast_mod_order_bits_;
   std::vector<arma::cx_float> csi_buff(cfg_->OfdmDataNum());
@@ -999,17 +998,17 @@ size_t Mcs::DecodeBroadcastSlots(const int16_t* const bcast_iq_samps) {
     } else {
       ///\todo not correct when 0th subcarrier is not pilot
       csi_buff.at(j) = csi_buff.at(j - 1);
-      if (j % ofdm_pilot_spacing_ == 1) {
+      if (j % cfg_->OfdmPilotSpacing() == 1) {
         phase_shift += arg((bcast_buff_complex[sc_id] / csi_buff.at(j)) *
                            arma::cx_float(p.re, -p.im));
       }
     }
   }
-  phase_shift /= this->GetOFDMPilotNum();
+  phase_shift /= cfg_->GetOFDMPilotNum();
   for (size_t j = 0; j < cfg_->OfdmDataNum(); j++) {
     size_t sc_id = j + cfg_->OfdmDataStart();
-    if (this->IsControlSubcarrier(j) == true) {
-      eq_buff[GetOFDMCtrlIndex(j)] =
+    if (cfg_->IsControlSubcarrier(j) == true) {
+      eq_buff[cfg_->GetOFDMCtrlIndex(j)] =
           (bcast_buff_complex[sc_id] / csi_buff.at(j)) *
           exp(arma::cx_float(0, -phase_shift));
     }
@@ -1037,9 +1036,8 @@ size_t Mcs::DecodeBroadcastSlots(const int16_t* const bcast_iq_samps) {
   return (reinterpret_cast<size_t*>(decode_buff.data()))[0];
 }
 
-void Mcs::GenBroadcastSlots(
-    std::vector<std::complex<int16_t>*>& bcast_iq_samps,
-    std::vector<size_t> ctrl_msg) {
+void Mcs::GenBroadcastSlots(std::vector<std::complex<int16_t>*>& bcast_iq_samps,
+                            std::vector<size_t> ctrl_msg) {
   ///\todo enable a vector of bytes to TX'ed in each symbol
   assert(bcast_iq_samps.size() == this->frame_.NumDlControlSyms());
   const size_t start_tsc = GetTime::WorkerRdtsc();
@@ -1057,20 +1055,19 @@ void Mcs::GenBroadcastSlots(
         dl_bcast_ldpc_config_, &bcast_bits_buffer.at(0), num_bcast_bytes,
         cfg_->ScrambleEnabled());
 
-    auto modulated_vector =
-        DataGenerator::GetModulation(&coded_bits_ptr[0], dl_bcast_mod_table,
-                                     dl_bcast_ldpc_config_.NumCbCodewLen(),
-                                     cfg_->OfdmDataNum(), dl_bcast_mod_order_bits_);
+    auto modulated_vector = DataGenerator::GetModulation(
+        &coded_bits_ptr[0], dl_bcast_mod_table,
+        dl_bcast_ldpc_config_.NumCbCodewLen(), cfg_->OfdmDataNum(),
+        dl_bcast_mod_order_bits_);
     auto mapped_symbol = DataGenerator::MapOFDMSymbol(
-        this, modulated_vector, pilots_, SymbolType::kControl);
-    auto ofdm_symbol = DataGenerator::BinForIfft(this, mapped_symbol, true);
+        cfg_, modulated_vector, pilots_, SymbolType::kControl);
+    auto ofdm_symbol = DataGenerator::BinForIfft(cfg_, mapped_symbol, true);
     CommsLib::IFFT(&ofdm_symbol[0], ofdm_ca_num_, false);
     // additional 2^2 (6dB) power backoff
     float dl_bcast_scale =
         2 * CommsLib::FindMaxAbs(&ofdm_symbol[0], ofdm_symbol.size());
     CommsLib::Ifft2tx(&ofdm_symbol[0], bcast_iq_samps[i], this->ofdm_ca_num_,
-                      this->ofdm_tx_zero_prefix_, this->cp_len_,
-                      dl_bcast_scale);
+                      cfg_->OfdmTxZeroPrefix(), cfg_->CpLen(), dl_bcast_scale);
   }
   dl_bcast_mod_table.Free();
   const double duration =

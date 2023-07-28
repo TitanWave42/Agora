@@ -5,6 +5,7 @@
 #ifndef AGORA_RECORDER_WORKER_MULTIFILE_H_
 #define AGORA_RECORDER_WORKER_MULTIFILE_H_
 
+#include "mac_scheduler.h"
 #include "recorder_worker.h"
 
 namespace Agora_recorder {
@@ -33,6 +34,8 @@ class RecorderWorkerMultiFile : public RecorderWorker {
   size_t num_antennas_;
   size_t interval_;
   Direction rx_direction_;
+
+  std::unique_ptr<MacScheduler> mac_sched_;
 };
 }; /* End namespace Agora_recorder */
 

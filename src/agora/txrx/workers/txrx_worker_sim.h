@@ -9,6 +9,7 @@
 #include <memory>
 #include <vector>
 
+#include "mac_scheduler.h"
 #include "message.h"
 #include "txrx_worker.h"
 #include "udp_comm.h"
@@ -40,5 +41,7 @@ class TxRxWorkerSim : public TxRxWorker {
   std::vector<std::unique_ptr<UDPComm>> udp_comm_;
   std::vector<std::byte> beacon_buffer_;
   double beacon_send_time_;
+
+  std::unique_ptr<MacScheduler> mac_sched_;
 };
 #endif  // TXRX_WORKER_SIM_H_

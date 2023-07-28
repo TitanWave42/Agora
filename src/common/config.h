@@ -18,7 +18,6 @@
 #include "armadillo"
 #include "common_typedef_sdk.h"
 #include "framestats.h"
-#include "ldpc_config.h"
 #include "memory_manage.h"
 #include "nlohmann/json.hpp"
 #include "symbols.h"
@@ -330,8 +329,6 @@ class Config {
     return this->beacon_ci16_;
   };
 
-  
-
   // Public functions
   void GenPilots();
   void GenData();
@@ -558,10 +555,8 @@ class Config {
   Table<complex_float> ul_mod_table_;
   Table<complex_float> dl_mod_table_;
 
-  LDPCconfig ul_ldpc_config_;        // Uplink LDPC parameters
-  LDPCconfig dl_ldpc_config_;        // Downlink LDPC parameters
-  nlohmann::json ul_mcs_params_;     // Uplink Modulation and Coding (MCS)
-  nlohmann::json dl_mcs_params_;     // Downlink Modulation and Coding (MCS)
+  nlohmann::json ul_mcs_params_;  // Uplink Modulation and Coding (MCS)
+  nlohmann::json dl_mcs_params_;  // Downlink Modulation and Coding (MCS)
   size_t ul_mcs_index_;
   size_t dl_mcs_index_;
   size_t dl_code_rate_;
@@ -582,7 +577,6 @@ class Config {
   std::vector<SubcarrierType> control_symbol_map_;
   std::vector<size_t> dl_symbol_data_id_;
   std::vector<size_t> dl_symbol_ctrl_id_;
-
 
   std::vector<std::complex<int16_t>> beacon_ci16_;
   std::vector<uint32_t> coeffs_;

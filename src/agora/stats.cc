@@ -379,8 +379,7 @@ void Stats::PrintSummary() {
       double encode_frames =
           (static_cast<double>(
               num_tasks.at(static_cast<size_t>(DoerType::kEncode)))) /
-          (this->mac_sched_->GetMcs()
-               ->LdpcConfig(Direction::kDownlink)
+          (this->mac_sched_->LdpcConfig(Direction::kDownlink)
                .NumBlocksInSymbol() *
            this->config_->UeAntNum() * this->config_->Frame().NumDLSyms());
       std::printf("Downlink totals (tasks, frames): ");
@@ -414,8 +413,7 @@ void Stats::PrintSummary() {
       double decode_frames =
           (static_cast<double>(
               num_tasks.at(static_cast<size_t>(DoerType::kDecode)))) /
-          (this->mac_sched_->GetMcs()
-               ->LdpcConfig(Direction::kUplink)
+          (this->mac_sched_->LdpcConfig(Direction::kUplink)
                .NumBlocksInSymbol() *
            this->config_->UeAntNum() * this->config_->Frame().NumULSyms());
       std::printf("Uplink totals (tasks, frames): ");

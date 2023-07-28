@@ -67,7 +67,7 @@ class PhyStats {
 
  private:
   Config const* const config_;
-  MacScheduler* mac_sched_;
+  std::unique_ptr<MacScheduler> mac_sched_;
   Direction dir_;
   Table<size_t> decoded_bits_count_;
   Table<size_t> bit_error_count_;

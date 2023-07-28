@@ -66,7 +66,7 @@ class DoPrecode : public Doer {
   PtrGrid<kFrameWnd, kMaxDataSCs, complex_float>& dl_beam_matrices_;
   Table<complex_float>& dl_ifft_buffer_;
   Table<int8_t>& dl_raw_data_;
-  MacScheduler* mac_sched_;
+  std::unique_ptr<MacScheduler> mac_sched_;
   Table<float> qam_table_;
   DurationStat* duration_stat_;
   complex_float* modulated_buffer_temp_;

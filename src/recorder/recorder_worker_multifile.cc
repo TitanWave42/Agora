@@ -25,7 +25,8 @@ RecorderWorkerMultiFile::RecorderWorkerMultiFile(const Config* in_cfg,
       antenna_offset_(antenna_offset),
       num_antennas_(num_antennas),
       interval_(record_interval),
-      rx_direction_(rx_direction) {}
+      rx_direction_(rx_direction),
+      mac_sched_(std::make_unique<MacScheduler>(in_cfg)) {}
 
 RecorderWorkerMultiFile::~RecorderWorkerMultiFile() = default;
 
@@ -100,10 +101,9 @@ int RecorderWorkerMultiFile::Record(const Packet* pkt) {
               "RecorderWorkerMultiFile failed to open txdata file for "
               "writing");
         }
-        write_status =
-            std::fwrite(const_cast<Config*>(cfg_)->DlIqF()[dl_symbol_id] +
-                            ant_id * cfg_->OfdmCaNum(),
-                        2 * sizeof(float), cfg_->OfdmCaNum(), fp_txdata);
+        write_status = std::fwrite(
+            mac_sched_->DlIqF()[dl_symbol_id] + ant_id * cfg_->OfdmCaNum(),
+            2 * sizeof(float), cfg_->OfdmCaNum(), fp_txdata);
         if (write_status != cfg_->OfdmCaNum()) {
           throw std::runtime_error(
               "RecorderWorkerMultiFile failed to write txdata file");

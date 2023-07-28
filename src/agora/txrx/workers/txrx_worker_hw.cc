@@ -34,7 +34,8 @@ TxRxWorkerHw::TxRxWorkerHw(
       program_start_ticks_(0),
       freq_ghz_(GetTime::MeasureRdtscFreq()),
       zeros_(config->SampsPerSymbol(), std::complex<int16_t>(0u, 0u)),
-      first_symbol_(interface_count, true) {
+      first_symbol_(interface_count, true),
+      mac_sched_(std::make_unique<MacScheduler>(config)) {
   InitRxStatus();
 }
 
@@ -573,8 +574,8 @@ size_t TxRxWorkerHw::DoTx(long long time0) {
                     : pilot.data();
           } else {
             std::vector<std::complex<int16_t>> data_t(
-                Configuration()->DlIqT()[dl_symbol_idx],
-                Configuration()->DlIqT()[dl_symbol_idx] +
+                mac_sched_->DlIqT()[dl_symbol_idx],
+                mac_sched_->DlIqT()[dl_symbol_idx] +
                     Configuration()->SampsPerSymbol());
             std::vector<std::complex<int16_t>> nt_data_t(data_t);
             for (auto& v : nt_data_t) {

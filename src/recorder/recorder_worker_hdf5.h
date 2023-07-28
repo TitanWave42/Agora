@@ -9,6 +9,7 @@
 #include <string>
 
 #include "hdf5_lib.h"
+#include "mac_scheduler.h"
 #include "recorder_worker.h"
 
 namespace Agora_recorder {
@@ -46,6 +47,8 @@ class RecorderWorkerHDF5 : public RecorderWorker {
   std::vector<std::pair<std::string, std::array<hsize_t, kDsDimsNum>>>
       datasets_;
   const std::array<hsize_t, kDsDimsNum> data_chunk_dims_;
+
+  std::unique_ptr<MacScheduler> mac_sched_;
 };
 }; /* End namespace Agora_recorder */
 

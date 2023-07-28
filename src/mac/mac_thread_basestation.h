@@ -80,7 +80,7 @@ class MacThreadBaseStation {
 
   Config* const cfg_;
 
-  MacScheduler* const mac_sched_;
+  std::unique_ptr<MacScheduler> mac_sched_;
 
   const double freq_ghz_;  // RDTSC frequency in GHz
   // We check for new MAC packets from applications every [tsc_delta_]

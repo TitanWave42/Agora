@@ -40,7 +40,8 @@ RecorderWorkerHDF5::RecorderWorkerHDF5(const Config* in_cfg,
       rx_direction_(rx_direction),
       max_frame_number_(0),
       data_chunk_dims_{
-          {1, 1, 1, 1, static_cast<hsize_t>(2 * cfg_->SampsPerSymbol())}} {}
+          {1, 1, 1, 1, static_cast<hsize_t>(2 * cfg_->SampsPerSymbol())}},
+      mac_sched_(std::make_unique<McsScheduler>(in_cfg)) {}
 
 RecorderWorkerHDF5::~RecorderWorkerHDF5() = default;
 
@@ -278,8 +279,7 @@ void RecorderWorkerHDF5::Init() {
             hdf5_->WriteDataset(
                 dataset_name, start, tx_data_dims,
                 reinterpret_cast<const float*>(
-                    &const_cast<Config*>(cfg_)
-                         ->DlIqF()[sym][ant * (tx_data_size / 2)]));
+                    mac_sched_->DlIqF()[sym][ant * (tx_data_size / 2)]));
           }
         }
         hdf5_->FinalizeDataset(dataset_name);

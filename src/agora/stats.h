@@ -181,7 +181,7 @@ class Stats {
   inline Table<size_t>& FrameStart() { return this->frame_start_; };
 
  private:
-  MacScheduler* mac_sched_;
+  std::unique_ptr<MacScheduler> mac_sched_;
   // Fill in running time summary stats for the current frame for this
   // thread and Doer type
   void PopulateSummary(FrameSummary* frame_summary, size_t thread_id,

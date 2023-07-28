@@ -314,24 +314,23 @@ EventData DoDemul::Launch(size_t tag) {
     equal_t_ptr = (float*)(equaled_buffer_temp_transposed_);
     int8_t* demod_ptr =
         demod_buffers_[frame_slot][symbol_idx_ul][ss_id] +
-        (mac_sched_->GetMcs()->ModOrderBits(Direction::kUplink) * base_sc_id);
+        (mac_sched_->ModOrderBits(Direction::kUplink) * base_sc_id);
     Demodulate(equal_t_ptr, demod_ptr, max_sc_ite,
-               mac_sched_->GetMcs()->ModOrderBits(Direction::kUplink),
-               kUplinkHardDemod);
+               mac_sched_->ModOrderBits(Direction::kUplink), kUplinkHardDemod);
     // if hard demod is enabled calculate BER with modulated bits
     if (((kPrintPhyStats || kEnableCsvLog) && kUplinkHardDemod) &&
         (symbol_idx_ul >= cfg_->Frame().ClientUlPilotSymbols())) {
       size_t ue_id = mac_sched_->ScheduledUeIndex(frame_id, base_sc_id, ss_id);
       phy_stats_->UpdateDecodedBits(
           ue_id, total_data_symbol_idx_ul, frame_slot,
-          max_sc_ite * mac_sched_->GetMcs()->ModOrderBits(Direction::kUplink));
+          max_sc_ite * mac_sched_->ModOrderBits(Direction::kUplink));
       // Each block here is max_sc_ite
       phy_stats_->IncrementDecodedBlocks(ue_id, total_data_symbol_idx_ul,
                                          frame_slot);
       size_t block_error(0);
       int8_t* tx_bytes =
-          cfg_->GetModBitsBuf(cfg_->UlModBits(), Direction::kUplink, 0,
-                              symbol_idx_ul, ue_id, base_sc_id);
+          mac_sched_->GetModBitsBuf(mac_sched_->UlModBits(), Direction::kUplink,
+                                    0, symbol_idx_ul, ue_id, base_sc_id);
       for (size_t i = 0; i < max_sc_ite; i++) {
         uint8_t rx_byte = static_cast<uint8_t>(demod_ptr[i]);
         uint8_t tx_byte = static_cast<uint8_t>(tx_bytes[i]);
