@@ -11,9 +11,12 @@
 
 static constexpr bool kPrintSocketOutput = false;
 
-DoBroadcast::DoBroadcast(Config* in_config, int in_tid,
-                         char* in_dl_socket_buffer, Stats* in_stats_manager)
-    : Doer(in_config, in_tid), dl_socket_buffer_(in_dl_socket_buffer) {
+DoBroadcast::DoBroadcast(Config* in_config, MacScheduler* mac_scheduler,
+                         int in_tid, char* in_dl_socket_buffer,
+                         Stats* in_stats_manager)
+    : Doer(in_config, in_tid),
+      mac_sched_(mac_scheduler),
+      dl_socket_buffer_(in_dl_socket_buffer) {
   duration_stat_ =
       in_stats_manager->GetDurationStat(DoerType::kBroadcast, in_tid);
 }
@@ -48,7 +51,7 @@ void DoBroadcast::GenerateBroadcastSymbols(size_t frame_id) {
     ///\todo: later ctrl data might include other info
     ctrl_data.at(symbol_idx_dl) = frame_id + (kUseArgos ? TX_FRAME_DELTA : 0);
   }
-  cfg_->GenBroadcastSlots(bcast_iq_samps, ctrl_data);
+  mac_sched_->GenBroadcastSlots(bcast_iq_samps, ctrl_data);
 
   if (kPrintSocketOutput) {
     for (size_t symbol_idx_dl = 0; symbol_idx_dl < num_control_syms;

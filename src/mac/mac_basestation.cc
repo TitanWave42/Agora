@@ -57,7 +57,7 @@ int main(int argc, char* argv[]) {
   int ret = EXIT_FAILURE;
   {
     auto cfg = std::make_unique<Config>(filename.c_str());
-    auto mac_scheduler = std::make_shared<MacScheduler>(cfg);
+    auto mac_scheduler = std::make_shared<MacScheduler>(cfg.get());
     mac_scheduler->GenData();
 
     // Generate pattern file for testing

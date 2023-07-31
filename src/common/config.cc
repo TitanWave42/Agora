@@ -691,8 +691,8 @@ Config::Config(std::string jsonfilename)
   // dl_ldpc_config_ = mcs.Dl_Ldpc_Config();
 
   //this->UpdateDlMCS(dl_mcs_params_);
-  this->DumpMcsInfo();
-  this->UpdateCtrlMCS();
+  //this->DumpMcsInfo();
+  //this->UpdateCtrlMCS();
 
   fft_in_rru_ = tdd_conf.value("fft_in_rru", false);
 
@@ -796,8 +796,8 @@ json Config::Parse(const json& in_json, const std::string& json_handle) {
 Config::~Config() {
   ue_specific_pilot_t_.Free();
   ue_specific_pilot_.Free();
-  ul_mod_table_.Free();
-  dl_mod_table_.Free();
+  //ul_mod_table_.Free();
+  //dl_mod_table_.Free();
 }
 
 /* TODO Inspect and document */

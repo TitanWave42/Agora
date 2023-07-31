@@ -181,7 +181,6 @@ class Stats {
   inline Table<size_t>& FrameStart() { return this->frame_start_; };
 
  private:
-  MacScheduler* mac_sched_;
   // Fill in running time summary stats for the current frame for this
   // thread and Doer type
   void PopulateSummary(FrameSummary* frame_summary, size_t thread_id,
@@ -197,6 +196,7 @@ class Stats {
   size_t GetTotalTaskCount(DoerType doer_type, size_t thread_num);
 
   const Config* const config_;
+  MacScheduler* mac_sched_;
 
   const size_t task_thread_num_;
   const size_t fft_thread_num_;

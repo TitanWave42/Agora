@@ -30,7 +30,7 @@
 class Agora {
  public:
   /// Create an Agora object and start the worker threads
-  explicit Agora(MacScheduler mac_scheduler);
+  explicit Agora(MacScheduler* mac_scheduler);
   ~Agora();
 
   void Start();  /// The main Agora event loop
@@ -121,7 +121,7 @@ class Agora {
   // Handle for the MAC thread
   std::thread mac_std_thread_;
 
-  std::unique_ptr<MacScheduler> mac_sched_;
+  MacScheduler* mac_sched_;
   std::unique_ptr<Stats> stats_;
   std::unique_ptr<PhyStats> phy_stats_;
   std::unique_ptr<AgoraWorker> worker_set_;

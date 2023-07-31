@@ -20,7 +20,8 @@
 
 class PacketTxRxSim : public PacketTxRx {
  public:
-  PacketTxRxSim(Config* const cfg, size_t core_offset,
+  PacketTxRxSim(Config* const cfg, MacScheduler* mac_scheduler,
+                size_t core_offset,
                 moodycamel::ConcurrentQueue<EventData>* event_notify_q,
                 moodycamel::ConcurrentQueue<EventData>* tx_pending_q,
                 moodycamel::ProducerToken** notify_producer_tokens,

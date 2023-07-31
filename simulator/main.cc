@@ -29,7 +29,7 @@ int main(int argc, char const* argv[]) {
                 conf_file.c_str());
   }
   auto cfg = std::make_unique<Config>(conf_file.c_str());
-  auto mac_scheduler = std::make_shared<MacScheduler>(cfg);
+  auto mac_scheduler = std::make_shared<MacScheduler>(cfg.get());
   mac_scheduler->GenData();
   int ret;
   try {

@@ -44,7 +44,7 @@ int main(int argc, char* argv[]) {
   }
 
   std::unique_ptr<Config> cfg = std::make_unique<Config>(conf_file.c_str());
-  auto mac_scheduler = std::make_shared<MacScheduler>(cfg);
+  auto mac_scheduler = std::make_shared<MacScheduler>(cfg.get());
   mac_scheduler->GenData();
 
   int ret;

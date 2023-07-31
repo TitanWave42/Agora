@@ -17,8 +17,8 @@ static constexpr bool kDebugPrint = false;
 RecorderWorkerMultiFile::RecorderWorkerMultiFile(
     const Config* in_cfg, MacScheduler* mac_scheduler, size_t antenna_offset,
     size_t num_antennas, size_t record_interval, Direction rx_direction)
-    : RecorderWorker(in_cfg, mac_scheduler, antenna_offset, num_antennas, record_interval,
-                     rx_direction),
+    : RecorderWorker(in_cfg, mac_scheduler, antenna_offset, num_antennas,
+                     record_interval, rx_direction),
       cfg_(in_cfg),
       antenna_offset_(antenna_offset),
       num_antennas_(num_antennas),

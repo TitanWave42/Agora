@@ -552,8 +552,8 @@ class Config {
   std::string dl_modulation_;
   size_t dl_mod_order_bits_;
   // Modulation lookup table for mapping binary bits to constellation points
-  Table<complex_float> ul_mod_table_;
-  Table<complex_float> dl_mod_table_;
+  // Table<complex_float> ul_mod_table_;
+  // Table<complex_float> dl_mod_table_;
 
   nlohmann::json ul_mcs_params_;  // Uplink Modulation and Coding (MCS)
   nlohmann::json dl_mcs_params_;  // Downlink Modulation and Coding (MCS)

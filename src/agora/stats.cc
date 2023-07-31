@@ -19,7 +19,8 @@ static const std::string kStatsDetailedDataFilename =
 
 Stats::Stats(Config* const cfg, MacScheduler* mac_schedule)
     : config_(cfg),
-      mac_sched_(mac_schedule), task_thread_num_(cfg->WorkerThreadNum()),
+      mac_sched_(mac_schedule),
+      task_thread_num_(cfg->WorkerThreadNum()),
       fft_thread_num_(cfg->FftThreadNum()),
       beam_thread_num_(cfg->BeamThreadNum()),
       demul_thread_num_(cfg->DemulThreadNum()),

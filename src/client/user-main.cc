@@ -33,7 +33,7 @@ int main(int argc, char* argv[]) {
   }
 
   auto config = std::make_unique<Config>(filename.c_str());
-  auto mac_scheduler = std::make_shared<MacScheduler>(cfg);
+  auto mac_scheduler = std::make_shared<MacScheduler>(config.get());
   mac_scheduler->GenData();
   int ret;
   try {

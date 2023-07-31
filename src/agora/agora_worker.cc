@@ -60,8 +60,8 @@ void AgoraWorker::WorkerThread(int tid) {
       phy_stats_, stats_);
 
   auto compute_fft = std::make_unique<DoFFT>(
-      config_, tid, buffer_->GetFft(), buffer_->GetCsi(), buffer_->GetCalibDl(),
-      buffer_->GetCalibUl(), phy_stats_, stats_);
+      config_, mac_sched_, tid, buffer_->GetFft(), buffer_->GetCsi(),
+      buffer_->GetCalibDl(), buffer_->GetCalibUl(), phy_stats_, stats_);
 
   // Downlink workers
   auto compute_ifft = std::make_unique<DoIFFT>(config_, tid, buffer_->GetIfft(),
@@ -88,7 +88,7 @@ void AgoraWorker::WorkerThread(int tid) {
       mac_sched_, phy_stats_, stats_);
 
   auto compute_bcast = std::make_unique<DoBroadcast>(
-      config_, tid, buffer_->GetDlSocket(), stats_);
+      config_, mac_sched_, tid, buffer_->GetDlSocket(), stats_);
 
   std::vector<Doer*> computers_vec;
   std::vector<EventType> events_vec;

@@ -43,8 +43,9 @@ static const std::vector<Agora_recorder::RecorderWorker::RecorderWorkerTypes>
 
 PhyUe::PhyUe(Config* config, MacScheduler* mac_scheduler)
     : mac_sched_(mac_scheduler),
-      stats_(std::make_unique<Stats>(config)),
-      phy_stats_(std::make_unique<PhyStats>(config, Direction::kDownlink)),
+      stats_(std::make_unique<Stats>(config, mac_scheduler)),
+      phy_stats_(std::make_unique<PhyStats>(config, mac_scheduler,
+                                            Direction::kDownlink)),
       demod_buffer_(kFrameWnd, config->Frame().NumDLSyms(), config->UeAntNum(),
                     kMaxModType * Roundup<64>(config->GetOFDMDataNum())),
       decoded_buffer_(
@@ -110,8 +111,8 @@ PhyUe::PhyUe(Config* config, MacScheduler* mac_scheduler)
     //} else if (kUseUHD) {
   } else {
     ru_ = std::make_unique<PacketTxRxClientSim>(
-        config_, config_->UeCoreOffset() + 1, &complete_queue_, &tx_queue_,
-        rx_ptoks_ptr_, tx_ptoks_ptr_, rx_buffer_,
+        config_, mac_sched_, config_->UeCoreOffset() + 1, &complete_queue_,
+        &tx_queue_, rx_ptoks_ptr_, tx_ptoks_ptr_, rx_buffer_,
         rx_buffer_size_ / config->PacketLength(), stats_->FrameStart(),
         tx_buffer_);
   }
@@ -119,8 +120,9 @@ PhyUe::PhyUe(Config* config, MacScheduler* mac_scheduler)
   size_t core_offset_worker = config_->UeCoreOffset() + 1 + rx_thread_num_;
   if (kEnableMac == true) {
     mac_thread_ = std::make_unique<MacThreadClient>(
-        config_, core_offset_worker, decoded_buffer_, &ul_bits_buffer_,
-        &ul_bits_buffer_status_, &to_mac_queue_, &complete_queue_);
+        config_, mac_sched_, core_offset_worker, decoded_buffer_,
+        &ul_bits_buffer_, &ul_bits_buffer_status_, &to_mac_queue_,
+        &complete_queue_);
 
     core_offset_worker++;
     mac_std_thread_ =
@@ -142,7 +144,8 @@ PhyUe::PhyUe(Config* config, MacScheduler* mac_scheduler)
   if (kRecordDownlinkFrame && config_->Frame().NumDLSyms() > 0) {
     auto& new_recorder = recorders_.emplace_back(
         std::make_unique<Agora_recorder::RecorderThread>(
-            config_, 0, core_offset_worker + config_->UeWorkerThreadNum(),
+            config_, mac_sched_, 0,
+            core_offset_worker + config_->UeWorkerThreadNum(),
             kFrameWnd * config_->Frame().NumTotalSyms() * config_->UeAntNum() *
                 kDefaultQueueSize,
             0, config_->UeAntNum(), kRecordFrameInterval, Direction::kDownlink,
@@ -1266,8 +1269,8 @@ bool PhyUe::FrameComplete(size_t frame, FrameTasksFlags complete) {
 }
 
 extern "C" {
-EXPORT PhyUe* PhyUeNew(Config* cfg) {
-  auto* usr = new PhyUe(cfg);
+EXPORT PhyUe* PhyUeNew(Config* cfg, MacScheduler* mac_schedule) {
+  auto* usr = new PhyUe(cfg, mac_schedule);
   return usr;
 }
 EXPORT void PhyUeStart(PhyUe* usr) { usr->Start(); }

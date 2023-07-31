@@ -18,7 +18,7 @@ class TxRxWorkerSim : public TxRxWorker {
  public:
   TxRxWorkerSim(size_t core_offset, size_t tid, size_t interface_count,
                 size_t interface_offset, Config* const config,
-                size_t* rx_frame_start,
+                MacScheduler* mac_scheduler, size_t* rx_frame_start,
                 moodycamel::ConcurrentQueue<EventData>* event_notify_q,
                 moodycamel::ConcurrentQueue<EventData>* tx_pending_q,
                 moodycamel::ProducerToken& tx_producer,

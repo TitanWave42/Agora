@@ -22,7 +22,8 @@ static constexpr size_t kFrameOffsets[kModTestNum] = {0, 20, 30};
 static std::atomic<size_t> num_workers_ready_atomic;
 
 void MasterToWorkerDynamicMaster(
-    Config* cfg, moodycamel::ConcurrentQueue<EventData>& event_queue,
+    Config* cfg, MacScheduler* mac_scheduler,
+    moodycamel::ConcurrentQueue<EventData>& event_queue,
     moodycamel::ConcurrentQueue<EventData>& complete_task_queue) {
   PinToCoreWithOffset(ThreadType::kMaster, cfg->CoreOffset(), 0);
   // Wait for all worker threads to be ready
@@ -31,9 +32,9 @@ void MasterToWorkerDynamicMaster(
   }
 
   for (size_t bs_ant_idx = 0; bs_ant_idx < kModTestNum; bs_ant_idx++) {
-    nlohmann::json msc_params = cfg->MCSParams(Direction::kUplink);
+    nlohmann::json msc_params = mac_scheduler->MCSParams(Direction::kUplink);
     msc_params["mcs_index"] = kMCSIndeces[bs_ant_idx];
-    cfg->UpdateUlMCS(msc_params);
+    mac_scheduler->InitializeUlMcs(msc_params);
     for (size_t i = 0; i < kMaxTestNum; i++) {
       uint32_t frame_id =
           i / (cfg->DemulEventsPerSymbol() * cfg->Frame().NumULSyms()) +
@@ -62,7 +63,7 @@ void MasterToWorkerDynamicMaster(
 }
 
 void MasterToWorkerDynamicWorker(
-    Config* cfg, size_t worker_id,
+    Config* cfg, MacScheduler* mac_scheduler, size_t worker_id,
     moodycamel::ConcurrentQueue<EventData>& event_queue,
     moodycamel::ConcurrentQueue<EventData>& complete_task_queue,
     moodycamel::ProducerToken* ptok, Table<complex_float>& data_buffer,
@@ -100,7 +101,7 @@ void MasterToWorkerDynamicWorker(
                  cur_frame_id - kFrameOffsets[2] <= max_frame_id_wo_offset) {
         frame_offset_id = 2;
       }
-      ASSERT_EQ(cfg->ModOrderBits(Direction::kUplink),
+      ASSERT_EQ(mac_scheduler->ModOrderBits(Direction::kUplink),
                 kModBitsNums[frame_offset_id]);
       EventData resp_event = compute_demul->Launch(req_event.tags_[0]);
       TryEnqueueFallback(&complete_task_queue, ptok, resp_event);
@@ -117,7 +118,7 @@ void MasterToWorkerDynamicWorker(
 TEST(TestDemul, VaryingConfig) {
   static constexpr size_t kNumIters = 10000;
   auto cfg = std::make_unique<Config>("files/config/ci/tddconfig-sim-ul.json");
-  auto mac_scheduler = std::make_shared<MacScheduler>(cfg);
+  auto mac_scheduler = std::make_shared<MacScheduler>(cfg.get());
   mac_scheduler->GenData();
 
   auto event_queue = moodycamel::ConcurrentQueue<EventData>(2 * kNumIters);
@@ -160,8 +161,9 @@ TEST(TestDemul, VaryingConfig) {
           kMaxUEs * 1.0f / 1024 / 1024);
 
   auto mac_sched = std::make_shared<MacScheduler>(cfg.get());
-  auto stats = std::make_unique<Stats>(cfg.get());
-  auto phy_stats = std::make_unique<PhyStats>(cfg.get(), Direction::kUplink);
+  auto stats = std::make_unique<Stats>(cfg.get(), mac_sched.get());
+  auto phy_stats = std::make_unique<PhyStats>(cfg.get(), mac_sched.get(),
+                                              Direction::kUplink);
 
   std::vector<std::thread> threads;
   threads.emplace_back(MasterToWorkerDynamicMaster, cfg.get(),

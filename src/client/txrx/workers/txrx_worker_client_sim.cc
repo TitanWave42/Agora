@@ -118,7 +118,7 @@ std::vector<Packet*> TxRxWorkerClientSim::RecvEnqueue(size_t interface_id) {
     }
     size_t symbol_id = pkt->symbol_id_;
     if (Configuration()->GetSymbolType(symbol_id) == SymbolType::kControl) {
-      size_t ctrl_frame_id = Configuration()->DecodeBroadcastSlots(pkt->data_);
+      size_t ctrl_frame_id = mac_sched_->DecodeBroadcastSlots(pkt->data_);
       if (ctrl_frame_id != pkt->frame_id_) {
         AGORA_LOG_ERROR(
             "RecvEnqueue: Ctrl channel frame_id mismatch error (%zu/%zu)!\n",

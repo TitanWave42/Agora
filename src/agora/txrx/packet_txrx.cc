@@ -12,15 +12,16 @@ static constexpr size_t kNotifyWaitMs = 100;
 static constexpr size_t kWorkerStartWaitMs = 10;
 static constexpr size_t kWorkerStartWaitMsMax = 5000;
 
-PacketTxRx::PacketTxRx(AgoraTxRx::TxRxTypes type, Config* const cfg, MacScheduler* mac_scheduler,
-                       size_t core_offset,
+PacketTxRx::PacketTxRx(AgoraTxRx::TxRxTypes type, Config* const cfg,
+                       MacScheduler* mac_scheduler, size_t core_offset,
                        moodycamel::ConcurrentQueue<EventData>* event_notify_q,
                        moodycamel::ConcurrentQueue<EventData>* tx_pending_q,
                        moodycamel::ProducerToken** notify_producer_tokens,
                        moodycamel::ProducerToken** tx_producer_tokens,
                        Table<char>& rx_buffer, size_t packet_num_in_buffer,
                        Table<size_t>& frame_start, char* tx_buffer)
-    : cfg_(cfg), mac_sched_(mac_scheduler),
+    : cfg_(cfg),
+      mac_sched_(mac_scheduler),
       core_offset_(core_offset),
       event_notify_q_(event_notify_q),
       tx_pending_q_(tx_pending_q),

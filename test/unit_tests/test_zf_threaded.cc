@@ -110,7 +110,7 @@ void MasterToWorkerDynamicWorker(
 TEST(TestZF, VaryingConfig) {
   static constexpr size_t kNumIters = 10000;
   auto cfg = std::make_unique<Config>("files/config/ci/tddconfig-sim-ul.json");
-  auto mac_scheduler = std::make_shared<MacScheduler>(cfg);
+  auto mac_scheduler = std::make_shared<MacScheduler>(cfg.get());
   mac_scheduler->GenData();
 
   auto event_queue = moodycamel::ConcurrentQueue<EventData>(2 * kNumIters);
@@ -146,8 +146,9 @@ TEST(TestZF, VaryingConfig) {
                                 Agora_memory::Alignment_t::kAlign64);
 
   auto mac_sched = std::make_shared<MacScheduler>(cfg.get());
-  auto phy_stats = std::make_unique<PhyStats>(cfg.get(), Direction::kUplink);
-  auto stats = std::make_unique<Stats>(cfg.get());
+  auto phy_stats = std::make_unique<PhyStats>(cfg.get(), mac_sched.get(),
+                                              Direction::kUplink);
+  auto stats = std::make_unique<Stats>(cfg.get(), mac_sched.get());
 
   std::vector<std::thread> threads;
   threads.emplace_back(MasterToWorkerDynamicMaster, cfg.get(),

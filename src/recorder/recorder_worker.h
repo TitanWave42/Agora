@@ -8,9 +8,9 @@
 #include <memory>
 
 #include "config.h"
+#include "mac_scheduler.h"
 #include "message.h"
 #include "symbols.h"
-#include "mac_scheduler.h"
 
 namespace Agora_recorder {
 
@@ -36,8 +36,9 @@ class RecorderWorker {
 
   ///Factory function to make concrete worker
   static std::unique_ptr<RecorderWorker> Create(
-      RecorderWorkerTypes type, const Config* in_cfg, MacScheduler* mac_scheduler, size_t antenna_offset,
-      size_t num_antennas, size_t record_interval, Direction rx_direction);
+      RecorderWorkerTypes type, const Config* in_cfg,
+      MacScheduler* mac_scheduler, size_t antenna_offset, size_t num_antennas,
+      size_t record_interval, Direction rx_direction);
 };
 }; /* End namespace Agora_recorder */
 

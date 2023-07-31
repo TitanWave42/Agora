@@ -68,10 +68,10 @@ Mcs::Mcs(Config* const cfg)
       dl_mcs_params_.value("decoderIter", 5);
 
   //Initialize UL MCS
-  Initialize_Ul_Mcs(ul_mcs_params_);
+  InitializeUlMcs(ul_mcs_params_);
 
   //Initialize DL MCS
-  Initialize_Dl_Mcs(dl_mcs_params_);
+  InitializeDlMcs(dl_mcs_params_);
 
   //Update the LDPC mac_sched->Cfg()s
   Update_Ul_Ldpc_Config();
@@ -82,6 +82,9 @@ Mcs::Mcs(Config* const cfg)
   if (std::filesystem::is_directory(kLogFilepath) == false) {
     std::filesystem::create_directory(kLogFilepath);
   }
+
+  this->DumpMcsInfo();
+  this->UpdateCtrlMCS();
 }
 
 Mcs::~Mcs() {
@@ -106,7 +109,7 @@ Mcs::~Mcs() {
   ul_iq_t_.Free();
 }
 
-void Mcs::Initialize_Ul_Mcs(const nlohmann::json ul_mcs) {
+void Mcs::InitializeUlMcs(const nlohmann::json ul_mcs) {
   current_ul_mcs_.frame_number = 0;
   if (ul_mcs.find("mcs_index") == ul_mcs.end()) {
     ul_modulation_ = ul_mcs.value("modulation", "16QAM");
@@ -134,7 +137,7 @@ void Mcs::Initialize_Ul_Mcs(const nlohmann::json ul_mcs) {
   }
 }
 
-void Mcs::Initialize_Dl_Mcs(const nlohmann::json dl_mcs) {
+void Mcs::InitializeDlMcs(const nlohmann::json dl_mcs) {
   current_dl_mcs_.frame_number = 0;
   if (dl_mcs.find("mcs_index") == dl_mcs.end()) {
     dl_modulation_ = dl_mcs.value("modulation", "16QAM");
@@ -243,8 +246,8 @@ void Mcs::Update_Ul_Ldpc_Config() {
   size_t ul_mod_order_bits = GetModOrderBits(current_ul_mcs_.mcs_index);
   size_t ul_code_rate = GetCodeRate(current_ul_mcs_.mcs_index);
 
-  Table<complex_float> ul_mod_table_ =
-      modulation_tables_.ul_tables[ul_mod_order_bits / 2 - 1];
+  // Table<complex_float> ul_mod_table_ =
+  //     modulation_tables_.ul_tables[ul_mod_order_bits / 2 - 1];
 
   size_t zc = SelectZc(base_graph, ul_code_rate, ul_mod_order_bits,
                        cfg_->OfdmDataNum(), this->kCbPerSymbol, "uplink");
@@ -275,8 +278,8 @@ void Mcs::Update_Dl_Ldpc_Config() {
   size_t dl_mod_order_bits = GetModOrderBits(current_dl_mcs_.mcs_index);
   size_t dl_code_rate = GetCodeRate(current_dl_mcs_.mcs_index);
 
-  Table<complex_float> dl_mod_table_ =
-      modulation_tables_.dl_tables[dl_mod_order_bits / 2 - 1];
+  // Table<complex_float> dl_mod_table_ =
+  //     modulation_tables_.dl_tables[dl_mod_order_bits / 2 - 1];
 
   size_t zc = SelectZc(base_graph, dl_code_rate, dl_mod_order_bits,
                        cfg_->OfdmDataNum(), this->kCbPerSymbol, "uplink");

@@ -13,8 +13,8 @@
 
 class DoBroadcast : public Doer {
  public:
-  DoBroadcast(Config* in_config, int in_tid, char* in_dl_socket_buffer,
-              Stats* in_stats_manager);
+  DoBroadcast(Config* in_config, MacScheduler* mac_scheduler, int in_tid,
+              char* in_dl_socket_buffer, Stats* in_stats_manager);
   ~DoBroadcast() override;
 
   EventData Launch(size_t tag) override;
@@ -23,6 +23,7 @@ class DoBroadcast : public Doer {
   void GenerateBroadcastSymbols(size_t frame_id);
 
  private:
+  MacScheduler* mac_sched_;
   char* dl_socket_buffer_;
   DurationStat* duration_stat_;
 };

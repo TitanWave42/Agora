@@ -55,6 +55,9 @@ class Mcs {
   void Update_Ul_Ldpc_Config();
   void Update_Dl_Ldpc_Config();
 
+  void InitializeUlMcs(const nlohmann::json ul_mcs);
+  void InitializeDlMcs(const nlohmann::json dl_mcs);
+
   inline std::string Modulation(Direction dir) const {
     return dir == Direction::kUplink ? this->ul_modulation_
                                      : this->dl_modulation_;
@@ -356,9 +359,6 @@ class Mcs {
 
   Initial_Mcs_Properties initial_ul_mcs_properties_;
   Initial_Mcs_Properties initial_dl_mcs_properties_;
-
-  void Initialize_Ul_Mcs(const nlohmann::json ul_mcs);
-  void Initialize_Dl_Mcs(const nlohmann::json dl_mcs);
 
   void UpdateUlMcsScheme(size_t current_frame_number);
   void UpdateDlMcsScheme(size_t current_frame_number);

@@ -46,18 +46,20 @@ static const std::vector<Agora_recorder::RecorderWorker::RecorderWorkerTypes>
                        kRecorderWorkerMultiFile};
 #endif
 
-Agora::Agora(MacScheduler mac_scheduler)
-    : base_worker_core_offset_(cfg->CoreOffset() + 1 + cfg->SocketThreadNum()),
+Agora::Agora(MacScheduler* mac_scheduler)
+    : base_worker_core_offset_(mac_scheduler->Cfg()->CoreOffset() + 1 +
+                               mac_scheduler->Cfg()->SocketThreadNum()),
       config_(mac_scheduler->Cfg()),
       mac_sched_(mac_scheduler),
-      stats_(std::make_unique<Stats>(cfg)),
-      phy_stats_(std::make_unique<PhyStats>(cfg, Direction::kUplink)),
+      stats_(std::make_unique<Stats>(mac_scheduler->Cfg(), mac_scheduler)),
+      phy_stats_(std::make_unique<PhyStats>(mac_scheduler->Cfg(), mac_scheduler,
+                                            Direction::kUplink)),
       agora_memory_(std::make_unique<AgoraBuffer>(mac_scheduler)) {
   AGORA_LOG_INFO("Agora: project directory [%s], RDTSC frequency = %.2f GHz\n",
-                 kProjectDirectory.c_str(), cfg->FreqGhz());
+                 kProjectDirectory.c_str(), mac_scheduler->Cfg()->FreqGhz());
 
-  PinToCoreWithOffset(ThreadType::kMaster, cfg->CoreOffset(), 0,
-                      kEnableCoreReuse, false /* quiet */);
+  PinToCoreWithOffset(ThreadType::kMaster, mac_scheduler->Cfg()->CoreOffset(),
+                      0, kEnableCoreReuse, false /* quiet */);
   CheckIncrementScheduleFrame(0, ScheduleProcessingFlags::kProcessingComplete);
   // Important to set frame_tracking_.cur_sche_frame_id_ after the call to
   // CheckIncrementScheduleFrame because it will be incremented however,
@@ -72,8 +74,8 @@ Agora::Agora(MacScheduler mac_scheduler)
 
   if (kRecordUplinkFrame) {
     recorder_ = std::make_unique<Agora_recorder::RecorderThread>(
-        config_, 0,
-        cfg->CoreOffset() + config_->WorkerThreadNum() +
+        config_, mac_sched_, 0,
+        config_->CoreOffset() + config_->WorkerThreadNum() +
             config_->SocketThreadNum() + 1,
         kFrameWnd * config_->Frame().NumTotalSyms() * config_->BsAntNum() *
             kDefaultQueueSize,
@@ -944,7 +946,7 @@ void Agora::HandleEventFft(size_t tag) {
 void Agora::UpdateRanConfig(RanConfig rc) {
   nlohmann::json msc_params = mac_sched_->MCSParams(Direction::kUplink);
   msc_params["mcs_index"] = rc.mcs_index_;
-  config_->UpdateUlMCS(msc_params);
+  mac_sched_->InitializeUlMcs(msc_params);
 }
 
 void Agora::UpdateRxCounters(size_t frame_id, size_t symbol_id) {
@@ -1123,7 +1125,7 @@ void Agora::InitializeThreads() {
   } else {
     /* Default to the simulator */
     packet_tx_rx_ = std::make_unique<PacketTxRxSim>(
-        config_, config_->CoreOffset() + 1, &message_queue_,
+        config_, mac_sched_, config_->CoreOffset() + 1, &message_queue_,
         message_->GetConq(EventType::kPacketTX, 0), rx_ptoks_ptr_,
         tx_ptoks_ptr_, agora_memory_->GetUlSocket(),
         agora_memory_->GetUlSocketSize() / config_->PacketLength(),
@@ -1135,7 +1137,7 @@ void Agora::InitializeThreads() {
                                 config_->SocketThreadNum() +
                                 config_->WorkerThreadNum() + 1;
     mac_thread_ = std::make_unique<MacThreadBaseStation>(
-        config_, mac_cpu_core, agora_memory_->GetDecod(),
+        config_, mac_sched_, mac_cpu_core, agora_memory_->GetDecod(),
         &agora_memory_->GetDlBits(), &agora_memory_->GetDlBitsStatus(),
         &mac_request_queue_, &mac_response_queue_);
 
@@ -1146,7 +1148,7 @@ void Agora::InitializeThreads() {
   // Create workers
   ///\todo convert unique ptr to shared
   worker_set_ = std::make_unique<AgoraWorker>(
-      config_, mac_sched_.get(), stats_.get(), phy_stats_.get(), message_.get(),
+      config_, mac_sched_, stats_.get(), phy_stats_.get(), message_.get(),
       agora_memory_.get(), &frame_tracking_);
 
   AGORA_LOG_INFO(
@@ -1314,7 +1316,7 @@ bool Agora::CheckFrameComplete(size_t frame_id) {
 }
 
 extern "C" {
-EXPORT Agora* AgoraNew(MacScheduler mac_scheduler) {
+EXPORT Agora* AgoraNew(MacScheduler* mac_scheduler) {
   AGORA_LOG_TRACE("Size of Agora: %zu\n", sizeof(Agora*));
   auto* agora = new Agora(mac_scheduler);
 

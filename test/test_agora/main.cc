@@ -55,7 +55,8 @@ static void ReadFromFileDl(const std::string& filename, Table<short>& data,
                (ofdm_size * 2), sizeof(short));
 }
 
-static unsigned int CheckCorrectnessUl(Config const* const cfg) {
+static unsigned int CheckCorrectnessUl(Config const* const cfg,
+                                       MacScheduler* mac_scheduler) {
   int ue_num = cfg->UeAntNum();
   int num_uplink_syms = cfg->Frame().NumULSyms();
   int ofdm_data_num = cfg->OfdmDataNum();
@@ -73,8 +74,8 @@ static unsigned int CheckCorrectnessUl(Config const* const cfg) {
                      Agora_memory::Alignment_t::kAlign64);
 
   int num_bytes_per_ue =
-      (cfg->LdpcConfig(Direction::kUplink).NumCbLen() + 7) >>
-      3 * cfg->LdpcConfig(Direction::kUplink).NumBlocksInSymbol();
+      (mac_scheduler->LdpcConfig(Direction::kUplink).NumCbLen() + 7) >>
+      3 * mac_scheduler->LdpcConfig(Direction::kUplink).NumBlocksInSymbol();
   ReadFromFileUl(raw_data_filename, raw_data, num_bytes_per_ue, cfg);
   ReadFromFileUl(kDecodedFilename, output_data, num_bytes_per_ue, cfg);
 
@@ -167,10 +168,11 @@ unsigned int CheckCorrectnessDl(Config const* const cfg) {
   return error_cnt;
 }
 
-static unsigned int CheckCorrectness(Config const* const cfg) {
+static unsigned int CheckCorrectness(Config const* const cfg,
+                                     MacScheduler* mac_scheduler) {
   unsigned int ul_error_count = 0;
   unsigned int dl_error_count = 0;
-  ul_error_count = CheckCorrectnessUl(cfg);
+  ul_error_count = CheckCorrectnessUl(cfg, mac_scheduler);
   std::printf("Uplink error count: %d\n", ul_error_count);
   dl_error_count = CheckCorrectnessDl(cfg);
   std::printf("Downlink error count: %d\n", dl_error_count);
@@ -198,14 +200,14 @@ int main(int argc, char* argv[]) {
   }
 
   auto cfg = std::make_unique<Config>(conf_file.c_str());
-  auto mac_scheduler = std::make_shared<MacScheduler>(cfg);
+  auto mac_scheduler = std::make_shared<MacScheduler>(cfg.get());
   mac_scheduler->GenData();
 
   int ret;
   try {
     SignalHandler signal_handler;
     signal_handler.SetupSignalHandlers();
-    auto agora_cli = std::make_unique<Agora>(cfg.get());
+    auto agora_cli = std::make_unique<Agora>(mac_scheduler.get());
     agora_cli->flags_.enable_save_decode_data_to_file_ = true;
     agora_cli->flags_.enable_save_tx_data_to_file_ = true;
     agora_cli->Start();
@@ -216,13 +218,13 @@ int main(int argc, char* argv[]) {
 
     if ((cfg->Frame().NumDLSyms() > 0) && (cfg->Frame().NumULSyms() > 0)) {
       test_name = "combined";
-      error_count = CheckCorrectness(cfg.get());
+      error_count = CheckCorrectness(cfg.get(), mac_scheduler.get());
     } else if (cfg->Frame().NumDLSyms() > 0) {
       test_name = "downlink";
       error_count = CheckCorrectnessDl(cfg.get());
     } else if (cfg->Frame().NumULSyms() > 0) {
       test_name = "uplink";
-      error_count = CheckCorrectnessUl(cfg.get());
+      error_count = CheckCorrectnessUl(cfg.get(), mac_scheduler.get());
     } else {
       // Should never happen
       assert(false);

@@ -17,7 +17,8 @@
 TEST(TestControl, VerifyCorrectness) {
   auto cfg =
       std::make_unique<Config>("files/config/ci/tddconfig-sim-ctrl.json");
-  cfg->GenPilots();
+  auto mac_scheduler = std::make_shared<MacScheduler>(cfg.get());
+  mac_scheduler->GenPilots();
   std::vector<std::complex<int16_t>*> data_buffer(
       cfg->Frame().NumDlControlSyms());
   for (size_t i = 0; i < cfg->Frame().NumDlControlSyms(); i++) {

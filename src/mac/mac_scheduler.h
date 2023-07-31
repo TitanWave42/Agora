@@ -20,16 +20,31 @@ class MacScheduler {
   size_t ScheduledUeUlMcs(size_t frame_id, size_t ue_id);
   size_t ScheduledUeDlMcs(size_t frame_id, size_t ue_id);
 
-  //inline size_t Mcs::MacBytesNumPerframe(Direction dir) const
+  inline void InitializeUlMcs(const nlohmann::json ul_mcs) {
+    this->mcs_->InitializeUlMcs(ul_mcs);
+  }
+  inline void InitializeDlMcs(const nlohmann::json dl_mcs) {
+    this->mcs_->InitializeDlMcs(dl_mcs);
+  }
 
+  //inline size_t Mcs::MacBytesNumPerframe(Direction dir) const
+  inline size_t DecodeBroadcastSlots(const int16_t* const bcast_iq_samps) {
+    return this->mcs_->DecodeBroadcastSlots(bcast_iq_samps);
+  }
+  inline void GenBroadcastSlots(
+      std::vector<std::complex<int16_t>*>& bcast_iq_samps,
+      std::vector<size_t> ctrl_msg) {
+    this->mcs_->GenBroadcastSlots(bcast_iq_samps, ctrl_msg);
+  }
+
+  inline void GenPilots() { this->mcs_->GenPilots(); }
   inline Table<int8_t>& DlBits() { return mcs_->DlBits(); }
   inline Table<int8_t>& UlBits() { return mcs_->UlBits(); }
 
   inline Config* Cfg() { return this->cfg_; }
   //inline Mcs* GetMcs() { return this->mcs_; }
 
-  inline float Scale() const { return this->mcs_->scale_; }
-
+  inline float Scale() const { return this->mcs_->Scale(); }
 
   inline void GenData() { this->mcs_->GenData(); }
 

@@ -18,11 +18,11 @@
 #include "config.h"
 #include "data_generator.h"
 #include "gettime.h"
+#include "mac_scheduler.h"
 #include "memory_manage.h"
 #include "modulation.h"
 #include "phy_ldpc_decoder_5gnr.h"
 #include "utils_ldpc.h"
-#include "mac_scheduler.h"
 
 static constexpr bool kVerbose = false;
 static constexpr bool kPrintUplinkInformationBytes = false;
@@ -46,7 +46,7 @@ int main(int argc, char* argv[]) {
   const std::string cur_directory = TOSTRING(PROJECT_DIRECTORY);
   gflags::ParseCommandLineFlags(&argc, &argv, true);
   auto cfg = std::make_unique<Config>(FLAGS_conf_file.c_str());
-  auto mac_sched = std::make_shared<MacScheduler>(cfg);
+  auto mac_sched = std::make_shared<MacScheduler>(cfg.get());
   Direction dir =
       cfg->Frame().NumULSyms() > 0 ? Direction::kUplink : Direction::kDownlink;
 
@@ -102,9 +102,9 @@ int main(int argc, char* argv[]) {
     }
 
     // Save uplink information bytes to file
-    const size_t input_bytes_per_cb =
-        BitsToBytes(LdpcNumInputBits(mac_sched->LdpcConfig(dir).BaseGraph(),
-                                     mac_sched->LdpcConfig(dir).ExpansionFactor()));
+    const size_t input_bytes_per_cb = BitsToBytes(
+        LdpcNumInputBits(mac_sched->LdpcConfig(dir).BaseGraph(),
+                         mac_sched->LdpcConfig(dir).ExpansionFactor()));
     if (kPrintUplinkInformationBytes) {
       std::printf("Uplink information bytes\n");
       for (size_t n = 0; n < num_codeblocks; n++) {
@@ -316,10 +316,10 @@ int main(int argc, char* argv[]) {
         auto* equal_t_ptr =
             (float*)(equalized_data_all_symbols[i - data_sym_start] +
                      j * cfg->OfdmDataNum());
-        Demodulate(
-            equal_t_ptr, demod_ptr,
-            mac_sched->LdpcConfig(dir).NumCbCodewLen() / mac_sched->ModOrderBits(dir),
-            mac_sched->ModOrderBits(dir), false);
+        Demodulate(equal_t_ptr, demod_ptr,
+                   mac_sched->LdpcConfig(dir).NumCbCodewLen() /
+                       mac_sched->ModOrderBits(dir),
+                   mac_sched->ModOrderBits(dir), false);
       }
     }
 

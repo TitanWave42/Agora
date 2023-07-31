@@ -39,7 +39,7 @@ class PhyUe {
     kFrameComplete = (kDownlinkComplete | kMacTxComplete | kUplinkTxComplete)
   };
 
-  explicit PhyUe(Config* config);
+  explicit PhyUe(Config* config, MacScheduler* mac_scheduler);
   ~PhyUe();
 
   void Start();
