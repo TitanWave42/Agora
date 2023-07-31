@@ -41,8 +41,8 @@ static const std::vector<Agora_recorder::RecorderWorker::RecorderWorkerTypes>
                        kRecorderWorkerMultiFile};
 #endif
 
-PhyUe::PhyUe(Config* config)
-    : mac_sched_(std::make_unique<MacScheduler>(config)),
+PhyUe::PhyUe(Config* config, MacScheduler* mac_scheduler)
+    : mac_sched_(mac_scheduler),
       stats_(std::make_unique<Stats>(config)),
       phy_stats_(std::make_unique<PhyStats>(config, Direction::kDownlink)),
       demod_buffer_(kFrameWnd, config->Frame().NumDLSyms(), config->UeAntNum(),

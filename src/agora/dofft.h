@@ -21,7 +21,7 @@
 
 class DoFFT : public Doer {
  public:
-  DoFFT(Config* config, size_t tid, Table<complex_float>& data_buffer,
+  DoFFT(Config* config, MacScheduler* mac_scheduler, size_t tid, Table<complex_float>& data_buffer,
         PtrGrid<kFrameWnd, kMaxUEs, complex_float>& csi_buffers,
         Table<complex_float>& calib_dl_buffer,
         Table<complex_float>& calib_ul_buffer, PhyStats* in_phy_stats,
@@ -111,7 +111,7 @@ class DoFFT : public Doer {
   DurationStat* duration_stat_fft_;
   DurationStat* duration_stat_csi_;
   PhyStats* phy_stats_;
-  std::unique_ptr<MacScheduler> mac_sched_;
+  MacScheduler* mac_sched_;
 };
 
 #endif  // DOFFT_H_

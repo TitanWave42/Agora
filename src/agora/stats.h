@@ -64,7 +64,7 @@ static constexpr size_t kNumTimestampTypes =
 
 class Stats {
  public:
-  explicit Stats(Config* const cfg);
+  explicit Stats(Config* const cfg, MacScheduler* mac_scheduler);
   ~Stats();
 
   /// If worker stats collection is enabled, combine and update per-worker
@@ -181,7 +181,7 @@ class Stats {
   inline Table<size_t>& FrameStart() { return this->frame_start_; };
 
  private:
-  std::unique_ptr<MacScheduler> mac_sched_;
+  MacScheduler* mac_sched_;
   // Fill in running time summary stats for the current frame for this
   // thread and Doer type
   void PopulateSummary(FrameSummary* frame_summary, size_t thread_id,

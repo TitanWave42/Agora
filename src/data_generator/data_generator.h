@@ -32,7 +32,7 @@ class DataGenerator {
     kProfile123
   };
 
-  explicit DataGenerator(Config* cfg, uint64_t seed = 0,
+  explicit DataGenerator(Config* cfg, MacScheduler* mac_scheduler, uint64_t seed = 0,
                          Profile profile = Profile::kRandom);
 
   void DoDataGeneration(const std::string& directory);
@@ -124,7 +124,7 @@ class DataGenerator {
   Config* cfg_;         // The global Agora config
   uint64_t seed_;
   const Profile profile_;  // The pattern of the input byte sequence
-  std::unique_ptr<MacScheduler> mac_sched_;
+  MacScheduler* mac_sched_;
 };
 
 #endif  // DATA_GENERATOR_H_

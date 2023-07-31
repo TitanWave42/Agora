@@ -14,6 +14,7 @@
 #include "config.h"
 #include "message.h"
 #include "txrx_worker.h"
+#include "mac_scheduler.h"
 
 namespace AgoraTxRx {
 enum TxRxTypes { kBaseStation, kUserEquiptment };
@@ -33,7 +34,7 @@ enum TxRxTypes { kBaseStation, kUserEquiptment };
  */
 class PacketTxRx {
  public:
-  PacketTxRx(AgoraTxRx::TxRxTypes type, Config* const cfg, size_t core_offset,
+  PacketTxRx(AgoraTxRx::TxRxTypes type, Config* const cfg, MacScheduler* mac_scheduler, size_t core_offset,
              moodycamel::ConcurrentQueue<EventData>* event_notify_q,
              moodycamel::ConcurrentQueue<EventData>* tx_pending_q,
              moodycamel::ProducerToken** notify_producer_tokens,
@@ -75,6 +76,7 @@ class PacketTxRx {
 
   std::vector<std::unique_ptr<TxRxWorker>> worker_threads_;
   Config* const cfg_;
+  MacScheduler* mac_sched_;
 
   const size_t core_offset_;
   moodycamel::ConcurrentQueue<EventData>* event_notify_q_;

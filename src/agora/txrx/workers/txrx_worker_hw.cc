@@ -18,7 +18,8 @@ static constexpr bool kBeamsweepData = false;
 
 TxRxWorkerHw::TxRxWorkerHw(
     size_t core_offset, size_t tid, size_t interface_count,
-    size_t interface_offset, Config* const config, size_t* rx_frame_start,
+    size_t interface_offset, Config* const config, MacScheduler* mac_schedule,
+    size_t* rx_frame_start,
     moodycamel::ConcurrentQueue<EventData>* event_notify_q,
     moodycamel::ConcurrentQueue<EventData>* tx_pending_q,
     moodycamel::ProducerToken& tx_producer,
@@ -35,7 +36,7 @@ TxRxWorkerHw::TxRxWorkerHw(
       freq_ghz_(GetTime::MeasureRdtscFreq()),
       zeros_(config->SampsPerSymbol(), std::complex<int16_t>(0u, 0u)),
       first_symbol_(interface_count, true),
-      mac_sched_(std::make_unique<MacScheduler>(config)) {
+      mac_sched_(mac_schedule) {
   InitRxStatus();
 }
 

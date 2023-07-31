@@ -85,6 +85,6 @@ class TxRxWorkerHw : public TxRxWorker {
   std::vector<TxRxWorkerRx::RxStatusTracker> rx_status_;
   std::vector<bool> first_symbol_;
 
-  std::unique_ptr<MacScheduler> mac_sched_;
+  MacScheduler* mac_sched_;
 };
 #endif  // TXRX_WORKER_SIM_H_

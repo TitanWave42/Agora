@@ -5,7 +5,7 @@
 #include <gflags/gflags.h>
 
 #include "logger.h"
-#include "mcs.h"
+#include "mac_scheduler.h"
 #include "sender.h"
 #include "version_config.h"
 
@@ -31,8 +31,8 @@ int main(int argc, char* argv[]) {
 
   {
     auto cfg = std::make_unique<Config>(filename.c_str());
-    auto mac_scheduler = std::make_unique<MacScheduler>(cfg);
-    mac_scheduler.mcs.GenData();
+    auto mac_scheduler = std::make_shared<MacScheduler>(cfg);
+    mac_scheduler->GenData();
 
     {
       auto sender = std::make_unique<Sender>(

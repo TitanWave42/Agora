@@ -9,8 +9,10 @@
 
 #include "logger.h"
 
-PhyStats::PhyStats(Config* const cfg, Direction dir)
+PhyStats::PhyStats(Config* const cfg, MacScheduler* mac_scheduler,
+                   Direction dir)
     : config_(cfg),
+      mac_sched_(mac_scheduler),
       dir_(dir),
       logger_plt_snr_(CsvLog::kPltSnr, cfg, dir, true),
       logger_plt_rssi_(CsvLog::kPltRssi, cfg, dir, true),
@@ -29,7 +31,6 @@ PhyStats::PhyStats(Config* const cfg, Direction dir)
       logger_dl_csi_(CsvLog::kDlCsi, cfg, dir),
       logger_ul_beam_(CsvLog::kUlBeam, cfg, dir),
       logger_dl_beam_(CsvLog::kDlBeam, cfg, dir) {
-  mac_sched_ = std::make_unique<MacScheduler>(cfg);
   if (dir_ == Direction::kDownlink) {
     num_rx_symbols_ = cfg->Frame().NumDLSyms();
     num_rxdata_symbols_ = cfg->Frame().NumDlDataSyms();

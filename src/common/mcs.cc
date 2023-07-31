@@ -555,7 +555,7 @@ void Mcs::GenData() {
       if (std::fseek(fd, (ul_data_bytes_num_persymbol_ * cfg_->UeAntOffset()),
                      SEEK_CUR) != 0) {
         AGORA_LOG_ERROR(
-            cfg_->UeAntTotal(),
+            std::to_string(cfg_->UeAntTotal()),
             " *** Error: failed to seek propertly (pre) into %s file\n",
             ul_data_file.c_str());
         RtAssert(false,

@@ -10,7 +10,7 @@
 #include "txrx_worker_client_sim.h"
 
 PacketTxRxClientSim::PacketTxRxClientSim(
-    Config* const cfg, size_t core_offset,
+    Config* const cfg, MacScheduler* mac_scheduler, size_t core_offset,
     moodycamel::ConcurrentQueue<EventData>* event_notify_q,
     moodycamel::ConcurrentQueue<EventData>* tx_pending_q,
     moodycamel::ProducerToken** notify_producer_tokens,
@@ -38,7 +38,7 @@ bool PacketTxRxClientSim::CreateWorker(size_t tid, size_t interface_count,
 
   //This is the spot to choose what type of TxRxWorker you want....
   worker_threads_.emplace_back(std::make_unique<TxRxWorkerClientSim>(
-      core_offset_, tid, interface_count, interface_offset, cfg_,
+      core_offset_, tid, interface_count, interface_offset, cfg_, mac_sched_,
       rx_frame_start, event_notify_q_, tx_pending_q_, *tx_producer_tokens_[tid],
       *notify_producer_tokens_[tid], rx_memory, tx_memory, mutex_, cond_,
       proceed_));

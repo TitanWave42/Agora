@@ -52,7 +52,7 @@ static constexpr bool kDebugPrintPilot = false;
 
 Config::Config(std::string jsonfilename)
     : freq_ghz_(GetTime::MeasureRdtscFreq()),
-      frame_(""), 
+      frame_(""),
       config_filename_(std::move(jsonfilename)) {
   auto time = std::time(nullptr);
   auto local_time = *std::localtime(&time);

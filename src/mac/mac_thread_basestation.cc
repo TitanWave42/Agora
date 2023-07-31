@@ -10,20 +10,20 @@
 static constexpr size_t kUdpRxBufferPadding = 2048u;
 
 MacThreadBaseStation::MacThreadBaseStation(
-    Config* cfg, size_t core_offset,
+    Config* cfg, MacScheduler* mac_scheduler, size_t core_offset,
     PtrCube<kFrameWnd, kMaxSymbols, kMaxUEs, int8_t>& decoded_buffer,
     Table<int8_t>* dl_bits_buffer, Table<int8_t>* dl_bits_buffer_status,
     moodycamel::ConcurrentQueue<EventData>* rx_queue,
     moodycamel::ConcurrentQueue<EventData>* tx_queue,
     const std::string& log_filename)
     : cfg_(cfg),
+      mac_sched_(mac_scheduler),
       freq_ghz_(GetTime::MeasureRdtscFreq()),
       tsc_delta_((cfg_->GetFrameDurationSec() * 1e9) / freq_ghz_),
       core_offset_(core_offset),
       decoded_buffer_(decoded_buffer),
       rx_queue_(rx_queue),
       tx_queue_(tx_queue) {
-  mac_sched_ = std::make_unique<MacScheduler>(cfg);
   // Set up MAC log file
   if (log_filename.empty() == false) {
     log_filename_ = log_filename;  // Use a non-default log filename

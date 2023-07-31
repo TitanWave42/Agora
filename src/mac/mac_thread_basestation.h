@@ -39,7 +39,7 @@ class MacThreadBaseStation {
   static constexpr size_t kSNRWindowSize = 100;
 
   MacThreadBaseStation(
-      Config* const cfg, size_t core_offset,
+      Config* const cfg, MacScheduler* mac_scheduler, size_t core_offset,
       PtrCube<kFrameWnd, kMaxSymbols, kMaxUEs, int8_t>& decoded_buffer,
       Table<int8_t>* dl_bits_buffer, Table<int8_t>* dl_bits_buffer_status,
       moodycamel::ConcurrentQueue<EventData>* rx_queue,
@@ -80,7 +80,7 @@ class MacThreadBaseStation {
 
   Config* const cfg_;
 
-  std::unique_ptr<MacScheduler> mac_sched_;
+  MacScheduler* mac_sched_;
 
   const double freq_ghz_;  // RDTSC frequency in GHz
   // We check for new MAC packets from applications every [tsc_delta_]

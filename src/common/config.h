@@ -566,7 +566,7 @@ class Config {
   // A class that holds the frame configuration the id contains letters
   // representing the symbol types in the frame (e.g., 'P' for pilot symbols,
   // 'U' for uplink data symbols)
-  FrameStats frame_ = FrameStats(""); //This initialization needs to go
+  FrameStats frame_ = FrameStats("");  //This initialization needs to go
 
   std::atomic<bool> running_;
 

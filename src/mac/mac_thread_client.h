@@ -40,7 +40,7 @@ class MacThreadClient {
   static constexpr size_t kSNRWindowSize = 100;
 
   MacThreadClient(
-      Config* const cfg, size_t core_offset,
+      Config* const cfg, MacScheduler* mac_scheduler, size_t core_offset,
       PtrCube<kFrameWnd, kMaxSymbols, kMaxUEs, int8_t>& decoded_buffer,
       Table<int8_t>* ul_bits_buffer, Table<int8_t>* ul_bits_buffer_status,
       moodycamel::ConcurrentQueue<EventData>* rx_queue,
@@ -54,7 +54,7 @@ class MacThreadClient {
   void RunEventLoop();
 
  private:
-  std::unique_ptr<MacScheduler> mac_sched_;
+  MacScheduler* mac_sched_;
   // Receive events from Agora PHY master thread. Forwards
   // to appropriate function in MAC.
   void ProcessRxFromPhy();

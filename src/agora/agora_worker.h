@@ -34,7 +34,7 @@ class AgoraWorker {
   Config* const config_;
   std::vector<std::thread> workers_;
 
-  std::unique_ptr<MacScheduler> mac_sched_;
+  MacScheduler* mac_sched_;
   Stats* stats_;
   PhyStats* phy_stats_;
   MessageInfo* message_;

@@ -17,7 +17,8 @@ static constexpr size_t kSocketRxBufferSize = (1024 * 1024 * 64 * 8) - 1;
 
 TxRxWorkerClientSim::TxRxWorkerClientSim(
     size_t core_offset, size_t tid, size_t interface_count,
-    size_t interface_offset, Config* const config, size_t* rx_frame_start,
+    size_t interface_offset, Config* const config, MacScheduler* mac_schedule,
+    size_t* rx_frame_start,
     moodycamel::ConcurrentQueue<EventData>* event_notify_q,
     moodycamel::ConcurrentQueue<EventData>* tx_pending_q,
     moodycamel::ProducerToken& tx_producer,
@@ -33,7 +34,7 @@ TxRxWorkerClientSim::TxRxWorkerClientSim(
                     std::vector<std::vector<uint8_t>>(
                         config->Frame().NumPilotSyms(),
                         std::vector<uint8_t>(config->PacketLength(), 0u))),
-      mac_sched_(std::make_unique<MacScheduler>(config)) {
+      mac_sched_(mac_schedule) {
   for (size_t interface = 0; interface < num_interfaces_; interface++) {
     const uint16_t local_port_id =
         config->UeServerPort() + interface + interface_offset_;

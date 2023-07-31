@@ -20,7 +20,7 @@ namespace Agora_recorder {
 
 class RecorderThread {
  public:
-  RecorderThread(const Config *in_cfg, size_t thread_id, int core,
+  RecorderThread(const Config *in_cfg, MacScheduler* mac_scheduler, size_t thread_id, int core,
                  size_t queue_size, size_t antenna_offset, size_t num_antennas,
                  size_t interval, Direction rx_direction,
                  const std::vector<RecorderWorker::RecorderWorkerTypes> &types,

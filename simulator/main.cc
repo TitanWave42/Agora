@@ -2,7 +2,7 @@
  * @file main.cc
  * @brief Main file for the simulator executable
  */
-#include "mcs.h"
+#include "mac_scheduler.h"
 #include "simulator.h"
 
 int main(int argc, char const* argv[]) {
@@ -29,8 +29,8 @@ int main(int argc, char const* argv[]) {
                 conf_file.c_str());
   }
   auto cfg = std::make_unique<Config>(conf_file.c_str());
-  auto mac_scheduler = std::make_unique<MacScheduler>(cfg);
-  mac_scheduler.mcs.GenData();
+  auto mac_scheduler = std::make_shared<MacScheduler>(cfg);
+  mac_scheduler->GenData();
   int ret;
   try {
     SignalHandler signal_handler;

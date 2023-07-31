@@ -22,6 +22,7 @@
 #include "modulation.h"
 #include "phy_ldpc_decoder_5gnr.h"
 #include "utils_ldpc.h"
+#include "mac_scheduler.h"
 
 static constexpr bool kVerbose = false;
 static constexpr bool kPrintUplinkInformationBytes = false;
@@ -45,13 +46,14 @@ int main(int argc, char* argv[]) {
   const std::string cur_directory = TOSTRING(PROJECT_DIRECTORY);
   gflags::ParseCommandLineFlags(&argc, &argv, true);
   auto cfg = std::make_unique<Config>(FLAGS_conf_file.c_str());
+  auto mac_sched = std::make_shared<MacScheduler>(cfg);
   Direction dir =
       cfg->Frame().NumULSyms() > 0 ? Direction::kUplink : Direction::kDownlink;
 
   const DataGenerator::Profile profile =
       FLAGS_profile == "123" ? DataGenerator::Profile::kProfile123
                              : DataGenerator::Profile::kRandom;
-  DataGenerator data_generator(cfg.get(), seed, profile);
+  DataGenerator data_generator(cfg.get(), mac_sched.get(), seed, profile);
 
   std::printf(
       "DataGenerator: Config file: %s, data profile = %s\n",
@@ -72,10 +74,10 @@ int main(int argc, char* argv[]) {
   // Step 1: Generate the information buffers and LDPC-encoded buffers for
   // uplink
   size_t num_symbols_per_cb = 1;
-  size_t bits_per_symbol = cfg->OfdmDataNum() * cfg->ModOrderBits(dir);
-  if (cfg->LdpcConfig(dir).NumCbCodewLen() > bits_per_symbol) {
+  size_t bits_per_symbol = cfg->OfdmDataNum() * mac_sched->ModOrderBits(dir);
+  if (mac_sched->LdpcConfig(dir).NumCbCodewLen() > bits_per_symbol) {
     num_symbols_per_cb =
-        (cfg->LdpcConfig(dir).NumCbCodewLen() + bits_per_symbol - 1) /
+        (mac_sched->LdpcConfig(dir).NumCbCodewLen() + bits_per_symbol - 1) /
         bits_per_symbol;
   }
   size_t num_cbs_per_ue = cfg->Frame().NumDataSyms() / num_symbols_per_cb;
@@ -85,24 +87,24 @@ int main(int argc, char* argv[]) {
   const size_t num_codeblocks = num_cbs_per_ue * cfg->UeAntNum();
   std::printf("Total number of blocks: %zu\n", num_codeblocks);
   size_t input_size = Roundup<64>(
-      LdpcEncodingInputBufSize(cfg->LdpcConfig(dir).BaseGraph(),
-                               cfg->LdpcConfig(dir).ExpansionFactor()));
+      LdpcEncodingInputBufSize(mac_sched->LdpcConfig(dir).BaseGraph(),
+                               mac_sched->LdpcConfig(dir).ExpansionFactor()));
   auto* input_ptr = new int8_t[input_size];
   for (size_t noise_id = 0; noise_id < 15; noise_id++) {
     std::vector<std::vector<int8_t>> information(num_codeblocks);
     std::vector<std::vector<int8_t>> encoded_codewords(num_codeblocks);
     for (size_t i = 0; i < num_codeblocks; i++) {
-      data_generator.GenRawData(cfg->LdpcConfig(dir), information.at(i),
+      data_generator.GenRawData(mac_sched->LdpcConfig(dir), information.at(i),
                                 i % cfg->UeAntNum() /* UE ID */);
       encoded_codewords.at(i) = DataGenerator::GenCodeblock(
-          cfg->LdpcConfig(dir), &information.at(i).at(0),
+          mac_sched->LdpcConfig(dir), &information.at(i).at(0),
           information.at(i).size());
     }
 
     // Save uplink information bytes to file
     const size_t input_bytes_per_cb =
-        BitsToBytes(LdpcNumInputBits(cfg->LdpcConfig(dir).BaseGraph(),
-                                     cfg->LdpcConfig(dir).ExpansionFactor()));
+        BitsToBytes(LdpcNumInputBits(mac_sched->LdpcConfig(dir).BaseGraph(),
+                                     mac_sched->LdpcConfig(dir).ExpansionFactor()));
     if (kPrintUplinkInformationBytes) {
       std::printf("Uplink information bytes\n");
       for (size_t n = 0; n < num_codeblocks; n++) {
@@ -122,15 +124,15 @@ int main(int argc, char* argv[]) {
     size_t num_unused_symbol = cfg->Frame().NumDataSyms() - num_used_symbol;
     for (size_t ue_id = 0; ue_id < cfg->UeAntNum(); ue_id++) {
       for (size_t i = 0; i < num_cbs_per_ue; i++) {
-        size_t remaining_bits = cfg->LdpcConfig(dir).NumCbCodewLen();
+        size_t remaining_bits = mac_sched->LdpcConfig(dir).NumCbCodewLen();
         size_t offset = 0;
         for (size_t j = 0; j < num_symbols_per_cb; j++) {
           size_t num_bits =
               ((j + 1) < num_symbols_per_cb) ? bits_per_symbol : remaining_bits;
           auto ofdm_symbol = DataGenerator::GetModulation(
               &encoded_codewords[ue_id * num_cbs_per_ue + i][offset],
-              cfg->ModTable(dir), num_bits, cfg->OfdmDataNum(),
-              cfg->ModOrderBits(dir));
+              mac_sched->ModTable(dir), num_bits, cfg->OfdmDataNum(),
+              mac_sched->ModOrderBits(dir));
           modulated_codewords[ue_id * cfg->Frame().NumDataSyms() +
                               i * num_symbols_per_cb + j] =
               DataGenerator::MapOFDMSymbol(cfg.get(), ofdm_symbol,
@@ -280,7 +282,7 @@ int main(int argc, char* argv[]) {
                                       Agora_memory::Alignment_t::kAlign64);
     Table<int8_t> demod_data_all_symbols;
     demod_data_all_symbols.Calloc(num_codeblocks,
-                                  cfg->LdpcConfig(dir).NumCbCodewLen(),
+                                  mac_sched->LdpcConfig(dir).NumCbCodewLen(),
                                   Agora_memory::Alignment_t::kAlign64);
     for (size_t i = data_sym_start; i < cfg->Frame().NumTotalSyms(); i++) {
       arma::cx_fmat mat_rx_data(
@@ -310,18 +312,18 @@ int main(int argc, char* argv[]) {
         size_t offset = j * num_cbs_per_ue + cb_id;
         auto* demod_ptr =
             demod_data_all_symbols[offset] +
-            symbol_id_in_cb * cfg->OfdmDataNum() * cfg->ModOrderBits(dir);
+            symbol_id_in_cb * cfg->OfdmDataNum() * mac_sched->ModOrderBits(dir);
         auto* equal_t_ptr =
             (float*)(equalized_data_all_symbols[i - data_sym_start] +
                      j * cfg->OfdmDataNum());
         Demodulate(
             equal_t_ptr, demod_ptr,
-            cfg->LdpcConfig(dir).NumCbCodewLen() / cfg->ModOrderBits(dir),
-            cfg->ModOrderBits(dir), false);
+            mac_sched->LdpcConfig(dir).NumCbCodewLen() / mac_sched->ModOrderBits(dir),
+            mac_sched->ModOrderBits(dir), false);
       }
     }
 
-    const LDPCconfig& ldpc_config = cfg->LdpcConfig(dir);
+    const LDPCconfig& ldpc_config = mac_sched->LdpcConfig(dir);
     Table<uint8_t> decoded_codewords;
     decoded_codewords.Calloc(num_codeblocks, cfg->OfdmDataNum(),
                              Agora_memory::Alignment_t::kAlign64);

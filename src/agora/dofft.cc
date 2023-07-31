@@ -13,7 +13,8 @@ static constexpr bool kPrintFFTInput = false;
 static constexpr bool kPrintInputPilot = false;
 static constexpr bool kPrintPilotCorrStats = false;
 
-DoFFT::DoFFT(Config* config, size_t tid, Table<complex_float>& data_buffer,
+DoFFT::DoFFT(Config* config, MacScheduler* mac_scheduler, size_t tid,
+             Table<complex_float>& data_buffer,
              PtrGrid<kFrameWnd, kMaxUEs, complex_float>& csi_buffers,
              Table<complex_float>& calib_dl_buffer,
              Table<complex_float>& calib_ul_buffer, PhyStats* in_phy_stats,
@@ -24,7 +25,7 @@ DoFFT::DoFFT(Config* config, size_t tid, Table<complex_float>& data_buffer,
       calib_dl_buffer_(calib_dl_buffer),
       calib_ul_buffer_(calib_ul_buffer),
       phy_stats_(in_phy_stats),
-      mac_sched_(std::make_unique<MacScheduler>(config)) {
+      mac_sched_(mac_scheduler) {
   duration_stat_fft_ = stats_manager->GetDurationStat(DoerType::kFFT, tid);
   duration_stat_csi_ = stats_manager->GetDurationStat(DoerType::kCSI, tid);
   DftiCreateDescriptor(&mkl_handle_, DFTI_SINGLE, DFTI_COMPLEX, 1,

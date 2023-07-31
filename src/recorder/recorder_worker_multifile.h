@@ -12,8 +12,10 @@ namespace Agora_recorder {
 
 class RecorderWorkerMultiFile : public RecorderWorker {
  public:
-  explicit RecorderWorkerMultiFile(const Config* in_cfg, size_t antenna_offset,
-                                   size_t num_antennas, size_t record_interval,
+  explicit RecorderWorkerMultiFile(const Config* in_cfg,
+                                   MacScheduler* mac_scheduler,
+                                   size_t antenna_offset, size_t num_antennas,
+                                   size_t record_interval,
                                    Direction rx_direction);
   ~RecorderWorkerMultiFile() override;
 
@@ -35,7 +37,7 @@ class RecorderWorkerMultiFile : public RecorderWorker {
   size_t interval_;
   Direction rx_direction_;
 
-  std::unique_ptr<MacScheduler> mac_sched_;
+  MacScheduler* mac_sched_;
 };
 }; /* End namespace Agora_recorder */
 

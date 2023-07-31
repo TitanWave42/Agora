@@ -33,15 +33,15 @@ int main(int argc, char* argv[]) {
   }
 
   auto config = std::make_unique<Config>(filename.c_str());
-  auto mac_scheduler = std::make_unique<MacScheduler>(cfg);
-  mac_scheduler.mcs.GenData();
+  auto mac_scheduler = std::make_shared<MacScheduler>(cfg);
+  mac_scheduler->GenData();
   int ret;
   try {
     SignalHandler signal_handler;
 
     // Register signal handler to handle kill signal
     signal_handler.SetupSignalHandlers();
-    auto phy = std::make_unique<PhyUe>(config.get());
+    auto phy = std::make_unique<PhyUe>(config.get(), mac_scheduler.get());
     phy->Start();
     ret = EXIT_SUCCESS;
   } catch (SignalException& e) {

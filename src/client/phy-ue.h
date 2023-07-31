@@ -60,7 +60,7 @@ class PhyUe {
   void ClearCsi(size_t frame_id);
 
   std::vector<std::queue<EventData>> rx_downlink_deferral_;
-  std::unique_ptr<MacScheduler> mac_sched_;
+  MacScheduler* mac_sched_;
   std::unique_ptr<Stats> stats_;
   std::unique_ptr<PhyStats> phy_stats_;
   RxCounters rx_counters_;

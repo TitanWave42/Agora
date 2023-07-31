@@ -41,9 +41,9 @@ static float RandFloatFromShort(float min, float max) {
   return rand_val;
 }
 
-DataGenerator::DataGenerator(Config* cfg, uint64_t seed, Profile profile)
-    : cfg_(cfg), seed_(seed), profile_(profile) {
-  mac_sched_ = std::make_unique<MacScheduler>(cfg);
+DataGenerator::DataGenerator(Config* cfg, MacScheduler* mac_scheduler,
+                             uint64_t seed, Profile profile)
+    : cfg_(cfg), mac_sched_(mac_scheduler), seed_(seed), profile_(profile) {
   if (seed != 0) {
     fast_rand_.seed_ = seed;
   }

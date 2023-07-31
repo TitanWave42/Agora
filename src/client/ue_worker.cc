@@ -551,8 +551,9 @@ void UeWorker::DoModul(size_t tag) {
     complex_float* modul_buf =
         &modul_buffer_[total_ul_data_symbol_id][ant_id * config_.OfdmDataNum()];
 
-    auto* ul_bits = mac_sched_.GetModBitsBuf(encoded_buffer_, Direction::kUplink,
-                                          frame_id, ul_symbol_idx, ant_id, 0);
+    auto* ul_bits =
+        mac_sched_.GetModBitsBuf(encoded_buffer_, Direction::kUplink, frame_id,
+                                 ul_symbol_idx, ant_id, 0);
 
     if (kDebugPrintModul) {
       AGORA_LOG_INFO(

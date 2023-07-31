@@ -30,8 +30,8 @@ int main(int argc, char* argv[]) {
   }
 
   std::unique_ptr<Config> cfg = std::make_unique<Config>(conf_file.c_str());
-  auto mac_scheduler = std::make_unique<MacScheduler>(cfg);
-  mac_scheduler.mcs.GenData();
+  auto mac_scheduler = std::make_shared<MacScheduler>(cfg);
+  mac_scheduler->GenData();
 
   std::unique_ptr<RadioSetCalibrate> calib =
       std::make_unique<RadioSetCalibrate>(cfg.get(), calibration_type);

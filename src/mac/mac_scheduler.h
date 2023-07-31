@@ -28,6 +28,11 @@ class MacScheduler {
   inline Config* Cfg() { return this->cfg_; }
   //inline Mcs* GetMcs() { return this->mcs_; }
 
+  inline float Scale() const { return this->mcs_->scale_; }
+
+
+  inline void GenData() { this->mcs_->GenData(); }
+
   inline size_t MacBytesNumPerframe(Direction dir) const {
     return mcs_->MacBytesNumPerframe(dir);
   }
@@ -49,7 +54,6 @@ class MacScheduler {
 
   inline Table<int8_t>& UlModBits() { return mcs_->UlModBits(); }
   inline Table<int8_t>& DlModBits() { return mcs_->DlModBits(); }
-
 
   inline size_t NumPaddingBytesPerCb(Direction dir) const {
     return mcs_->NumPaddingBytesPerCb(dir);
@@ -127,7 +131,7 @@ class MacScheduler {
     return mcs_->GetMacBits(info_bits, dir, frame_id, symbol_id, ue_id, cb_id);
   };
 
-  inline void GenData() { mcs_->GenData(); }
+  //inline void GenData() { mcs_->GenData(); }
   inline std::string Modulation(Direction dir) const {
     return mcs_->Modulation(dir);
   }

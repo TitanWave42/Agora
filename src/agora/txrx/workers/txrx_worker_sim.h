@@ -42,6 +42,6 @@ class TxRxWorkerSim : public TxRxWorker {
   std::vector<std::byte> beacon_buffer_;
   double beacon_send_time_;
 
-  std::unique_ptr<MacScheduler> mac_sched_;
+  MacScheduler* mac_sched_;
 };
 #endif  // TXRX_WORKER_SIM_H_

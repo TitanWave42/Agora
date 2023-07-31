@@ -12,13 +12,13 @@
 namespace Agora_recorder {
 
 std::unique_ptr<RecorderWorker> RecorderWorker::Create(
-    RecorderWorker::RecorderWorkerTypes type, const Config* in_cfg,
+    RecorderWorker::RecorderWorkerTypes type, const Config* in_cfg, MacScheduler* mac_scheduler,
     size_t antenna_offset, size_t num_antennas, size_t record_interval,
     Direction rx_direction) {
   switch (type) {
     case RecorderWorker::RecorderWorkerTypes::kRecorderWorkerMultiFile: {
       return std::make_unique<RecorderWorkerMultiFile>(
-          in_cfg, antenna_offset, num_antennas, record_interval, rx_direction);
+          in_cfg, mac_scheduler, antenna_offset, num_antennas, record_interval, rx_direction);
     }
 #if defined(ENABLE_HDF5)
     case RecorderWorker::RecorderWorkerTypes::kRecorderWorkerHdf5: {

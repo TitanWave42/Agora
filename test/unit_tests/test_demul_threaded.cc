@@ -117,8 +117,8 @@ void MasterToWorkerDynamicWorker(
 TEST(TestDemul, VaryingConfig) {
   static constexpr size_t kNumIters = 10000;
   auto cfg = std::make_unique<Config>("files/config/ci/tddconfig-sim-ul.json");
-  auto mac_scheduler = std::make_unique<MacScheduler>(cfg);
-  mac_scheduler.mcs.GenData();
+  auto mac_scheduler = std::make_shared<MacScheduler>(cfg);
+  mac_scheduler->GenData();
 
   auto event_queue = moodycamel::ConcurrentQueue<EventData>(2 * kNumIters);
   moodycamel::ProducerToken* ptoks[kNumWorkers];
@@ -159,7 +159,7 @@ TEST(TestDemul, VaryingConfig) {
       cfg->Frame().NumULSyms() * kFrameWnd * kMaxModType * kMaxDataSCs *
           kMaxUEs * 1.0f / 1024 / 1024);
 
-  auto mac_sched = std::make_unique<MacScheduler>(cfg.get());
+  auto mac_sched = std::make_shared<MacScheduler>(cfg.get());
   auto stats = std::make_unique<Stats>(cfg.get());
   auto phy_stats = std::make_unique<PhyStats>(cfg.get(), Direction::kUplink);
 

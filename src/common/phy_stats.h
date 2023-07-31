@@ -15,7 +15,8 @@
 
 class PhyStats {
  public:
-  explicit PhyStats(Config* const cfg, Direction dir);
+  explicit PhyStats(Config* const cfg, MacScheduler* mac_scheduler,
+                    Direction dir);
   ~PhyStats();
   void PrintPhyStats();
   void PrintEvmStats(size_t frame_id, const arma::uvec& ue_list);
@@ -67,7 +68,7 @@ class PhyStats {
 
  private:
   Config const* const config_;
-  std::unique_ptr<MacScheduler> mac_sched_;
+  MacScheduler* mac_sched_;
   Direction dir_;
   Table<size_t> decoded_bits_count_;
   Table<size_t> bit_error_count_;

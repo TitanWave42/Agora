@@ -18,7 +18,7 @@ class TxRxWorkerClientSim : public TxRxWorker {
  public:
   TxRxWorkerClientSim(size_t core_offset, size_t tid, size_t interface_count,
                       size_t interface_offset, Config* const config,
-                      size_t* rx_frame_start,
+                      MacScheduler* mac_scheduler, size_t* rx_frame_start,
                       moodycamel::ConcurrentQueue<EventData>* event_notify_q,
                       moodycamel::ConcurrentQueue<EventData>* tx_pending_q,
                       moodycamel::ProducerToken& tx_producer,
@@ -42,6 +42,6 @@ class TxRxWorkerClientSim : public TxRxWorker {
   //Helper tx vectors
   std::vector<std::vector<std::vector<uint8_t>>> tx_pkt_pilot_;
 
-  std::unique_ptr<MacScheduler> mac_sched_;
+  MacScheduler* mac_sched_;
 };
 #endif  // TXRX_WORKER_CLIENT_SIM_H_

@@ -17,9 +17,9 @@ static const std::string kStatsDataFilename =
 static const std::string kStatsDetailedDataFilename =
     kStatsOutputFilePath + "timeresult_detail.txt";
 
-Stats::Stats(Config* const cfg)
+Stats::Stats(Config* const cfg, MacScheduler* mac_schedule)
     : config_(cfg),
-      task_thread_num_(cfg->WorkerThreadNum()),
+      mac_sched_(mac_schedule), task_thread_num_(cfg->WorkerThreadNum()),
       fft_thread_num_(cfg->FftThreadNum()),
       beam_thread_num_(cfg->BeamThreadNum()),
       demul_thread_num_(cfg->DemulThreadNum()),
@@ -28,7 +28,6 @@ Stats::Stats(Config* const cfg)
       creation_tsc_(GetTime::Rdtsc()) {
   frame_start_.Calloc(config_->SocketThreadNum(), kNumStatsFrames,
                       Agora_memory::Alignment_t::kAlign64);
-  mac_sched_ = std::make_unique<MacScheduler>(cfg);
 }
 
 Stats::~Stats() { frame_start_.Free(); }
