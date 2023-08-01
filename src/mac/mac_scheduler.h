@@ -5,20 +5,12 @@
 #ifndef MAC_SCHEDULER_H_
 #define MAC_SCHEDULER_H_
 
-#include "config.h"
 #include "mcs.h"
 
 class MacScheduler {
  public:
   explicit MacScheduler(Config* const cfg);
   ~MacScheduler();
-
-  bool IsUeScheduled(size_t frame_id, size_t sc_id, size_t ue_id);
-  size_t ScheduledUeIndex(size_t frame_id, size_t sc_id, size_t sched_ue_id);
-  arma::uvec ScheduledUeList(size_t frame_id, size_t sc_id);
-  arma::uvec ScheduledUeMap(size_t frame_id, size_t sc_id);
-  size_t ScheduledUeUlMcs(size_t frame_id, size_t ue_id);
-  size_t ScheduledUeDlMcs(size_t frame_id, size_t ue_id);
 
   inline void InitializeUlMcs(const nlohmann::json ul_mcs) {
     this->mcs_->InitializeUlMcs(ul_mcs);
@@ -36,7 +28,7 @@ class MacScheduler {
       std::vector<size_t> ctrl_msg) {
     this->mcs_->GenBroadcastSlots(bcast_iq_samps, ctrl_msg);
   }
-
+  inline void GenData() { this->mcs_->GenData(); }
   inline void GenPilots() { this->mcs_->GenPilots(); }
   inline Table<int8_t>& DlBits() { return mcs_->DlBits(); }
   inline Table<int8_t>& UlBits() { return mcs_->UlBits(); }
@@ -45,19 +37,12 @@ class MacScheduler {
   //inline Mcs* GetMcs() { return this->mcs_; }
 
   inline float Scale() const { return this->mcs_->Scale(); }
-
-  inline void GenData() { this->mcs_->GenData(); }
-
   inline size_t MacBytesNumPerframe(Direction dir) const {
     return mcs_->MacBytesNumPerframe(dir);
   }
 
   inline const LDPCconfig& LdpcConfig(Direction dir) const {
     return mcs_->LdpcConfig(dir);
-  }
-
-  inline const nlohmann::json& MCSParams(Direction dir) const {
-    return mcs_->MCSParams(dir);
   }
   inline size_t NumBytesPerCb(Direction dir) const {
     return mcs_->NumBytesPerCb(dir);
@@ -66,9 +51,6 @@ class MacScheduler {
   inline size_t ModOrderBits(Direction dir) const {
     return mcs_->ModOrderBits(dir);
   }
-
-  inline Table<int8_t>& UlModBits() { return mcs_->UlModBits(); }
-  inline Table<int8_t>& DlModBits() { return mcs_->DlModBits(); }
 
   inline size_t NumPaddingBytesPerCb(Direction dir) const {
     return mcs_->NumPaddingBytesPerCb(dir);
@@ -85,48 +67,45 @@ class MacScheduler {
   inline size_t SubcarrierPerCodeBlock(Direction dir) const {
     return mcs_->SubcarrierPerCodeBlock(dir);
   }
-
-  inline const std::vector<std::complex<float>>& PilotCf32() const {
-    return mcs_->PilotCf32();
-  };
-
-  inline const complex_float* PilotsSgn() const { return mcs_->PilotsSgn(); };
-
-  inline Table<complex_float>& ModTable(Direction dir) {
-    return mcs_->ModTable(dir);
-  }
-
   inline size_t MacDataBytesNumPerframe(Direction dir) const {
     return mcs_->MacBytesNumPerframe(dir);
   }
-
   inline size_t MacPacketsPerframe(Direction dir) const {
     return mcs_->MacPacketsPerframe(dir);
   }
-
   inline size_t McsIndex(Direction dir) const { return mcs_->McsIndex(dir); }
-
+  inline const complex_float* PilotsSgn() const { return mcs_->PilotsSgn(); };
   inline Table<complex_float>& UlIqF() { return mcs_->UlIqF(); }
   inline Table<complex_float>& DlIqF() { return mcs_->DlIqF(); }
-
   inline Table<std::complex<int16_t>>& DlIqT() { return mcs_->DlIqT(); }
-
+  inline Table<complex_float>& ModTable(Direction dir) {
+    return mcs_->ModTable(dir);
+  }
+  inline const std::vector<std::complex<float>>& PilotCf32() const {
+    return mcs_->PilotCf32();
+  }
   inline std::vector<std::complex<int16_t>>& PilotUeCi16(size_t ue_id,
                                                          size_t pilot_idx) {
     return mcs_->PilotUeCi16(ue_id, pilot_idx);
-  };
-
+  }
+  inline const nlohmann::json& McsParams(Direction dir) const {
+    return mcs_->McsParams(dir);
+  }
+  inline Table<int8_t>& UlModBits() { return mcs_->UlModBits(); }
+  inline Table<int8_t>& DlModBits() { return mcs_->DlModBits(); }
   inline const arma::uvec& PilotUeSc(size_t ue_id) const {
     return mcs_->PilotUeSc(ue_id);
   }
-
+    //inline void GenData() { mcs_->GenData(); }
+  inline std::string Modulation(Direction dir) const {
+    return mcs_->Modulation(dir);
+  }
   /// Get info bits for this symbol, user and code block ID
   inline int8_t* GetInfoBits(Table<int8_t>& info_bits, Direction dir,
                              size_t symbol_id, size_t ue_id,
                              size_t cb_id) const {
     return mcs_->GetInfoBits(info_bits, dir, symbol_id, ue_id, cb_id);
   }
-
   /// Get encoded_buffer for this frame, symbol, user and code block ID
   inline int8_t* GetModBitsBuf(Table<int8_t>& mod_bits_buffer, Direction dir,
                                size_t frame_id, size_t symbol_id, size_t ue_id,
@@ -134,7 +113,6 @@ class MacScheduler {
     return mcs_->GetModBitsBuf(mod_bits_buffer, dir, frame_id, symbol_id, ue_id,
                                sc_id);
   }
-
   //EVENTUALLY UPDATE THIS FUNCTION TO TAKE num_byte_per_cb as an argument
   //because the num_bytes_per_cb is determined by the MCS and is effectively
   //How much data we can read from the date buffer.
@@ -144,12 +122,15 @@ class MacScheduler {
                             size_t frame_id, size_t symbol_id, size_t ue_id,
                             size_t cb_id) const {
     return mcs_->GetMacBits(info_bits, dir, frame_id, symbol_id, ue_id, cb_id);
-  };
-
-  //inline void GenData() { mcs_->GenData(); }
-  inline std::string Modulation(Direction dir) const {
-    return mcs_->Modulation(dir);
   }
+
+  bool IsUeScheduled(size_t frame_id, size_t sc_id, size_t ue_id);
+  size_t ScheduledUeIndex(size_t frame_id, size_t sc_id, size_t sched_ue_id);
+  arma::uvec ScheduledUeList(size_t frame_id, size_t sc_id);
+  arma::uvec ScheduledUeMap(size_t frame_id, size_t sc_id);
+  size_t ScheduledUeUlMcs(size_t frame_id, size_t ue_id);
+  size_t ScheduledUeDlMcs(size_t frame_id, size_t ue_id);
+
 
  private:
   size_t num_groups_;

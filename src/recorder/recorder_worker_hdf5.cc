@@ -153,8 +153,8 @@ void RecorderWorkerHDF5::Init() {
   hdf5_->WriteAttribute("CL_NUM", cfg_->UeAntNum());
 
   // Data modulation
-  hdf5_->WriteAttribute("UL_MCS", cfg_->MCSParams(Direction::kUplink).dump());
-  hdf5_->WriteAttribute("DL_MCS", cfg_->MCSParams(Direction::kDownlink).dump());
+  hdf5_->WriteAttribute("UL_MCS", cfg_->McsParams(Direction::kUplink).dump());
+  hdf5_->WriteAttribute("DL_MCS", cfg_->McsParams(Direction::kDownlink).dump());
 
   // Client antenna polarization
   //Should loop over all values

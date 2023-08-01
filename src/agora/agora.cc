@@ -944,7 +944,7 @@ void Agora::HandleEventFft(size_t tag) {
 }
 
 void Agora::UpdateRanConfig(RanConfig rc) {
-  nlohmann::json msc_params = mac_sched_->MCSParams(Direction::kUplink);
+  nlohmann::json msc_params = mac_sched_->McsParams(Direction::kUplink);
   msc_params["mcs_index"] = rc.mcs_index_;
   mac_sched_->InitializeUlMcs(msc_params);
 }

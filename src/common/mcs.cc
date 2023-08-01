@@ -74,8 +74,8 @@ Mcs::Mcs(Config* const cfg)
   InitializeDlMcs(dl_mcs_params_);
 
   //Update the LDPC mac_sched->Cfg()s
-  Update_Ul_Ldpc_Config();
-  Update_Dl_Ldpc_Config();
+  UpdateUlLdpcConfig();
+  UpdateDlLdpcConfig();
 
   CalculateLdpcProperties();
 
@@ -219,7 +219,7 @@ void Mcs::UpdateUlMcsScheme(size_t current_frame_number) {
     current_ul_mcs_.frame_number = current_frame_number;
     current_ul_mcs_.mcs_index = next_ul_mcs_.mcs_index;
   }
-  Update_Ul_Ldpc_Config();
+  UpdateUlLdpcConfig();
 }
 
 void Mcs::UpdateDlMcsScheme(size_t current_frame_number) {
@@ -227,20 +227,20 @@ void Mcs::UpdateDlMcsScheme(size_t current_frame_number) {
     current_dl_mcs_.frame_number = current_frame_number;
     current_dl_mcs_.mcs_index = next_dl_mcs_.mcs_index;
   }
-  Update_Dl_Ldpc_Config();
+  UpdateDlLdpcConfig();
 }
 
-void Mcs::Set_Next_Ul_MCS_Scheme(MCS_Scheme next_mcs_scheme) {
+void Mcs::SetNextUlMCSScheme(MCS_Scheme next_mcs_scheme) {
   next_ul_mcs_.frame_number = next_mcs_scheme.frame_number;
   next_ul_mcs_.mcs_index = next_mcs_scheme.modulation_table_index;
 }
 
-void Mcs::Set_Next_Dl_MCS_Scheme(MCS_Scheme next_mcs_scheme) {
+void Mcs::SetNextDlMCSScheme(MCS_Scheme next_mcs_scheme) {
   next_dl_mcs_.frame_number = next_mcs_scheme.frame_number;
   next_dl_mcs_.mcs_index = next_mcs_scheme.mcs_index;
 }
 
-void Mcs::Update_Ul_Ldpc_Config() {
+void Mcs::UpdateUlLdpcConfig() {
   uint16_t base_graph = initial_ul_mcs_properties_.base_graph;
 
   size_t ul_mod_order_bits = GetModOrderBits(current_ul_mcs_.mcs_index);
@@ -272,7 +272,7 @@ void Mcs::Update_Ul_Ldpc_Config() {
       "subcarriers.");
 }
 
-void Mcs::Update_Dl_Ldpc_Config() {
+void Mcs::UpdateDlLdpcConfig() {
   uint16_t base_graph = initial_dl_mcs_properties_.base_graph;
 
   size_t dl_mod_order_bits = GetModOrderBits(current_dl_mcs_.mcs_index);

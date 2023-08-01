@@ -54,7 +54,6 @@ class MacThreadClient {
   void RunEventLoop();
 
  private:
-  MacScheduler* mac_sched_;
   // Receive events from Agora PHY master thread. Forwards
   // to appropriate function in MAC.
   void ProcessRxFromPhy();
@@ -82,6 +81,8 @@ class MacThreadClient {
   // the client.
   // const Mode mode_;
   Config* const cfg_;
+
+  MacScheduler* mac_sched_;
 
   const double freq_ghz_;  // RDTSC frequency in GHz
   // We check for new MAC packets from applications every [tsc_delta_]
