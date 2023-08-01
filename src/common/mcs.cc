@@ -45,10 +45,8 @@ Mcs::Mcs(Config* const cfg)
   pilots_sgn_ = nullptr;
 
   size_t ofdm_data_num = cfg_->OfdmCaNum();
-
   ul_mcs_params_ = cfg_->UlMcsParams();
   dl_mcs_params_ = cfg_->DlMcsParams();
-
   CreateModulationTables();
 
   this->frame_ = cfg_->Frame();
@@ -67,17 +65,18 @@ Mcs::Mcs(Config* const cfg)
   initial_dl_mcs_properties_.max_decoder_iter =
       dl_mcs_params_.value("decoderIter", 5);
 
-  //Initialize UL MCS
+    //Initialize UL MCS
   InitializeUlMcs(ul_mcs_params_);
 
   //Initialize DL MCS
   InitializeDlMcs(dl_mcs_params_);
 
-  //Update the LDPC mac_sched->Cfg()s
+   //Update the LDPC mac_sched->Cfg()s
   UpdateUlLdpcConfig();
   UpdateDlLdpcConfig();
 
   CalculateLdpcProperties();
+ 
 
   if (std::filesystem::is_directory(kLogFilepath) == false) {
     std::filesystem::create_directory(kLogFilepath);
@@ -203,18 +202,21 @@ inline size_t SelectZc(size_t base_graph, size_t code_rate,
 //I think Dim2 is the size of the table, but I'm not 100% sure about that
 //Will have to look at this if agora is producing the wrong answer
 void Mcs::CreateModulationTables() {
-  for (size_t i = 0; i < modulation_tables_.dl_tables->Dim2(); i++) {
+  std::cout<<"CREATING MODULATION TABLES" << std::endl <<std::flush;
+
+  for (size_t i = 0; i < kNumTables; i++) {
+    std::cout<<"creating dl table" << std::endl <<std::flush;
     InitModulationTable(modulation_tables_.dl_tables[i], (i + 1) * 2);
     InitModulationTable(modulation_tables_.ul_tables[i], (i + 1) * 2);
   }
 }
 
-void Mcs::UpdateMcsSchemes(size_t current_frame_number) {
-  UpdateUlMcsScheme(current_frame_number);
-  UpdateDlMcsScheme(current_frame_number);
+void Mcs::UpdateMcs(size_t current_frame_number) {
+  UpdateUlMcs(current_frame_number);
+  UpdateDlMcs(current_frame_number);
 }
 
-void Mcs::UpdateUlMcsScheme(size_t current_frame_number) {
+void Mcs::UpdateUlMcs(size_t current_frame_number) {
   if (current_frame_number >= next_ul_mcs_.frame_number) {
     current_ul_mcs_.frame_number = current_frame_number;
     current_ul_mcs_.mcs_index = next_ul_mcs_.mcs_index;
@@ -222,7 +224,7 @@ void Mcs::UpdateUlMcsScheme(size_t current_frame_number) {
   UpdateUlLdpcConfig();
 }
 
-void Mcs::UpdateDlMcsScheme(size_t current_frame_number) {
+void Mcs::UpdateDlMcs(size_t current_frame_number) {
   if (current_frame_number >= next_dl_mcs_.frame_number) {
     current_dl_mcs_.frame_number = current_frame_number;
     current_dl_mcs_.mcs_index = next_dl_mcs_.mcs_index;
@@ -230,12 +232,12 @@ void Mcs::UpdateDlMcsScheme(size_t current_frame_number) {
   UpdateDlLdpcConfig();
 }
 
-void Mcs::SetNextUlMCSScheme(MCS_Scheme next_mcs_scheme) {
+void Mcs::SetNextUlMcs(MCS_Scheme next_mcs_scheme) {
   next_ul_mcs_.frame_number = next_mcs_scheme.frame_number;
   next_ul_mcs_.mcs_index = next_mcs_scheme.modulation_table_index;
 }
 
-void Mcs::SetNextDlMCSScheme(MCS_Scheme next_mcs_scheme) {
+void Mcs::SetNextDlMcs(MCS_Scheme next_mcs_scheme) {
   next_dl_mcs_.frame_number = next_mcs_scheme.frame_number;
   next_dl_mcs_.mcs_index = next_mcs_scheme.mcs_index;
 }
@@ -311,9 +313,12 @@ void Mcs::CalculateLdpcProperties() {
       Roundup<64>(ul_num_bytes_per_cb_) - ul_num_bytes_per_cb_;
   this->ul_data_bytes_num_persymbol_ =
       ul_num_bytes_per_cb_ * ul_ldpc_config_.NumBlocksInSymbol();
-  size_t ul_mac_packet_length_ = ul_data_bytes_num_persymbol_;
+  ul_mac_packet_length_ = ul_data_bytes_num_persymbol_;
 
   //((cb_len_bits / zc_size) - 1) * (zc_size / 8) + kProcBytes(32)
+  std::cout<<"ul_ldpc_config_.NumCbLen: " << std::to_string(ul_ldpc_config_.NumCbLen()) << std::endl<<std::flush;
+  std::cout<<"ul_ldpc_config_.ExpansionFactor: " << std::to_string(ul_ldpc_config_.ExpansionFactor()) << std::endl<<std::flush;
+
   const size_t ul_ldpc_input_min =
       (((ul_ldpc_config_.NumCbLen() / ul_ldpc_config_.ExpansionFactor()) - 1) *
            (ul_ldpc_config_.ExpansionFactor() / 8) +
@@ -717,7 +722,7 @@ void Mcs::GenData() {
           ul_iq_f_[i][q + j] = ModSingleUint8(
               *mod_input_ptr,
               modulation_tables_
-                  .ul_tables[current_ul_mcs_.modulation_table_index]);
+                  .ul_tables[current_ul_mcs_.modulation_table_index/2 -1]);
         } else {
           ul_iq_f_[i][q + j] = ue_specific_pilot_[u][j];
         }
@@ -819,7 +824,7 @@ void Mcs::GenData() {
           dl_iq_f_[i][q + j] = ModSingleUint8(
               *mod_input_ptr,
               modulation_tables_
-                  .dl_tables[current_dl_mcs_.modulation_table_index]);
+                  .dl_tables[current_dl_mcs_.modulation_table_index/2 -1]);
         } else {
           dl_iq_f_[i][q + j] = ue_specific_pilot_[u][j];
         }

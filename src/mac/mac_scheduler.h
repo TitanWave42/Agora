@@ -96,7 +96,7 @@ class MacScheduler {
   inline const arma::uvec& PilotUeSc(size_t ue_id) const {
     return mcs_->PilotUeSc(ue_id);
   }
-    //inline void GenData() { mcs_->GenData(); }
+  //inline void GenData() { mcs_->GenData(); }
   inline std::string Modulation(Direction dir) const {
     return mcs_->Modulation(dir);
   }
@@ -130,7 +130,6 @@ class MacScheduler {
   arma::uvec ScheduledUeMap(size_t frame_id, size_t sc_id);
   size_t ScheduledUeUlMcs(size_t frame_id, size_t ue_id);
   size_t ScheduledUeDlMcs(size_t frame_id, size_t ue_id);
-
 
  private:
   size_t num_groups_;

@@ -551,7 +551,6 @@ Config::Config(std::string jsonfilename)
              "Number of Downlink calibration symbols per frame must complete "
              "calibration on frame boundary!");
   }
-
   // Check for frame validity.
   // We should remove the restriction of the beacon symbol placement when tested
   // more thoroughly
@@ -683,16 +682,7 @@ Config::Config(std::string jsonfilename)
 
   dl_mcs_params_ = this->Parse(tdd_conf, "dl_mcs");
 
-  // //Create a modulation and coding object to handling mcs behaviors in the config.
-  // Mcs mcs(ul_mcs_params_, dl_mcs_params_, ofdm_data_num_);
-  // //mcs.CreateModulationTables();
 
-  // ul_ldpc_config_ = mcs.Ul_Ldpc_Config();
-  // dl_ldpc_config_ = mcs.Dl_Ldpc_Config();
-
-  //this->UpdateDlMCS(dl_mcs_params_);
-  //this->DumpMcsInfo();
-  //this->UpdateCtrlMCS();
 
   fft_in_rru_ = tdd_conf.value("fft_in_rru", false);
 
@@ -777,7 +767,7 @@ Config::Config(std::string jsonfilename)
         RecipCalFrameCnt(), frame_.NumDLCalSyms());
   }
 
-  Print();
+  //Print();
 }
 
 json Config::Parse(const json& in_json, const std::string& json_handle) {

@@ -249,12 +249,12 @@ void DoBeamWeights::ComputeCalib(size_t frame_id, size_t sc_id,
     // Update the moving sum
     if (frame_update) {
       if (sc_id == 0) {
-        AGORA_LOG_TRACE(
-            "DoBeamWeights[%d]: (Frame %zu, sc_id %zu), ComputeCalib "
-            "updating "
-            "calib at slot %zu : prev %zu, old %zu\n",
-            tid_, frame_id, sc_id, cal_slot_complete, cal_slot_prev,
-            cal_slot_old);
+        // AGORA_LOG_TRACE(
+        //     "DoBeamWeights[%d]: (Frame %zu, sc_id %zu), ComputeCalib "
+        //     "updating "
+        //     "calib at slot %zu : prev %zu, old %zu\n",
+        //     tid_, frame_id, sc_id, cal_slot_complete, cal_slot_prev,
+        //     cal_slot_old);
       }
       // Add the most recently completed value
       const arma::cx_fmat cur_calib_dl_mat(

@@ -68,6 +68,7 @@ void DataGenerator::DoDataGeneration(const std::string& directory) {
     std::vector<std::vector<int8_t>> ul_mac_info(cfg_->UeAntNum());
     AGORA_LOG_INFO("Total number of uplink MAC bytes: %zu\n", num_ul_mac_bytes);
     for (size_t ue_id = 0; ue_id < cfg_->UeAntNum(); ue_id++) {
+
       ul_mac_info.at(ue_id).resize(num_ul_mac_bytes);
       for (size_t pkt_id = 0;
            pkt_id < mac_sched_->MacPacketsPerframe(Direction::kUplink);

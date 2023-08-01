@@ -14,7 +14,7 @@
 
 //#include "comms-constants.inc"
 
-constexpr size_t kNumTables = 5;
+constexpr size_t kNumTables = 4;
 
 struct MCS_Scheme {
   size_t frame_number;
@@ -49,9 +49,9 @@ class Mcs {
   void CreateModulationTables();
   void InitializeUlMcs(const nlohmann::json ul_mcs);
   void InitializeDlMcs(const nlohmann::json dl_mcs);
-  void UpdateMcsSchemes(size_t current_frame_number);
-  void SetNextUlMCSScheme(MCS_Scheme next_mcs_scheme);
-  void SetNextDlMCSScheme(MCS_Scheme next_mcs_scheme);
+  void UpdateMcs(size_t current_frame_number);
+  void SetNextUlMcs(MCS_Scheme next_mcs_scheme);
+  void SetNextDlMcs(MCS_Scheme next_mcs_scheme);
   void UpdateUlLdpcConfig();
   void UpdateDlLdpcConfig();
 
@@ -138,6 +138,11 @@ class Mcs {
   inline Table<complex_float>& UlIqF() { return this->ul_iq_f_; }
   inline Table<complex_float>& DlIqF() { return this->dl_iq_f_; }
   inline Table<complex_float>& ModTable(Direction dir) {
+    std::cout<<"In the modtable logic: " << std::endl <<std::flush;
+
+    std::cout<<"ul mcs table index: " << std::to_string(current_ul_mcs_.modulation_table_index) << std::endl <<std::flush;
+    std::cout<<"dl mcs table index: " << std::to_string(current_dl_mcs_.modulation_table_index) << std::endl <<std::flush;
+
     return dir == Direction::kUplink
                ? this->modulation_tables_
                      .ul_tables[current_ul_mcs_.modulation_table_index]
@@ -295,8 +300,8 @@ class Mcs {
   Initial_Mcs_Properties initial_ul_mcs_properties_;
   Initial_Mcs_Properties initial_dl_mcs_properties_;
 
-  void UpdateUlMcsScheme(size_t current_frame_number);
-  void UpdateDlMcsScheme(size_t current_frame_number);
+  void UpdateUlMcs(size_t current_frame_number);
+  void UpdateDlMcs(size_t current_frame_number);
   void Update_Ldpc_Properties();
   void CalculateLdpcProperties();
 };
