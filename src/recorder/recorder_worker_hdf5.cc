@@ -308,7 +308,7 @@ void RecorderWorkerHDF5::Init() {
             hdf5_->WriteDataset(
                 dataset_name, start, tx_pilot_dims,
                 reinterpret_cast<const float*>(
-                    &const_cast<Config*>(cfg_)->UeSpecificPilot()[ant][0u]));
+                    &const_cast<MacScheduler*>(mac_sched_)->UeSpecificPilot()[ant][0u]));
           }
         }
         hdf5_->FinalizeDataset(dataset_name);

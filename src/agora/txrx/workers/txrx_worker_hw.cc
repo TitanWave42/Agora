@@ -561,8 +561,8 @@ size_t TxRxWorkerHw::DoTx(long long time0) {
           } else if (dl_symbol_idx <
                      Configuration()->Frame().ClientDlPilotSymbols()) {
             std::vector<std::complex<int16_t>> pilot(
-                Configuration()->UeSpecificPilotT()[0],
-                Configuration()->UeSpecificPilotT()[0] +
+                mac_sched_->UeSpecificPilotT()[0],
+                mac_sched_->UeSpecificPilotT()[0] +
                     Configuration()->SampsPerSymbol());
             std::vector<std::complex<int16_t>> nt_pilot(pilot);
             for (auto& v : nt_pilot) {

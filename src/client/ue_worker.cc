@@ -228,7 +228,7 @@ void UeWorker::DoFftPilot(size_t tag) {
     if (dl_symbol_id < config_.Frame().ClientDlPilotSymbols()) {
       for (size_t j = 0; j < config_.OfdmDataNum(); j++) {
         size_t ant = (kDebugDownlink == true) ? 0 : ant_id;
-        complex_float p = config_.UeSpecificPilot()[ant][j];
+        complex_float p = mac_sched_.UeSpecificPilot()[ant][j];
         size_t sc_id = non_null_sc_ind_[j];
         csi_buffer_ptr[j] +=
             (fft_buffer_ptr[sc_id] / arma::cx_float(p.re, p.im));
@@ -324,7 +324,7 @@ void UeWorker::DoFftData(size_t tag) {
         arma::cx_float y = fft_buffer_ptr[sc_id];
         auto pilot_eq = y / csi_buffer_ptr[j];
         size_t ant = (kDebugDownlink == true) ? 0 : ant_id;
-        auto p = config_.UeSpecificPilot()[ant][j];
+        auto p = mac_sched_.UeSpecificPilot()[ant][j];
         theta += arg(pilot_eq * arma::cx_float(p.re, -p.im));
       }
     }
@@ -598,7 +598,7 @@ void UeWorker::DoIfftUe(DoIFFTClient* iffter, size_t tag) {
       size_t total_ul_symbol_id =
           config_.GetTotalDataSymbolIdxUl(frame_id, ul_symbol_idx);
       if (ul_symbol_idx < config_.Frame().ClientUlPilotSymbols()) {
-        source_data = config_.UeSpecificPilot()[ant_id];
+        source_data = mac_sched_.UeSpecificPilot()[ant_id];
       } else {
         source_data =
             &modul_buffer_[total_ul_symbol_id][ant_id * config_.OfdmDataNum()];
@@ -648,7 +648,7 @@ void UeWorker::DoIfft(size_t tag) {
     std::memset(ifft_buff, 0u, sizeof(complex_float) * config_.OfdmDataStart());
     if (ul_symbol_idx < config_.Frame().ClientUlPilotSymbols()) {
       std::memcpy(ifft_buff + config_.OfdmDataStart(),
-                  config_.UeSpecificPilot()[ant_id],
+                  mac_sched_.UeSpecificPilot()[ant_id],
                   config_.OfdmDataNum() * sizeof(complex_float));
     } else {
       complex_float* modul_buff =

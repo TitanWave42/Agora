@@ -2755,6 +2755,7 @@ void Demod256qamSoftAvx512(const float* vec_in, int8_t* llr, int num) {
 
 void Demodulate(float* equal_ptr, int8_t* demod_ptr, size_t data_num,
                 size_t mod, bool hard_demod) {
+  std::cout<<"mod order bits: " <<mod<<std::endl<<std::flush;
   switch (mod) {
     case 2:
       hard_demod

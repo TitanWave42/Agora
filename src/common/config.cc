@@ -678,7 +678,6 @@ Config::Config(std::string jsonfilename)
 
   // LDPC Coding and Modulation configurations
   ul_mcs_params_ = this->Parse(tdd_conf, "ul_mcs");
-  //this->UpdateUlMCS(ul_mcs_params_);
 
   dl_mcs_params_ = this->Parse(tdd_conf, "dl_mcs");
 
@@ -728,15 +727,10 @@ Config::Config(std::string jsonfilename)
       "\t%zu uplink data symbols per frame, %zu downlink data symbols "
       "per frame,\n"
       "\t%zu OFDM subcarriers (%zu data subcarriers),\n"
-      "\tUL modulation %s, DL modulation %s, Beamforming %s, \n"
+      "\tBeamforming %s, \n"
       //"\t%zu UL codeblocks per symbol, "
-      "%zu UL bytes per code block,\n"
-      "%zu DL bytes per code block,\n"
-      "\t%zu UL MAC data bytes per frame, "
-      "\t%zu DL MAC data bytes per frame, "
+      
       "\tFrame time %.3f usec\n"
-      "Uplink Max Mac data per-user tp (Mbps) %.3f\n"
-      "Downlink Max Mac data per-user tp (Mbps) %.3f\n"
       "Radio Network Traffic Peak (Mbps): %.3f\n"
       "Radio Network Traffic Avg  (Mbps): %.3f\n"
       "Basestation Network Traffic Peak (Mbps): %.3f\n"
@@ -746,15 +740,8 @@ Config::Config(std::string jsonfilename)
       "All UEs Network Traffic Avg (Mbps): %.3f\n"
       "All UEs Network Traffic Avg (Mbps): %.3f\n",
       bs_ant_num_, ue_ant_num_, frame_.NumPilotSyms(), frame_.NumULSyms(),
-      frame_.NumDLSyms(), ofdm_ca_num_, ofdm_data_num_, ul_modulation_.c_str(),
-      dl_modulation_.c_str(), beamforming_str_.c_str(),
-      ul_mac_data_bytes_num_perframe_, ul_mac_bytes_num_perframe_,
-      dl_mac_data_bytes_num_perframe_, dl_mac_bytes_num_perframe_,
+      frame_.NumDLSyms(), ofdm_ca_num_, ofdm_data_num_, beamforming_str_.c_str(),
       this->GetFrameDurationSec() * 1e6,
-      (ul_mac_data_bytes_num_perframe_ * 8.0f) /
-          (this->GetFrameDurationSec() * 1e6),
-      (dl_mac_data_bytes_num_perframe_ * 8.0f) /
-          (this->GetFrameDurationSec() * 1e6),
       bit_rate_mbps, per_bs_radio_traffic, bit_rate_mbps * bs_ant_num_,
       per_bs_radio_traffic * bs_ant_num_, 2 * bit_rate_mbps,
       per_ue_radio_traffic, 2 * bit_rate_mbps * ue_ant_num_,
@@ -783,12 +770,7 @@ json Config::Parse(const json& in_json, const std::string& json_handle) {
   return out_json;
 }
 
-Config::~Config() {
-  ue_specific_pilot_t_.Free();
-  ue_specific_pilot_.Free();
-  //ul_mod_table_.Free();
-  //dl_mod_table_.Free();
-}
+Config::~Config() = default;
 
 /* TODO Inspect and document */
 size_t Config::GetSymbolId(size_t input_id) const {
@@ -924,7 +906,6 @@ void Config::Print() const {
               << "Num Bs Channels: " << num_channels_ << std::endl
               << "Num Ue Channels: " << num_ue_channels_ << std::endl
               << "Beacon Ant: " << beacon_ant_ << std::endl
-              << "Beacon len: " << beacon_len_ << std::endl
               << "Calib init repeat: " << init_calib_repeat_ << std::endl
               << "Beamsweep " << beamsweep_ << std::endl
               << "Sample Cal En: " << sample_cal_en_ << std::endl
@@ -936,9 +917,7 @@ void Config::Print() const {
               << "Transport Block Size: " << transport_block_size_ << std::endl
               << "Noise Level: " << noise_level_
               << std::endl
-              //<< "UL Bytes per CB: " << ul_num_bytes_per_cb_
               << std::endl
-              //<< "DL Bytes per CB: " << dl_num_bytes_per_cb_ << std::endl
               << "FFT in rru: " << fft_in_rru_ << std::endl;
   }
 }

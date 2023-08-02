@@ -175,7 +175,7 @@ void DoPrecode::LoadInputData(size_t symbol_idx_dl,
       modulated_buffer_temp_ + sc_id_in_block * cfg_->SpatialStreamsNum();
   if ((symbol_idx_dl < cfg_->Frame().ClientDlPilotSymbols()) ||
       (cfg_->IsDataSubcarrier(sc_id) == false)) {
-    data_ptr[sp_id] = cfg_->UeSpecificPilot()[user_id][sc_id];
+    data_ptr[sp_id] = mac_sched_->UeSpecificPilot()[user_id][sc_id];
   } else {
     int8_t* raw_data_ptr =
         &dl_raw_data_[total_data_symbol_idx]

@@ -55,8 +55,29 @@ class Mcs {
   void UpdateUlLdpcConfig();
   void UpdateDlLdpcConfig();
 
-  inline const complex_float* Pilots(void) const { return this->pilots_; };
-  inline const complex_float* PilotsSgn() const { return this->pilots_sgn_; };
+  inline const complex_float* Pilots(void) const { return this->pilots_; }
+  inline const complex_float* PilotsSgn() const { return this->pilots_sgn_; }
+  inline const std::vector<uint32_t>& Beacon() const { return this->beacon_; }
+  inline const std::vector<uint32_t>& Coeffs() const { return this->coeffs_; }
+  inline std::vector<std::complex<int16_t>>& PilotCi16() {
+    return this->pilot_ci16_;
+  }
+
+
+  inline Table<complex_float>& UeSpecificPilot() {
+    return this->ue_specific_pilot_;
+  }
+  inline Table<std::complex<int16_t>>& UeSpecificPilotT() {
+    return this->ue_specific_pilot_t_;
+  }
+
+  
+  inline const std::vector<std::complex<float>>& GoldCf32() const {
+    return this->gold_cf32_;
+  }
+
+  inline size_t BeaconLen() const { return this->beacon_len_; }
+  
   inline const arma::uvec& PilotUeSc(size_t ue_id) const {
     return this->pilot_ue_sc_.at(ue_id);
   }
@@ -220,6 +241,7 @@ class Mcs {
  private:
   static constexpr size_t kCbPerSymbol = 1;
   size_t beacon_len_;
+  // The total number of uplink MAC payload data bytes in each Frame
   size_t ul_mac_data_bytes_num_perframe_;
   // The total number of uplink MAC packet bytes in each Frame
   size_t ul_mac_bytes_num_perframe_;
@@ -277,10 +299,13 @@ class Mcs {
   std::vector<uint32_t> beacon_;
   std::vector<uint32_t> coeffs_;
   std::vector<uint32_t> pilot_;
+      /// I/Q samples of common pilot
+  std::vector<std::complex<int16_t>> pilot_ci16_;
+  std::vector<std::complex<int16_t>> beacon_ci16_;
   std::vector<std::complex<float>> pilot_cf32_;
   std::vector<std::complex<float>> gold_cf32_;
   std::vector<std::complex<float>> common_pilot_;
-  std::vector<std::complex<int16_t>> beacon_ci16_;
+
   /// I/Q samples of pilots per UE antenna per pilot symbol
   std::vector<std::vector<std::vector<std::complex<int16_t>>>> pilot_ue_ci16_;
   // List of subcarriers used per UE to transmit pilot
@@ -302,7 +327,6 @@ class Mcs {
 
   void UpdateUlMcs(size_t current_frame_number);
   void UpdateDlMcs(size_t current_frame_number);
-  void Update_Ldpc_Properties();
   void CalculateLdpcProperties();
 };
 

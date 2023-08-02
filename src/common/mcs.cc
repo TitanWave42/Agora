@@ -886,8 +886,8 @@ void Mcs::GenData() {
                       cfg_->CpLen(), kDebugDownlink ? 1 : this->scale_);
   }
 
-  cfg_->PilotCi16().resize(cfg_->SampsPerSymbol(), 0);
-  CommsLib::Ifft2tx(pilot_ifft_, cfg_->PilotCi16().data(), ofdm_ca_num_,
+  this->pilot_ci16_.resize(cfg_->SampsPerSymbol(), 0);
+  CommsLib::Ifft2tx(pilot_ifft_, this->pilot_ci16_.data(), ofdm_ca_num_,
                     cfg_->OfdmTxZeroPrefix(), cfg_->CpLen(), this->scale_);
 
   for (size_t i = 0; i < ofdm_ca_num_; i++) {

@@ -72,7 +72,7 @@ PhyUe::PhyUe(Config* config, MacScheduler* mac_scheduler)
     ue_pilot_f.resize(pilot_len_samples);
     ConvertShortToFloat(
         reinterpret_cast<const short*>(
-            &config_->UeSpecificPilotT()[i][config->OfdmTxZeroPrefix()]),
+            &mac_sched_->UeSpecificPilotT()[i][config->OfdmTxZeroPrefix()]),
         reinterpret_cast<float*>(ue_pilot_f.data()), pilot_len_samples * 2);
   }
 

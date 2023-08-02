@@ -230,7 +230,7 @@ int TxRxWorkerUsrp::DequeueSend() {
     } else if (dl_symbol_idx <
                Configuration()->Frame().ClientDlPilotSymbols()) {
       txbuffs.at(ch) =
-          reinterpret_cast<void*>(Configuration()->UeSpecificPilotT()[0]);
+          reinterpret_cast<void*>(mac_sched_->UeSpecificPilotT()[0]);
     } else {
       txbuffs.at(ch) = reinterpret_cast<void*>(
           Configuration()
@@ -302,7 +302,7 @@ int TxRxWorkerUsrp::DequeueSend(int frame_id, int symbol_id) {
     } else if (dl_symbol_idx <
                Configuration()->Frame().ClientDlPilotSymbols()) {
       txbuffs.at(ch) =
-          reinterpret_cast<void*>(Configuration()->UeSpecificPilotT()[0]);
+          reinterpret_cast<void*>(mac_sched_->UeSpecificPilotT()[0]);
     } else {
       txbuffs.at(ch) = reinterpret_cast<void*>(
           Configuration()

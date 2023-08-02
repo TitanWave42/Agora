@@ -260,7 +260,7 @@ size_t TxRxWorkerSim::DequeueSend() {
                     Configuration()->SampsPerSymbol() * sizeof(int16_t) * 2);
       } else if (data_symbol_idx_dl <
                  Configuration()->Frame().ClientDlPilotSymbols()) {
-        std::memcpy(pkt->data_, Configuration()->UeSpecificPilotT()[0],
+        std::memcpy(pkt->data_, mac_sched_->UeSpecificPilotT()[0],
                     Configuration()->SampsPerSymbol() * sizeof(int16_t) * 2);
       } else {
         std::memcpy(pkt->data_, mac_sched_->DlIqT()[data_symbol_idx_dl],

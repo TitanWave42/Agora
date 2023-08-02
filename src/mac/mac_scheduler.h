@@ -12,6 +12,14 @@ class MacScheduler {
   explicit MacScheduler(Config* const cfg);
   ~MacScheduler();
 
+  inline Table<complex_float>& UeSpecificPilot() {
+    return this->mcs_->UeSpecificPilot();
+  }
+  inline Table<std::complex<int16_t>>& UeSpecificPilotT() {
+    return this->mcs_->UeSpecificPilotT();
+  }
+
+
   inline void InitializeUlMcs(const nlohmann::json ul_mcs) {
     this->mcs_->InitializeUlMcs(ul_mcs);
   }

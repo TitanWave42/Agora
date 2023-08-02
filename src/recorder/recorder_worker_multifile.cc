@@ -141,7 +141,7 @@ int RecorderWorkerMultiFile::Record(const Packet* pkt) {
               "writing");
         }
         write_status =
-            std::fwrite(const_cast<Config*>(cfg_)->UeSpecificPilot()[ant_id],
+            std::fwrite(const_cast<MacScheduler*>(mac_sched_)->UeSpecificPilot()[ant_id],
                         2 * sizeof(float), cfg_->OfdmDataNum(), fp_txpilot);
         if (write_status != cfg_->OfdmDataNum()) {
           throw std::runtime_error(

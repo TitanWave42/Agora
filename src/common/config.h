@@ -100,7 +100,6 @@ class Config {
   inline size_t RefAnt(size_t id) const { return this->ref_ant_.at(id); }
   inline size_t RefRadio(size_t id) const { return this->ref_radio_.at(id); }
   inline size_t BeaconAnt() const { return this->beacon_ant_; }
-  inline size_t BeaconLen() const { return this->beacon_len_; }
 
   inline bool SmoothCalib() const { return this->smooth_calib_; }
   inline bool Beamsweep() const { return this->beamsweep_; }
@@ -290,16 +289,6 @@ class Config {
 
   inline const FrameStats& Frame() const { return this->frame_; }
 
-  // inline const std::vector<std::complex<float>>& GoldCf32() const {
-  //   return this->gold_cf32_;
-  // };
-  inline const std::vector<uint32_t>& Coeffs() const { return this->coeffs_; };
-
-  inline const std::vector<uint32_t>& Beacon() const { return this->beacon_; };
-
-  inline const std::vector<std::complex<float>>& CommonPilot() const {
-    return this->common_pilot_;
-  };
   inline const std::vector<std::string>& RadioId() const {
     return this->radio_id_;
   };
@@ -314,31 +303,7 @@ class Config {
   };
   inline const std::vector<size_t>& CellId() const { return this->cell_id_; }
 
-  // non-const (can modify)
-  inline Table<complex_float>& UeSpecificPilot() {
-    return this->ue_specific_pilot_;
-  };
-  inline Table<std::complex<int16_t>>& UeSpecificPilotT() {
-    return this->ue_specific_pilot_t_;
-  };
-  inline std::vector<std::complex<int16_t>>& PilotCi16() {
-    return this->pilot_ci16_;
-  };
-
-  inline std::vector<std::complex<int16_t>>& BeaconCi16() {
-    return this->beacon_ci16_;
-  };
-
   // Public functions
-  void GenPilots();
-  void GenData();
-  void GenBroadcastSlots(std::vector<std::complex<int16_t>*>& bcast_iq_samps,
-                         std::vector<size_t> ctrl_msg);
-  size_t DecodeBroadcastSlots(const int16_t* const bcast_iq_samps);
-  void UpdateUlMCS(const nlohmann::json& ul_mcs_params);
-  void UpdateDlMCS(const nlohmann::json& dl_mcs_params);
-  void UpdateCtrlMCS();
-
   /// TODO document and review
   size_t GetSymbolId(size_t input_id) const;
 
@@ -485,10 +450,6 @@ class Config {
   inline nlohmann::json UlMcsParams() { return this->ul_mcs_params_; }
   inline nlohmann::json DlMcsParams() { return this->dl_mcs_params_; }
 
-  // inline size_t UlMacDataLengthMax() {return this->ul_mac_data_length_max_;}
-  // inline size_t UlMacDataBytesNumPerframe() { return this->ul_mac_data_bytes_num_perframe_;}
-  // insine size_t
-
  private:
   void Print() const;
   nlohmann::json Parse(const nlohmann::json& in_json,
@@ -506,8 +467,6 @@ class Config {
   // Number of code blocks per OFDM symbol
   // Temporarily set to 1
   // TODO: This number should independent of OFDM symbols
-  static constexpr size_t kCbPerSymbol = 1;
-
   /* Private class variables */
   const double freq_ghz_;  // RDTSC frequency in GHz
 
@@ -546,19 +505,8 @@ class Config {
 
   size_t ofdm_pilot_spacing_;
 
-  std::string ul_modulation_;  // Modulation order as a string, e.g., "16QAM"
-  size_t
-      ul_mod_order_bits_;  // Number of binary bits used for a modulation order
-  std::string dl_modulation_;
-  size_t dl_mod_order_bits_;
-  // Modulation lookup table for mapping binary bits to constellation points
-  // Table<complex_float> ul_mod_table_;
-  // Table<complex_float> dl_mod_table_;
-
   nlohmann::json ul_mcs_params_;  // Uplink Modulation and Coding (MCS)
   nlohmann::json dl_mcs_params_;  // Downlink Modulation and Coding (MCS)
-  size_t ul_mcs_index_;
-  size_t dl_mcs_index_;
   size_t dl_code_rate_;
   size_t ul_code_rate_;
   bool scramble_enabled_;
@@ -578,17 +526,7 @@ class Config {
   std::vector<size_t> dl_symbol_data_id_;
   std::vector<size_t> dl_symbol_ctrl_id_;
 
-  std::vector<std::complex<int16_t>> beacon_ci16_;
-  std::vector<uint32_t> coeffs_;
-
   /// I/Q samples of common pilot
-  std::vector<std::complex<int16_t>> pilot_ci16_;
-
-  std::vector<uint32_t> beacon_;
-
-  Table<complex_float> ue_specific_pilot_;
-  Table<std::complex<int16_t>> ue_specific_pilot_t_;
-  std::vector<std::complex<float>> common_pilot_;
 
   std::vector<double> client_gain_tx_a_;
   std::vector<double> client_gain_tx_b_;
@@ -718,36 +656,6 @@ class Config {
 
   bool bigstation_mode_;      // If true, use pipeline-parallel scheduling
   bool correct_phase_shift_;  // If true, do phase shift correction
-
-  // The total number of uplink MAC payload data bytes in each Frame
-  size_t ul_mac_data_bytes_num_perframe_;
-
-  // The total number of uplink MAC packet bytes in each Frame
-  size_t ul_mac_bytes_num_perframe_;
-
-  // The length (in bytes) of a uplink MAC packet including the header
-  size_t ul_mac_packet_length_;
-
-  // The length (in bytes) of a uplink MAC packet payload (data)
-  size_t ul_mac_data_length_max_;
-
-  // The total number of downlink MAC payload data bytes in each Frame
-  size_t dl_mac_data_bytes_num_perframe_;
-
-  // The total number of downlink MAC packet bytes in each Frame
-  size_t dl_mac_bytes_num_perframe_;
-
-  // The length (in bytes) of a downlink MAC packet including the header
-  size_t dl_mac_packet_length_;
-
-  // The length (in bytes) of a downlink MAC packet payload (data)
-  size_t dl_mac_data_length_max_;
-
-  // The total number of downlink mac packets sent/received in each frame
-  size_t dl_mac_packets_perframe_;
-
-  // The total number of uplink mac packets sent/received in each frame
-  size_t ul_mac_packets_perframe_;
 
   // IP address of the machine running the baseband processing for UE
   std::string ue_server_addr_;

@@ -8,6 +8,7 @@
 
 #include "logger.h"
 
+
 static constexpr size_t kNotifyWaitMs = 100;
 static constexpr size_t kWorkerStartWaitMs = 10;
 static constexpr size_t kWorkerStartWaitMsMax = 5000;
@@ -51,7 +52,7 @@ PacketTxRx::PacketTxRx(AgoraTxRx::TxRxTypes type, Config* const cfg,
       "PacketTxRx: Number of workers %zu, Buffers per interface %zu, Number of "
       "Total buffers %zu\n",
       requested_worker_threads, buffers_per_interface, packet_num_in_buffer);
-
+  std::cout<<"Here1"<<std::endl<<std::flush;
   /// For each requested worker, start assigning interfaces / buffers
   size_t target_interface_count = total_radios / requested_worker_threads;
   const size_t remaining_interfaces = total_radios % requested_worker_threads;
@@ -104,6 +105,7 @@ PacketTxRx::PacketTxRx(AgoraTxRx::TxRxTypes type, Config* const cfg,
 
   worker_thread_count_ = actual_worker_threads;
 }
+
 
 PacketTxRx::~PacketTxRx() { StopTxRx(); }
 
