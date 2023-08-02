@@ -112,14 +112,14 @@ void Mcs::InitializeUlMcs(const nlohmann::json ul_mcs) {
   current_ul_mcs_.frame_number = 0;
   if (ul_mcs.find("mcs_index") == ul_mcs.end()) {
     ul_modulation_ = ul_mcs.value("modulation", "16QAM");
-    current_ul_mcs_.modulation_table_index = kModulStringMap.at(ul_modulation_);
+    current_ul_mcs_.mod_order_bits = kModulStringMap.at(ul_modulation_);
 
     double ul_code_rate_usr = ul_mcs.value("code_rate", 0.333);
     size_t code_rate_int =
         static_cast<size_t>(std::round(ul_code_rate_usr * 1024.0));
 
     current_ul_mcs_.mcs_index = CommsLib::GetMcsIndex(
-        current_ul_mcs_.modulation_table_index, code_rate_int);
+        current_ul_mcs_.mod_order_bits, code_rate_int);
     current_ul_mcs_.code_rate = GetCodeRate(current_ul_mcs_.mcs_index);
     if (current_ul_mcs_.code_rate / 1024.0 != ul_code_rate_usr) {
       AGORA_LOG_WARN(
@@ -130,7 +130,7 @@ void Mcs::InitializeUlMcs(const nlohmann::json ul_mcs) {
   } else {
     current_ul_mcs_.mcs_index =
         ul_mcs.value("mcs_index", 10);  // 16QAM, 340/1024
-    current_ul_mcs_.modulation_table_index =
+    current_ul_mcs_.mod_order_bits =
         GetModOrderBits(current_ul_mcs_.mcs_index);
     current_ul_mcs_.code_rate = GetCodeRate(current_ul_mcs_.mcs_index);
   }
@@ -140,13 +140,13 @@ void Mcs::InitializeDlMcs(const nlohmann::json dl_mcs) {
   current_dl_mcs_.frame_number = 0;
   if (dl_mcs.find("mcs_index") == dl_mcs.end()) {
     dl_modulation_ = dl_mcs.value("modulation", "16QAM");
-    current_dl_mcs_.modulation_table_index = kModulStringMap.at(dl_modulation_);
+    current_dl_mcs_.mod_order_bits = kModulStringMap.at(dl_modulation_);
 
     double dl_code_rate_usr = dl_mcs.value("code_rate", 0.333);
     size_t code_rate_int =
         static_cast<size_t>(std::round(dl_code_rate_usr * 1024.0));
     current_dl_mcs_.mcs_index = CommsLib::GetMcsIndex(
-        current_dl_mcs_.modulation_table_index, code_rate_int);
+        current_dl_mcs_.mod_order_bits, code_rate_int);
     current_dl_mcs_.code_rate = GetCodeRate(current_dl_mcs_.mcs_index);
     if (current_dl_mcs_.code_rate / 1024.0 != dl_code_rate_usr) {
       AGORA_LOG_WARN(
@@ -157,7 +157,7 @@ void Mcs::InitializeDlMcs(const nlohmann::json dl_mcs) {
   } else {
     current_dl_mcs_.mcs_index =
         dl_mcs.value("mcs_index", 10);  // 16QAM, 340/1024
-    current_dl_mcs_.modulation_table_index =
+    current_dl_mcs_.mod_order_bits =
         GetModOrderBits(current_dl_mcs_.mcs_index);
     current_dl_mcs_.code_rate = GetCodeRate(current_dl_mcs_.mcs_index);
   }
@@ -234,7 +234,7 @@ void Mcs::UpdateDlMcs(size_t current_frame_number) {
 
 void Mcs::SetNextUlMcs(MCS_Scheme next_mcs_scheme) {
   next_ul_mcs_.frame_number = next_mcs_scheme.frame_number;
-  next_ul_mcs_.mcs_index = next_mcs_scheme.modulation_table_index;
+  next_ul_mcs_.mcs_index = next_mcs_scheme.mod_order_bits;
 }
 
 void Mcs::SetNextDlMcs(MCS_Scheme next_mcs_scheme) {
@@ -678,7 +678,7 @@ void Mcs::GenData() {
             GetModBitsBuf(ul_mod_bits_, Direction::kUplink, 0, i, j, k);
         AdaptBitsForMod(reinterpret_cast<uint8_t*>(coded_bits_ptr),
                         reinterpret_cast<uint8_t*>(mod_input_ptr),
-                        ul_encoded_bytes_per_block, ul_mod_order_bits_);
+                        ul_encoded_bytes_per_block, this->current_ul_mcs_.mod_order_bits);
       }
     }
   }
@@ -722,7 +722,7 @@ void Mcs::GenData() {
           ul_iq_f_[i][q + j] = ModSingleUint8(
               *mod_input_ptr,
               modulation_tables_
-                  .ul_tables[current_ul_mcs_.modulation_table_index/2 -1]);
+                  .ul_tables[current_ul_mcs_.mod_order_bits/2 -1]);
         } else {
           ul_iq_f_[i][q + j] = ue_specific_pilot_[u][j];
         }
@@ -824,7 +824,7 @@ void Mcs::GenData() {
           dl_iq_f_[i][q + j] = ModSingleUint8(
               *mod_input_ptr,
               modulation_tables_
-                  .dl_tables[current_dl_mcs_.modulation_table_index/2 -1]);
+                  .dl_tables[current_dl_mcs_.mod_order_bits/2 -1]);
         } else {
           dl_iq_f_[i][q + j] = ue_specific_pilot_[u][j];
         }

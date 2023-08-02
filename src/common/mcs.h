@@ -19,7 +19,7 @@ constexpr size_t kNumTables = 4;
 struct MCS_Scheme {
   size_t frame_number;
   size_t mcs_index;
-  size_t modulation_table_index;
+  size_t mod_order_bits;
   size_t code_rate;
 };
 
@@ -102,8 +102,8 @@ class Mcs {
                                      : this->dl_modulation_;
   }
   inline size_t ModOrderBits(Direction dir) const {
-    return dir == Direction::kUplink ? this->ul_mod_order_bits_
-                                     : this->dl_mod_order_bits_;
+    return dir == Direction::kUplink ? this->current_ul_mcs_.mod_order_bits
+                                     : this->current_dl_mcs_.mod_order_bits;
   }
   inline size_t NumBytesPerCb(Direction dir) const {
     return dir == Direction::kUplink ? this->ul_num_bytes_per_cb_
@@ -161,14 +161,14 @@ class Mcs {
   inline Table<complex_float>& ModTable(Direction dir) {
     std::cout<<"In the modtable logic: " << std::endl <<std::flush;
 
-    std::cout<<"ul mcs table index: " << std::to_string(current_ul_mcs_.modulation_table_index) << std::endl <<std::flush;
-    std::cout<<"dl mcs table index: " << std::to_string(current_dl_mcs_.modulation_table_index) << std::endl <<std::flush;
+    std::cout<<"ul mcs table index: " << std::to_string(current_ul_mcs_.mod_order_bits) << std::endl <<std::flush;
+    std::cout<<"dl mcs table index: " << std::to_string(current_dl_mcs_.mod_order_bits) << std::endl <<std::flush;
 
     return dir == Direction::kUplink
                ? this->modulation_tables_
-                     .ul_tables[current_ul_mcs_.modulation_table_index]
+                     .ul_tables[current_ul_mcs_.mod_order_bits]
                : this->modulation_tables_
-                     .dl_tables[current_dl_mcs_.modulation_table_index];
+                     .dl_tables[current_dl_mcs_.mod_order_bits];
   }
   /// Get info bits for this symbol, user and code block ID
   inline int8_t* GetInfoBits(Table<int8_t>& info_bits, Direction dir,
@@ -262,8 +262,8 @@ class Mcs {
   // The total number of uplink mac packets sent/received in each frame
   size_t ul_mac_packets_perframe_;
   std::string ul_modulation_;  // Modulation order as a string, e.g., "16QAM"
-  size_t
-      ul_mod_order_bits_;  // Number of binary bits used for a modulation order
+  // size_t
+  //     ul_mod_order_bits_;  // Number of binary bits used for a modulation order
   std::string dl_modulation_;
   size_t dl_mod_order_bits_;
   size_t dl_bcast_mod_order_bits_;
