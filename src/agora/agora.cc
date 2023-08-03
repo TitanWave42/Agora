@@ -337,6 +337,7 @@ size_t Agora::FetchEvent(std::vector<EventData>& events_list,
 
 void Agora::Start() {
   const auto& cfg = this->config_;
+  const auto& mac_sched = mac_sched_;
 
   const bool start_status = packet_tx_rx_->StartTxRx(
       agora_memory_->GetCalibDl(), agora_memory_->GetCalibUl());
@@ -462,8 +463,8 @@ void Agora::Start() {
               max_equaled_frame_ = frame_id;
               this->stats_->MasterSetTsc(TsType::kDemulDone, frame_id);
               stats_->PrintPerFrameDone(PrintType::kDemul, frame_id);
-              auto ue_map = mac_sched_->ScheduledUeMap(frame_id, 0u);
-              auto ue_list = mac_sched_->ScheduledUeList(frame_id, 0u);
+              auto ue_map = mac_sched->ScheduledUeMap(frame_id, 0u);
+              auto ue_list = mac_sched->ScheduledUeList(frame_id, 0u);
               if (kPrintPhyStats) {
                 this->phy_stats_->PrintEvmStats(frame_id, ue_list);
               }
@@ -517,7 +518,7 @@ void Agora::Start() {
             if (last_decode_symbol == true) {
               this->stats_->MasterSetTsc(TsType::kDecodeDone, frame_id);
               stats_->PrintPerFrameDone(PrintType::kDecode, frame_id);
-              auto ue_map = mac_sched_->ScheduledUeMap(frame_id, 0u);
+              auto ue_map = mac_sched->ScheduledUeMap(frame_id, 0u);
               this->phy_stats_->RecordBer(frame_id, ue_map);
               this->phy_stats_->RecordSer(frame_id, ue_map);
               if (kEnableMac == false) {
@@ -571,7 +572,7 @@ void Agora::Start() {
           const auto* pkt = reinterpret_cast<const MacPacketPacked*>(
               &agora_memory_
                    ->GetDlBits()[ue_id]
-                                [radio_buf_id * mac_sched_->MacBytesNumPerframe(
+                                [radio_buf_id * mac_sched->MacBytesNumPerframe(
                                                     Direction::kDownlink)]);
 
           AGORA_LOG_INFO("Agora: frame %d @ offset %zu %zu @ location %zu\n",
@@ -593,7 +594,7 @@ void Agora::Start() {
               ss << std::endl;
               pkt = reinterpret_cast<const MacPacketPacked*>(
                   reinterpret_cast<const uint8_t*>(pkt) +
-                  mac_sched_->MacPacketLength(Direction::kDownlink));
+                  mac_sched->MacPacketLength(Direction::kDownlink));
             }
             AGORA_LOG_INFO("%s\n", ss.str().c_str());
           }

@@ -112,6 +112,10 @@ void MacThreadClient::ProcessSnrReportFromPhy(EventData event) {
   server_.snr_[ue_id].push(snr);
 }
 
+void MacThreadClient::CheckToUpdateMCS(){
+  //if 
+}
+
 void MacThreadClient::ProcessCodeblocksFromPhy(EventData event) {
   assert(event.event_type_ == EventType::kPacketToMac);
 

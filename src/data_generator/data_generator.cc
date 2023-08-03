@@ -1003,7 +1003,7 @@ std::vector<complex_float> DataGenerator::BinForIfft(
 
 void DataGenerator::GetNoisySymbol(complex_float* modulated_symbol,
                                    size_t length, float noise_level,
-                                   unsigned seed) {
+                                   unsigned  seed) {
   std::default_random_engine generator(seed);
   std::normal_distribution<double> distribution(0.0, 1.0);
   for (size_t j = 0; j < length; j++) {

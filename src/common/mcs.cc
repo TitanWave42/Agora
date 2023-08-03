@@ -91,7 +91,6 @@ Mcs::~Mcs() {
     std::free(pilots_);
     pilots_ = nullptr;
   }
-
   if (pilots_sgn_ != nullptr) {
     std::free(pilots_sgn_);
     pilots_sgn_ = nullptr;
@@ -248,8 +247,6 @@ void Mcs::UpdateUlLdpcConfig() {
   size_t ul_mod_order_bits = GetModOrderBits(current_ul_mcs_.mcs_index);
   size_t ul_code_rate = GetCodeRate(current_ul_mcs_.mcs_index);
 
-  // Table<complex_float> ul_mod_table_ =
-  //     modulation_tables_.ul_tables[ul_mod_order_bits / 2 - 1];
 
   size_t zc = SelectZc(base_graph, ul_code_rate, ul_mod_order_bits,
                        cfg_->OfdmDataNum(), this->kCbPerSymbol, "uplink");
@@ -280,8 +277,6 @@ void Mcs::UpdateDlLdpcConfig() {
   size_t dl_mod_order_bits = GetModOrderBits(current_dl_mcs_.mcs_index);
   size_t dl_code_rate = GetCodeRate(current_dl_mcs_.mcs_index);
 
-  // Table<complex_float> dl_mod_table_ =
-  //     modulation_tables_.dl_tables[dl_mod_order_bits / 2 - 1];
 
   size_t zc = SelectZc(base_graph, dl_code_rate, dl_mod_order_bits,
                        cfg_->OfdmDataNum(), this->kCbPerSymbol, "uplink");
@@ -974,6 +969,7 @@ void Mcs::GenData() {
   dl_iq_ifft.Free();
   dl_encoded_bits.Free();
   ul_encoded_bits.Free();
+  ue_pilot_ifft_.Free();
 }
 
 size_t Mcs::DecodeBroadcastSlots(const int16_t* const bcast_iq_samps) {

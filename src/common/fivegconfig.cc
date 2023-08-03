@@ -228,7 +228,7 @@ std::string FiveGConfig::FormBeaconSubframe(int format_num, size_t user_num) {
  * Effects: Builds a symbol based frame which Agora is built to handle from the 
  *          slot format based frame given in the frame schedule.
 */
-std::string FiveGConfig::FormFrame(std::string frame_schedule, size_t user_num,
+std::string FiveGConfig::FormFrame(std::string frame_schedule, size_t  /*user_num*/,
                                    std::vector<std::string> flex_formats) {
   std::string frame;
   std::string temp = "";
