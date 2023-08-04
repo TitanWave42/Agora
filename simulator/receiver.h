@@ -18,7 +18,7 @@
 #include <vector>
 
 #include "concurrentqueue.h"
-#include "config.h"
+#include "mac_scheduler.h"
 #include "gettime.h"
 #include "message.h"
 #include "symbols.h"
@@ -26,14 +26,14 @@
 using ushort = unsigned short;
 class Receiver {
  public:
-  explicit Receiver(Config* cfg, size_t rx_thread_num = 1,
+  explicit Receiver(Config* cfg, MacScheduler* mac_scheduler, size_t rx_thread_num = 1,
                     size_t core_offset = 1);
 
   /**
    * rx_thread_num: RX thread number
    * in_queue: message queue to communicate with main thread
    */
-  Receiver(Config* cfg, size_t rx_thread_num, size_t core_offset,
+  Receiver(Config* cfg, MacScheduler* mac_scheduler, size_t rx_thread_num, size_t core_offset,
            moodycamel::ConcurrentQueue<EventData>* in_queue_message,
            moodycamel::ProducerToken** in_rx_ptoks);
   ~Receiver() = default;
@@ -70,6 +70,7 @@ class Receiver {
   moodycamel::ProducerToken** rx_ptoks_;
   size_t core_id_;
   Config* cfg_;
+  MacScheduler* mac_sched_;
 };
 
 #endif  // RECEIVER_H_

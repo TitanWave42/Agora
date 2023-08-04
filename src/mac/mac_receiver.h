@@ -7,15 +7,15 @@
 
 #include <thread>
 
-#include "config.h"
+#include "mac_scheduler.h"
 
 class MacReceiver {
  public:
-  explicit MacReceiver(Config* const cfg, size_t num_frame_data_bytes,
+  explicit MacReceiver(Config* const cfg, MacScheduler* mac_scheduler, size_t num_frame_data_bytes,
                        std::string phy_server_address, size_t phy_port,
                        size_t rx_thread_num = 1, size_t core_offset = 1);
 
-  explicit MacReceiver(Config* const cfg, size_t num_frame_data_bytes,
+  explicit MacReceiver(Config* const cfg, MacScheduler* mac_scheduler, size_t num_frame_data_bytes,
                        std::string phy_server_address, size_t phy_port,
                        std::string fwd_data_udp_address, size_t fwd_port,
                        size_t rx_thread_num = 1, size_t core_offset = 1);
@@ -37,6 +37,7 @@ class MacReceiver {
   const size_t rx_thread_num_;
   const size_t core_id_;
   Config* const cfg_;
+  MacScheduler* mac_sched_;
 };
 
 #endif  // MAC_RECEIVER_H_

@@ -112,9 +112,9 @@ void MacThreadClient::ProcessSnrReportFromPhy(EventData event) {
   server_.snr_[ue_id].push(snr);
 }
 
-void MacThreadClient::CheckToUpdateMCS(){
-  //if 
-}
+// void MacThreadClient::CheckToUpdateMCS(){
+//   //if 
+// }
 
 void MacThreadClient::ProcessCodeblocksFromPhy(EventData event) {
   assert(event.event_type_ == EventType::kPacketToMac);
@@ -269,7 +269,7 @@ void MacThreadClient::ProcessControlInformation() {
     return;  // No data received
   } else if (ret == -1) {
     // There was an error in receiving
-    cfg_->Running(false);
+    mac_sched_->Running(false);
     return;
   }
 
@@ -317,7 +317,7 @@ void MacThreadClient::ProcessUdpPacketsFromApps(RBIndicator ri) {
     } else if (ret < 0) {
       // There was an error in receiving
       AGORA_LOG_ERROR("MacThreadClient: Error in reception %zu\n", ret);
-      cfg_->Running(false);
+      mac_sched_->Running(false);
       return;
     } else { /* Got some data */
       total_bytes_received += ret;
@@ -534,7 +534,7 @@ void MacThreadClient::RunEventLoop() {
   PinToCoreWithOffset(ThreadType::kWorkerMacTXRX, core_offset_,
                       0 /* thread ID */);
 
-  while (cfg_->Running() == true) {
+  while (mac_sched_->Running() == true) {
     ProcessRxFromPhy();
 
     // No need to process incomming packets if we are finished

@@ -18,13 +18,13 @@
 #include <vector>
 
 #include "concurrentqueue.h"
-#include "config.h"
 #include "gettime.h"
 #include "memory_manage.h"
 #include "message.h"
 #include "receiver.h"
 #include "sender.h"
 #include "signal_handler.h"
+#include "mac_scheduler.h"
 
 class Simulator {
  public:
@@ -37,7 +37,7 @@ class Simulator {
   static constexpr size_t kDequeueBulkSize = 32;
   static constexpr size_t kDequeueBulkSizeSingle = 8;
 
-  Simulator(Config* cfg, size_t task_thread_num, size_t core_offset,
+  Simulator(Config* cfg, MacScheduler* mac_scheduler, size_t task_thread_num, size_t core_offset,
             size_t sender_delay);
 
   ~Simulator();
@@ -59,6 +59,7 @@ class Simulator {
   /* lookup table for 16 QAM, real and imag */
 
   Config* config_;
+  MacScheduler* mac_sched_;
   std::unique_ptr<Receiver> receiver_;
   std::unique_ptr<Sender> sender_;
 

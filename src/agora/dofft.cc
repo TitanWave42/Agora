@@ -48,6 +48,8 @@ DoFFT::DoFFT(Config* config, MacScheduler* mac_scheduler, size_t tid,
 }
 
 DoFFT::~DoFFT() {
+    std::cout<<"In the do DoFFT destructor" << std::endl<<std::flush;
+
   DftiFreeDescriptor(&mkl_handle_);
   std::free(fft_inout_);
   std::free(fft_shift_tmp_);

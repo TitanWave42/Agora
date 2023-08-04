@@ -307,7 +307,7 @@ void MacThreadBaseStation::ProcessUdpPacketsFromApps() {
     } else if (ret < 0) {
       // There was an error in receiving
       AGORA_LOG_ERROR("MacThreadBaseStation: Error in reception %zu\n", ret);
-      cfg_->Running(false);
+      mac_sched_->Running(false);
       return;
     } else { /* Got some data */
       total_bytes_received += ret;
@@ -535,7 +535,7 @@ void MacThreadBaseStation::RunEventLoop() {
 
   size_t last_frame_tx_tsc = 0;
 
-  while (cfg_->Running() == true) {
+  while (mac_sched_->Running() == true) {
     ProcessRxFromPhy();
 
     if ((GetTime::Rdtsc() - last_frame_tx_tsc) > tsc_delta_) {

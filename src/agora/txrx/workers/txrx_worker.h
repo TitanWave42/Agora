@@ -12,7 +12,7 @@
 #include <vector>
 
 #include "concurrentqueue.h"
-#include "config.h"
+#include "mac_scheduler.h"
 #include "message.h"
 
 class TxRxWorker {
@@ -21,7 +21,7 @@ class TxRxWorker {
 
   TxRxWorker(size_t core_offset, size_t tid, size_t interface_count,
              size_t interface_offset, size_t channels_per_interface,
-             Config* const config, size_t* rx_frame_start,
+             Config* const config, MacScheduler* mac_scheduler, size_t* rx_frame_start,
              moodycamel::ConcurrentQueue<EventData>* event_notify_q,
              moodycamel::ConcurrentQueue<EventData>* tx_pending_q,
              moodycamel::ProducerToken& tx_producer,
@@ -66,6 +66,7 @@ class TxRxWorker {
 
  private:
   Config* const cfg_;
+  MacScheduler* mac_sched_;
   std::thread thread_;
 
   size_t rx_memory_idx_;

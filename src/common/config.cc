@@ -697,7 +697,6 @@ Config::Config(std::string jsonfilename)
              "Packet size must be smaller than jumbo frame");
   }
 
-  this->running_.store(true);
   /* 12 bit samples x2 for I + Q */
   static const size_t kBitsPerSample = 12 * 2;
   const double bit_rate_mbps = (rate_ * kBitsPerSample) / 1e6;
@@ -770,7 +769,10 @@ json Config::Parse(const json& in_json, const std::string& json_handle) {
   return out_json;
 }
 
-Config::~Config() = default;
+Config::~Config() {
+    std::cout<<"In the config destructor" << std::endl<<std::flush;
+
+}
 
 /* TODO Inspect and document */
 size_t Config::GetSymbolId(size_t input_id) const {

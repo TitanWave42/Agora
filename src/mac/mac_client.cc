@@ -123,13 +123,13 @@ int main(int argc, char* argv[]) {
       if (cfg->Frame().NumDlDataSyms() > 0) {
         if ((FLAGS_fwd_udp_port != 0) && (!FLAGS_fwd_udp_address.empty())) {
           receiver = std::make_unique<MacReceiver>(
-              cfg.get(),
+              cfg.get(), mac_scheduler.get(),
               mac_scheduler->MacDataBytesNumPerframe(Direction::kDownlink),
               cfg->UeServerAddr(), cfg->UeMacTxPort(), FLAGS_fwd_udp_address,
               FLAGS_fwd_udp_port, FLAGS_num_receiver_threads, thread_start);
         } else {
           receiver = std::make_unique<MacReceiver>(
-              cfg.get(),
+              cfg.get(), mac_scheduler.get(),
               mac_scheduler->MacDataBytesNumPerframe(Direction::kDownlink),
               cfg->UeServerAddr(), cfg->UeMacTxPort(),
               FLAGS_num_receiver_threads, thread_start);
@@ -138,13 +138,13 @@ int main(int argc, char* argv[]) {
       }
 
       AGORA_LOG_INFO("Running mac client application\n");
-      while ((cfg->Running() == true) &&
+      while ((mac_scheduler->Running() == true) &&
              (SignalHandler::GotExitSignal() == false)) {
         std::this_thread::sleep_for(std::chrono::seconds(1));
       }
 
       /* May want to move this exit section to after the exception */
-      cfg->Running(false);
+      mac_scheduler->Running(false);
       AGORA_LOG_INFO("Terminating mac client application\n");
       sender.reset();
       for (auto& thread : rx_threads) {
@@ -154,7 +154,7 @@ int main(int argc, char* argv[]) {
       ret = EXIT_SUCCESS;
     } catch (SignalException& e) {
       std::cerr << "SignalException: " << e.what() << std::endl;
-      cfg->Running(false);
+      mac_scheduler->Running(false);
       ret = EXIT_FAILURE;
     }
   }  // end context Config

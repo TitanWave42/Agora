@@ -17,7 +17,7 @@ static constexpr size_t kSocketRxBufferSize = (1024 * 1024 * 64 * 8) - 1;
 
 TxRxWorkerClientSim::TxRxWorkerClientSim(
     size_t core_offset, size_t tid, size_t interface_count,
-    size_t interface_offset, Config* const config, MacScheduler* mac_schedule,
+    size_t interface_offset, Config* const config, MacScheduler* mac_scheduler,
     size_t* rx_frame_start,
     moodycamel::ConcurrentQueue<EventData>* event_notify_q,
     moodycamel::ConcurrentQueue<EventData>* tx_pending_q,
@@ -27,14 +27,14 @@ TxRxWorkerClientSim::TxRxWorkerClientSim(
     std::mutex& sync_mutex, std::condition_variable& sync_cond,
     std::atomic<bool>& can_proceed)
     : TxRxWorker(core_offset, tid, interface_count, interface_offset,
-                 config->NumUeChannels(), config, rx_frame_start,
+                 config->NumUeChannels(), config, mac_scheduler, rx_frame_start,
                  event_notify_q, tx_pending_q, tx_producer, notify_producer,
                  rx_memory, tx_memory, sync_mutex, sync_cond, can_proceed),
       tx_pkt_pilot_(config->UeAntNum(),
                     std::vector<std::vector<uint8_t>>(
                         config->Frame().NumPilotSyms(),
                         std::vector<uint8_t>(config->PacketLength(), 0u))),
-      mac_sched_(mac_schedule) {
+      mac_sched_(mac_scheduler) {
   for (size_t interface = 0; interface < num_interfaces_; interface++) {
     const uint16_t local_port_id =
         config->UeServerPort() + interface + interface_offset_;
@@ -75,7 +75,7 @@ void TxRxWorkerClientSim::DoTxRx() {
   WaitSync();
 
   // Send Beacons for the first time to kick off sim
-  while (Configuration()->Running() == true) {
+  while (mac_sched_->Running() == true) {
     const size_t send_result = DequeueSend();
     if (0 == send_result) {
       // receive data

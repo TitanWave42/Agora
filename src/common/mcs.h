@@ -55,6 +55,9 @@ class Mcs {
   void UpdateUlLdpcConfig();
   void UpdateDlLdpcConfig();
 
+  inline void Running(bool value) { this->running_.store(value); }
+  inline bool Running() const { return this->running_.load(); }
+
   inline const complex_float* Pilots(void) const { return this->pilots_; }
   inline const complex_float* PilotsSgn() const { return this->pilots_sgn_; }
   inline const std::vector<uint32_t>& Beacon() const { return this->beacon_; }
@@ -240,6 +243,8 @@ class Mcs {
 
  private:
   static constexpr size_t kCbPerSymbol = 1;
+  std::atomic<bool> running_;
+
   size_t beacon_len_;
   // The total number of uplink MAC payload data bytes in each Frame
   size_t ul_mac_data_bytes_num_perframe_;

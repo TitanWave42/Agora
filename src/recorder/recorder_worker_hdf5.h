@@ -48,7 +48,7 @@ class RecorderWorkerHDF5 : public RecorderWorker {
       datasets_;
   const std::array<hsize_t, kDsDimsNum> data_chunk_dims_;
 
-  std::unique_ptr<MacScheduler> mac_sched_;
+  MacScheduler* mac_sched_;
 };
 }; /* End namespace Agora_recorder */
 

@@ -80,6 +80,7 @@ DoBeamWeights::DoBeamWeights(
 }
 
 DoBeamWeights::~DoBeamWeights() {
+  std::cout<<"In the do Beamweights destructor"<<std::endl<<std::flush;
   std::free(pred_csi_buffer_);
   std::free(csi_gather_buffer_);
   calib_sc_vec_ptr_.reset();

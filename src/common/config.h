@@ -30,8 +30,6 @@ class Config {
   explicit Config(std::string jsonfilename);
   ~Config();
 
-  inline void Running(bool value) { this->running_.store(value); }
-  inline bool Running() const { return this->running_.load(); }
   inline size_t BsAntNum() const { return this->bs_ant_num_; }
   inline void BsAntNum(size_t n_bs_ant) { this->bs_ant_num_ = n_bs_ant; }
 
@@ -515,8 +513,6 @@ class Config {
   // representing the symbol types in the frame (e.g., 'P' for pilot symbols,
   // 'U' for uplink data symbols)
   FrameStats frame_ = FrameStats("");  //This initialization needs to go
-
-  std::atomic<bool> running_;
 
   size_t dl_packet_length_;  // HAS_TIME & END_BURST, fixme
 

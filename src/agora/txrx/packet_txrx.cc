@@ -110,7 +110,7 @@ PacketTxRx::PacketTxRx(AgoraTxRx::TxRxTypes type, Config* const cfg,
 PacketTxRx::~PacketTxRx() { StopTxRx(); }
 
 bool PacketTxRx::StopTxRx() {
-  cfg_->Running(false);
+  mac_sched_->Running(false);
   for (auto& worker_threads : worker_threads_) {
     worker_threads->Stop();
   }

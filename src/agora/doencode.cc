@@ -47,9 +47,11 @@ DoEncode::DoEncode(Config* in_config, int in_tid, Direction dir,
 }
 
 DoEncode::~DoEncode() {
-  std::free(parity_buffer_);
-  std::free(encoded_buffer_temp_);
-  std::free(scrambler_buffer_);
+    std::cout<<"In the do encode destructor" << std::endl<<std::flush;
+
+  // std::free(parity_buffer_);
+  // std::free(encoded_buffer_temp_);
+  // std::free(scrambler_buffer_);
 }
 
 EventData DoEncode::Launch(size_t tag) {

@@ -7,13 +7,13 @@
 #include "gettime.h"
 #include "udp_comm.h"
 
-Receiver::Receiver(Config* cfg, size_t rx_thread_num, size_t core_offset)
-    : rx_thread_num_(rx_thread_num), core_id_(core_offset), cfg_(cfg) {}
+Receiver::Receiver(Config* cfg, MacScheduler* mac_scheduler, size_t rx_thread_num, size_t core_offset)
+    : rx_thread_num_(rx_thread_num), core_id_(core_offset), cfg_(cfg), mac_sched_(mac_scheduler) {}
 
-Receiver::Receiver(Config* cfg, size_t rx_thread_num, size_t core_offset,
+Receiver::Receiver(Config* cfg, MacScheduler* mac_scheduler, size_t rx_thread_num, size_t core_offset,
                    moodycamel::ConcurrentQueue<EventData>* in_queue_message,
                    moodycamel::ProducerToken** in_rx_ptoks)
-    : Receiver(cfg, rx_thread_num, core_offset) {
+    : Receiver(cfg, mac_scheduler, rx_thread_num, core_offset) {
   message_queue_ = in_queue_message;
   rx_ptoks_ = in_rx_ptoks;
 }
@@ -60,7 +60,7 @@ void* Receiver::LoopRecv(size_t tid) {
   RxPacket* current_packet = &rx_packets_.at(tid).at(rx_slot);
 
   ssize_t prev_frame_id = -1;
-  while (this->cfg_->Running() == true) {
+  while (this->mac_sched_->Running() == true) {
     /* if buffer is full, exit */
     if (current_packet->Empty() == false) {
       std::printf("Receive thread %zu buffer full, offset: %zu\n", tid,

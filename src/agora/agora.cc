@@ -86,6 +86,7 @@ Agora::Agora(MacScheduler* mac_scheduler)
 }
 
 Agora::~Agora() {
+  std::cout<<"In the agora destructor" <<std::endl<<std::flush;
   if (kEnableMac == true) {
     mac_std_thread_.join();
   }
@@ -103,7 +104,7 @@ Agora::~Agora() {
 
 void Agora::Stop() {
   AGORA_LOG_INFO("Agora: terminating\n");
-  config_->Running(false);
+  mac_sched_->Running(false);
   usleep(1000);
   packet_tx_rx_.reset();
 }
@@ -337,7 +338,7 @@ size_t Agora::FetchEvent(std::vector<EventData>& events_list,
 
 void Agora::Start() {
   const auto& cfg = this->config_;
-  const auto& mac_sched = mac_sched_;
+  const auto& mac_sched = this->mac_sched_;
 
   const bool start_status = packet_tx_rx_->StartTxRx(
       agora_memory_->GetCalibDl(), agora_memory_->GetCalibUl());
@@ -357,7 +358,7 @@ void Agora::Start() {
                kDequeueBulkSizeWorker * cfg->WorkerThreadNum());
   std::vector<EventData> events_list(max_events_needed);
 
-  while ((config_->Running() == true) &&
+  while ((mac_sched_->Running() == true) &&
          (SignalHandler::GotExitSignal() == false)) {
     // Get a batch of events
     const size_t num_events =
@@ -386,7 +387,7 @@ void Agora::Start() {
                 "frame window (= %zu + %zu). This can happen if "
                 "Agora is running slowly, e.g., in debug mode\n",
                 pkt->frame_id_, frame_tracking_.cur_sche_frame_id_, kFrameWnd);
-            cfg->Running(false);
+            mac_sched->Running(false);
             break;
           }
 

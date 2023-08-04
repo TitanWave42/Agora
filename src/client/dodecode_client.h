@@ -31,7 +31,7 @@ class DoDecodeClient : public Doer {
   int16_t* resp_var_nodes_;
   PtrCube<kFrameWnd, kMaxSymbols, kMaxUEs, int8_t>& demod_buffers_;
   PtrCube<kFrameWnd, kMaxSymbols, kMaxUEs, int8_t>& decoded_buffers_;
-  std::unique_ptr<MacScheduler> mac_sched_;
+  MacScheduler* mac_sched_;
   PhyStats* phy_stats_;
   DurationStat* duration_stat_;
   std::unique_ptr<AgoraScrambler::Scrambler> scrambler_;

@@ -96,7 +96,7 @@ class AgoraBuffer {
   char* dl_socket_buffer_;
   Table<complex_float> calib_ul_buffer_;
   Table<complex_float> calib_dl_buffer_;
-  std::unique_ptr<MacScheduler> mac_sched_;
+  MacScheduler* mac_sched_;
 };
 
 struct SchedInfo {

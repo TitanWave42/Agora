@@ -10,7 +10,7 @@
 
 TxRxWorker::TxRxWorker(size_t core_offset, size_t tid, size_t interface_count,
                        size_t interface_offset, size_t channels_per_interface,
-                       Config* const config, size_t* rx_frame_start,
+                       Config* const config, MacScheduler* mac_scheduler, size_t* rx_frame_start,
                        moodycamel::ConcurrentQueue<EventData>* event_notify_q,
                        moodycamel::ConcurrentQueue<EventData>* tx_pending_q,
                        moodycamel::ProducerToken& tx_producer,
@@ -29,7 +29,7 @@ TxRxWorker::TxRxWorker(size_t core_offset, size_t tid, size_t interface_count,
       mutex_(sync_mutex),
       cond_(sync_cond),
       can_proceed_(can_proceed),
-      cfg_(config),
+      cfg_(config), mac_sched_(mac_scheduler),
       rx_memory_idx_(0),
       rx_memory_(rx_memory),
       tx_memory_(tx_memory),
@@ -53,7 +53,7 @@ void TxRxWorker::Start() {
 }
 
 void TxRxWorker::Stop() {
-  cfg_->Running(false);
+  mac_sched_->Running(false);
   if (thread_.joinable()) {
     AGORA_LOG_FRAME("TxRxWorker[%zu] stopping\n", tid_);
     thread_.join();

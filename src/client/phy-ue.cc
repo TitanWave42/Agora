@@ -308,7 +308,7 @@ void PhyUe::ClearCsi(size_t frame_id) {
 
 void PhyUe::Stop() {
   AGORA_LOG_INFO("PhyUe: Stopping threads\n");
-  config_->Running(false);
+  mac_sched_->Running(false);
   usleep(1000);
   ru_.reset();
 }
@@ -343,7 +343,7 @@ void PhyUe::Start() {
   max_equaled_frame_ = 0;
   size_t cur_frame_id = 0;
 
-  while ((config_->Running() == true) &&
+  while ((mac_sched_->Running() == true) &&
          (SignalHandler::GotExitSignal() == false)) {
     // get a bulk of events
     ret = complete_queue_.try_dequeue_bulk(ctok, events_list.data(),
@@ -550,7 +550,7 @@ void PhyUe::Start() {
                     FrameComplete(frame_id, FrameTasksFlags::kDownlinkComplete);
                 if (finished == true) {
                   if ((cur_frame_id + 1) >= config_->FramesToTest()) {
-                    config_->Running(false);
+                    mac_sched_->Running(false);
                   } else {
                     FrameInit(frame_id);
                     cur_frame_id = frame_id + 1;
@@ -596,7 +596,7 @@ void PhyUe::Start() {
                   FrameComplete(frame_id, FrameTasksFlags::kDownlinkComplete);
               if (finished == true) {
                 if ((cur_frame_id + 1) >= config_->FramesToTest()) {
-                  config_->Running(false);
+                  mac_sched_->Running(false);
                 } else {
                   FrameInit(frame_id);
                   cur_frame_id = frame_id + 1;
@@ -635,7 +635,7 @@ void PhyUe::Start() {
                   FrameComplete(frame_id, FrameTasksFlags::kMacTxComplete);
               if (finished == true) {
                 if ((cur_frame_id + 1) >= config_->FramesToTest()) {
-                  config_->Running(false);
+                  mac_sched_->Running(false);
                 } else {
                   FrameInit(frame_id);
                   cur_frame_id = frame_id + 1;
@@ -832,7 +832,7 @@ void PhyUe::Start() {
                 FrameComplete(frame_id, FrameTasksFlags::kUplinkTxComplete);
             if (finished == true) {
               if ((cur_frame_id + 1) >= config_->FramesToTest()) {
-                config_->Running(false);
+                mac_sched_->Running(false);
               } else {
                 FrameInit(frame_id);
                 cur_frame_id = frame_id + 1;
@@ -862,7 +862,7 @@ void PhyUe::Start() {
                 FrameComplete(frame_id, FrameTasksFlags::kUplinkTxComplete);
             if (finished == true) {
               if ((cur_frame_id + 1) >= config_->FramesToTest()) {
-                config_->Running(false);
+                mac_sched_->Running(false);
               } else {
                 FrameInit(frame_id);
                 cur_frame_id = frame_id + 1;

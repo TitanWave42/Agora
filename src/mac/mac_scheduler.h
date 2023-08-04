@@ -12,6 +12,9 @@ class MacScheduler {
   explicit MacScheduler(Config* const cfg);
   ~MacScheduler();
 
+  inline void Running(bool value) { this->mcs_->Running(value); }
+  inline bool Running() const { return mcs_->Running(); }
+
   inline Table<complex_float>& UeSpecificPilot() {
     return this->mcs_->UeSpecificPilot();
   }

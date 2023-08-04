@@ -46,7 +46,7 @@ class DoEncode : public Doer {
   int8_t* scrambler_buffer_;
   size_t scrambler_buffer_bytes_;
 
-  std::unique_ptr<MacScheduler> mac_sched_;
+  MacScheduler* mac_sched_;
   DurationStat* duration_stat_;
   std::unique_ptr<AgoraScrambler::Scrambler> scrambler_;
 };

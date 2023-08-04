@@ -122,7 +122,7 @@ void AgoraWorker::WorkerThread(int tid) {
   size_t cur_qid = 0;
   size_t empty_queue_itrs = 0;
   bool empty_queue = true;
-  while (config_->Running() == true) {
+  while (mac_sched_->Running() == true) {
     for (size_t i = 0; i < computers_vec.size(); i++) {
       if (computers_vec.at(i)->TryLaunch(
               *message_->GetConq(events_vec.at(i), cur_qid),

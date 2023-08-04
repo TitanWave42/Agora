@@ -34,7 +34,7 @@ TxRxWorkerSim::TxRxWorkerSim(
     std::mutex& sync_mutex, std::condition_variable& sync_cond,
     std::atomic<bool>& can_proceed)
     : TxRxWorker(core_offset, tid, interface_count, interface_offset,
-                 config->NumChannels(), config, rx_frame_start, event_notify_q,
+                 config->NumChannels(), config, mac_scheduler, rx_frame_start, event_notify_q,
                  tx_pending_q, tx_producer, notify_producer, rx_memory,
                  tx_memory, sync_mutex, sync_cond, can_proceed),
       mac_sched_(mac_scheduler) {
@@ -90,7 +90,7 @@ void TxRxWorkerSim::DoTxRx() {
 
   // Send Beacons for the first time to kick off sim
   // SendBeacon(tid, tx_frame_id++);
-  while (Configuration()->Running() == true) {
+  while (mac_sched_->Running() == true) {
     const size_t rdtsc_now = GetTime::Rdtsc();
 
     if (rdtsc_now > send_time) {

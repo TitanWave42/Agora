@@ -13,7 +13,7 @@ static const bool kDebugPrintSimSetup = true;
 
 static const size_t kMessageQueueSize = 512;
 
-Simulator::Simulator(Config* cfg, size_t in_task_thread_num,
+Simulator::Simulator(Config* cfg, MacScheduler* mac_sched, size_t in_task_thread_num,
                      size_t in_core_offset, size_t sender_delay)
     : task_thread_num_(in_task_thread_num),
       socket_rx_thread_num_(in_task_thread_num),
@@ -27,6 +27,7 @@ Simulator::Simulator(Config* cfg, size_t in_task_thread_num,
   }
 
   this->config_ = cfg;
+  this->mac_sched_ = mac_sched;
   PinToCoreWithOffset(ThreadType::kMaster, core_offset_, 0);
 
   InitializeQueues();
@@ -42,7 +43,7 @@ Simulator::Simulator(Config* cfg, size_t in_task_thread_num,
       config_, socket_tx_thread_num_, core_offset_ + 1, sender_delay,
       frame_delay, enable_slow_start, "ff:ff:ff:ff:ff:ff", true);
   receiver_ =
-      std::make_unique<Receiver>(config_, socket_rx_thread_num_, core_offset_,
+      std::make_unique<Receiver>(config_, mac_sched_, socket_rx_thread_num_, core_offset_,
                                  &message_queue_, rx_ptoks_ptr_);
 }
 
@@ -53,13 +54,13 @@ Simulator::~Simulator() {
 
 void Simulator::Stop() {
   std::cout << "Simulator: stopping threads " << std::endl;
-  config_->Running(false);
+  mac_sched_->Running(false);
   usleep(1000);
   std::printf("Simulator: stopped\n");
 }
 
 void Simulator::Start() {
-  config_->Running(true);
+  mac_sched_->Running(true);
   /* start receiver */
   std::vector<std::thread> rx_threads =
       receiver_->StartRecv(socket_buffer_, socket_buffer_size_, frame_start_);
@@ -75,7 +76,7 @@ void Simulator::Start() {
 
   /* start transmitter */
   sender_->StartTxfromMain(frame_start_tx_, frame_end_tx_);
-  while ((config_->Running() == true) &&
+  while ((mac_sched_->Running() == true) &&
          (SignalHandler::GotExitSignal() == false)) {
     /* get a bulk of events */
     ret = message_queue_.try_dequeue_bulk(ctok, events_list.data(),
@@ -179,7 +180,7 @@ void Simulator::UpdateRxCounters(size_t frame_id, size_t frame_id_in_buffer,
 
     if (frame_id >= (config_->FramesToTest() - 1)) {
       std::printf("Simulator: received the final frame\n");
-      config_->Running(false);
+      mac_sched_->Running(false);
     }
   }
 }

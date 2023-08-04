@@ -31,7 +31,7 @@ struct RxTimeTracker {
 class TxRxWorkerHw : public TxRxWorker {
  public:
   TxRxWorkerHw(size_t core_offset, size_t tid, size_t interface_count,
-               size_t interface_offset, Config* const config,
+               size_t interface_offset, Config* const config, MacScheduler* mac_scheduler,
                size_t* rx_frame_start,
                moodycamel::ConcurrentQueue<EventData>* event_notify_q,
                moodycamel::ConcurrentQueue<EventData>* tx_pending_q,

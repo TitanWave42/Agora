@@ -72,6 +72,7 @@ DoDemul::DoDemul(
 }
 
 DoDemul::~DoDemul() {
+  std::cout<<"In the do Demul destructor" << std::endl<<std::flush;
   std::free(data_gather_buffer_);
   std::free(equaled_buffer_temp_);
   std::free(equaled_buffer_temp_transposed_);

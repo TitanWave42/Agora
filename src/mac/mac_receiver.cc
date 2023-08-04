@@ -16,7 +16,7 @@ static const std::string kMacRxAddress = "";
 static const std::string kMacTxAddress = "127.0.0.1";
 static constexpr uint16_t kMacTxPort = 0;
 
-MacReceiver::MacReceiver(Config* const cfg, size_t num_frame_data_bytes,
+MacReceiver::MacReceiver(Config* const cfg, MacScheduler* mac_scheduler, size_t num_frame_data_bytes,
                          std::string phy_server_address, size_t phy_port,
                          size_t rx_thread_num, size_t core_offset)
     : data_bytes_(num_frame_data_bytes),
@@ -27,9 +27,9 @@ MacReceiver::MacReceiver(Config* const cfg, size_t num_frame_data_bytes,
       udp_dest_address_(""),
       rx_thread_num_(rx_thread_num),
       core_id_(core_offset),
-      cfg_(cfg) {}
+      cfg_(cfg), mac_sched_(mac_scheduler) {}
 
-MacReceiver::MacReceiver(Config* const cfg, size_t num_frame_data_bytes,
+MacReceiver::MacReceiver(Config* const cfg, MacScheduler* mac_scheduler, size_t num_frame_data_bytes,
                          std::string phy_server_address, size_t phy_port,
                          std::string fwd_data_udp_address, size_t fwd_port,
                          size_t rx_thread_num, size_t core_offset)
@@ -41,7 +41,7 @@ MacReceiver::MacReceiver(Config* const cfg, size_t num_frame_data_bytes,
       udp_dest_address_(std::move(fwd_data_udp_address)),
       rx_thread_num_(rx_thread_num),
       core_id_(core_offset),
-      cfg_(cfg) {}
+      cfg_(cfg), mac_sched_(mac_scheduler) {}
 
 std::vector<std::thread> MacReceiver::StartRecv() {
   std::vector<std::thread> created_threads;
@@ -80,7 +80,7 @@ void* MacReceiver::LoopRecv(size_t tid) {
   auto* rx_buffer = new std::byte[max_packet_length];
 
   while ((SignalHandler::GotExitSignal() == false) &&
-         (cfg_->Running() == true)) {
+         (mac_sched_->Running() == true)) {
     const ssize_t recvlen = udp_server->Recv(phy_address_, phy_port_ + ue_id,
                                              &rx_buffer[0u], max_packet_length);
     if (recvlen < 0) {
