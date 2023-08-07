@@ -37,8 +37,8 @@ int main(int argc, char const* argv[]) {
 
     // Register signal handler to handle kill signal
     signal_handler.SetupSignalHandlers();
-    auto simulator =
-        std::make_unique<Simulator>(cfg.get(), mac_scheduler.get(), thread_num, core_offset, delay);
+    auto simulator = std::make_unique<Simulator>(
+        cfg.get(), mac_scheduler.get(), thread_num, core_offset, delay);
     simulator->Start();
     ret = EXIT_SUCCESS;
   } catch (SignalException& e) {

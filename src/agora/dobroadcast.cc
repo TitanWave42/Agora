@@ -49,7 +49,10 @@ void DoBroadcast::GenerateBroadcastSymbols(size_t frame_id) {
     bcast_iq_samps.at(symbol_idx_dl) =
         reinterpret_cast<std::complex<int16_t>*>(pkt->data_);
     ///\todo: later ctrl data might include other info
-    ctrl_data.at(symbol_idx_dl) = frame_id + (kUseArgos ? TX_FRAME_DELTA : 0);
+    ctrl_data.at(symbol_idx_dl) =
+        frame_id + (kUseArgos ? TX_FRAME_DELTA : 0) +
+        mac_sched_->McsIndex(Direction::kDownlink) +
+        mac_sched_->McsUpdateFrame(Direction::kDownlink);
   }
   mac_sched_->GenBroadcastSlots(bcast_iq_samps, ctrl_data);
 

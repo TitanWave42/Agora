@@ -681,8 +681,6 @@ Config::Config(std::string jsonfilename)
 
   dl_mcs_params_ = this->Parse(tdd_conf, "dl_mcs");
 
-
-
   fft_in_rru_ = tdd_conf.value("fft_in_rru", false);
 
   samps_per_symbol_ =
@@ -728,7 +726,7 @@ Config::Config(std::string jsonfilename)
       "\t%zu OFDM subcarriers (%zu data subcarriers),\n"
       "\tBeamforming %s, \n"
       //"\t%zu UL codeblocks per symbol, "
-      
+
       "\tFrame time %.3f usec\n"
       "Radio Network Traffic Peak (Mbps): %.3f\n"
       "Radio Network Traffic Avg  (Mbps): %.3f\n"
@@ -739,8 +737,8 @@ Config::Config(std::string jsonfilename)
       "All UEs Network Traffic Avg (Mbps): %.3f\n"
       "All UEs Network Traffic Avg (Mbps): %.3f\n",
       bs_ant_num_, ue_ant_num_, frame_.NumPilotSyms(), frame_.NumULSyms(),
-      frame_.NumDLSyms(), ofdm_ca_num_, ofdm_data_num_, beamforming_str_.c_str(),
-      this->GetFrameDurationSec() * 1e6,
+      frame_.NumDLSyms(), ofdm_ca_num_, ofdm_data_num_,
+      beamforming_str_.c_str(), this->GetFrameDurationSec() * 1e6,
       bit_rate_mbps, per_bs_radio_traffic, bit_rate_mbps * bs_ant_num_,
       per_bs_radio_traffic * bs_ant_num_, 2 * bit_rate_mbps,
       per_ue_radio_traffic, 2 * bit_rate_mbps * ue_ant_num_,
@@ -769,10 +767,7 @@ json Config::Parse(const json& in_json, const std::string& json_handle) {
   return out_json;
 }
 
-Config::~Config() {
-    std::cout<<"In the config destructor" << std::endl<<std::flush;
-
-}
+Config::~Config() = default;
 
 /* TODO Inspect and document */
 size_t Config::GetSymbolId(size_t input_id) const {
@@ -917,8 +912,7 @@ void Config::Print() const {
               << "Ue Channel: " << ue_channel_ << std::endl
               << "Max Frames: " << frames_to_test_ << std::endl
               << "Transport Block Size: " << transport_block_size_ << std::endl
-              << "Noise Level: " << noise_level_
-              << std::endl
+              << "Noise Level: " << noise_level_ << std::endl
               << std::endl
               << "FFT in rru: " << fft_in_rru_ << std::endl;
   }

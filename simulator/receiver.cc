@@ -7,10 +7,15 @@
 #include "gettime.h"
 #include "udp_comm.h"
 
-Receiver::Receiver(Config* cfg, MacScheduler* mac_scheduler, size_t rx_thread_num, size_t core_offset)
-    : rx_thread_num_(rx_thread_num), core_id_(core_offset), cfg_(cfg), mac_sched_(mac_scheduler) {}
+Receiver::Receiver(Config* cfg, MacScheduler* mac_scheduler,
+                   size_t rx_thread_num, size_t core_offset)
+    : rx_thread_num_(rx_thread_num),
+      core_id_(core_offset),
+      cfg_(cfg),
+      mac_sched_(mac_scheduler) {}
 
-Receiver::Receiver(Config* cfg, MacScheduler* mac_scheduler, size_t rx_thread_num, size_t core_offset,
+Receiver::Receiver(Config* cfg, MacScheduler* mac_scheduler,
+                   size_t rx_thread_num, size_t core_offset,
                    moodycamel::ConcurrentQueue<EventData>* in_queue_message,
                    moodycamel::ProducerToken** in_rx_ptoks)
     : Receiver(cfg, mac_scheduler, rx_thread_num, core_offset) {

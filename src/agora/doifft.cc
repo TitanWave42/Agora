@@ -41,8 +41,6 @@ DoIFFT::DoIFFT(Config* in_config, int in_tid,
 }
 
 DoIFFT::~DoIFFT() {
-    std::cout<<"In the do IFFT destructor" << std::endl<<std::flush;
-
   DftiFreeDescriptor(&mkl_handle_);
   std::free(ifft_out_);
   std::free(ifft_shift_tmp_);

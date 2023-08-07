@@ -28,9 +28,9 @@ TxRxWorkerHw::TxRxWorkerHw(
     std::mutex& sync_mutex, std::condition_variable& sync_cond,
     std::atomic<bool>& can_proceed, RadioSet& radio_config)
     : TxRxWorker(core_offset, tid, interface_count, interface_offset,
-                 config->NumChannels(), config, mac_scheduler, rx_frame_start, event_notify_q,
-                 tx_pending_q, tx_producer, notify_producer, rx_memory,
-                 tx_memory, sync_mutex, sync_cond, can_proceed),
+                 config->NumChannels(), config, mac_scheduler, rx_frame_start,
+                 event_notify_q, tx_pending_q, tx_producer, notify_producer,
+                 rx_memory, tx_memory, sync_mutex, sync_cond, can_proceed),
       radio_config_(radio_config),
       program_start_ticks_(0),
       freq_ghz_(GetTime::MeasureRdtscFreq()),
@@ -82,7 +82,7 @@ void TxRxWorkerHw::DoTxRx() {
 
   // Agora will generate Tx data only after the first Rx............. (Typically the pilots from the UEs)
   //  The first Rx will happen based on a Hw trigger
-  while (Configuration()->Running() == true) {
+  while (mac_sched_->Running() == true) {
     const size_t tx_items = DoTx(time0);
     // If no items transmitted, then try to receive
     if (0 == tx_items) {
@@ -314,7 +314,7 @@ void TxRxWorkerHw::TxBeaconHw(size_t frame_id, size_t radio_id,
       Configuration()->BeaconAnt() % Configuration()->NumChannels();
 
   if (beacon_radio == radio_id) {
-    tx_buffs.at(beacon_ch) = Configuration()->BeaconCi16().data();
+    tx_buffs.at(beacon_ch) = mac_sched_->BeaconCi16().data();
   }
   // assuming beacon is first symbol
   long long frame_time =
@@ -352,7 +352,7 @@ void TxRxWorkerHw::TxBcastSymbolsHw(size_t frame_id, size_t radio_id,
   }
 
   std::vector<size_t> ctrl_data(1, frame_id);
-  Configuration()->GenBroadcastSlots(ctrl_samp_buffer, ctrl_data);
+  mac_sched_->GenBroadcastSlots(ctrl_samp_buffer, ctrl_data);
 
   const size_t bcast_radio =
       Configuration()->BeaconAnt() / Configuration()->NumChannels();
@@ -408,7 +408,7 @@ void TxRxWorkerHw::TxReciprocityCalibPilots(size_t frame_id, size_t radio_id,
       const size_t ref_ant = Configuration()->RefAnt(cell_id);
       const size_t ant_idx = ref_ant % Configuration()->NumChannels();
       // We choose to use the reference antenna to tx from the reference radio
-      calultxbuf.at(ant_idx) = Configuration()->PilotCi16().data();
+      calultxbuf.at(ant_idx) = mac_sched_->PilotCi16().data();
       long long frame_time = 0;
       if (Configuration()->HwFramer() == false) {
         frame_time =
@@ -806,7 +806,7 @@ long long int TxRxWorkerHw::GetHwTime() {
     // prepare BS beacon in host buffer
     std::vector<const void*> beaconbuffs(Configuration()->NumChannels(),
                                          zeros.at(0).data());
-    beaconbuffs.at(beacon_chan) = Configuration()->BeaconCi16().data();
+    beaconbuffs.at(beacon_chan) = mac_sched_->BeaconCi16().data();
 
     std::vector<std::vector<std::complex<int16_t>>> samp_buffer(
         Configuration()->NumChannels(),

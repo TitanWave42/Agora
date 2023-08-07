@@ -44,9 +44,6 @@ DoDemul::DoDemul(
   arma::cx_float* ue_pilot_ptr =
       reinterpret_cast<arma::cx_float*>(mac_sched_->UeSpecificPilot()[0]);
 
-  std::cout<<"cfg_->OfdmDataNum()"<<cfg_->OfdmDataNum() << std::endl<<std::flush;
-    std::cout<<"cfg_->UeAntNum())"<<cfg_->UeAntNum() << std::endl<<std::flush;
-
   arma::cx_fmat mat_pilot_data(ue_pilot_ptr, cfg_->OfdmDataNum(),
                                cfg_->UeAntNum(), false);
   ue_pilot_data_ = mat_pilot_data.st();
@@ -72,7 +69,6 @@ DoDemul::DoDemul(
 }
 
 DoDemul::~DoDemul() {
-  std::cout<<"In the do Demul destructor" << std::endl<<std::flush;
   std::free(data_gather_buffer_);
   std::free(equaled_buffer_temp_);
   std::free(equaled_buffer_temp_transposed_);

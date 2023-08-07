@@ -11,11 +11,13 @@
 
 class MacReceiver {
  public:
-  explicit MacReceiver(Config* const cfg, MacScheduler* mac_scheduler, size_t num_frame_data_bytes,
+  explicit MacReceiver(Config* const cfg, MacScheduler* mac_scheduler,
+                       size_t num_frame_data_bytes,
                        std::string phy_server_address, size_t phy_port,
                        size_t rx_thread_num = 1, size_t core_offset = 1);
 
-  explicit MacReceiver(Config* const cfg, MacScheduler* mac_scheduler, size_t num_frame_data_bytes,
+  explicit MacReceiver(Config* const cfg, MacScheduler* mac_scheduler,
+                       size_t num_frame_data_bytes,
                        std::string phy_server_address, size_t phy_port,
                        std::string fwd_data_udp_address, size_t fwd_port,
                        size_t rx_thread_num = 1, size_t core_offset = 1);

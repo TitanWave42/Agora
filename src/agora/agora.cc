@@ -86,7 +86,6 @@ Agora::Agora(MacScheduler* mac_scheduler)
 }
 
 Agora::~Agora() {
-  std::cout<<"In the agora destructor" <<std::endl<<std::flush;
   if (kEnableMac == true) {
     mac_std_thread_.join();
   }
@@ -371,9 +370,10 @@ void Agora::Start() {
 
       // FFT processing is scheduled after falling through the switch
       switch (event.event_type_) {
-        case EventType::kPacketRX: {
+        case EventType::kPacketRX: {  //For downlink I should read from this
           RxPacket* rx = rx_tag_t(event.tags_[0u]).rx_packet_;
           Packet* pkt = rx->RawPacket();
+          const size_t ant_id = gen_tag_t(event.tags_[0]).ant_id_;
 
           if (recorder_ != nullptr) {
             rx->Use();
@@ -394,6 +394,16 @@ void Agora::Start() {
           UpdateRxCounters(pkt->frame_id_, pkt->symbol_id_);
           fft_queue_arr_.at(pkt->frame_id_ % kFrameWnd)
               .push(fft_req_tag_t(event.tags_[0]));
+
+          //Measure the SNR of the user to determine of the MCS of that user
+          // needs to be updated.
+          float snr = phy_stats_->GetEvmSnr(pkt->frame_id_, ant_id);
+          this->mac_sched_->CheckDlMcs(snr, pkt->frame_id_, ant_id);
+
+          //Do I need to use the ue_map to see if the user being sampled was
+          //previously scheduled?
+          // auto ue_map = mac_sched_->ScheduledUeMap(frame_id, 0u);
+          // auto ue_list = mac_sched_->ScheduledUeList(frame_id, 0u);
         } break;
 
         case EventType::kFFT: {
@@ -571,10 +581,9 @@ void Agora::Start() {
           const size_t ue_id = rx_mac_tag_t(event.tags_[0u]).tid_;
           const size_t radio_buf_id = rx_mac_tag_t(event.tags_[0u]).offset_;
           const auto* pkt = reinterpret_cast<const MacPacketPacked*>(
-              &agora_memory_
-                   ->GetDlBits()[ue_id]
-                                [radio_buf_id * mac_sched->MacBytesNumPerframe(
-                                                    Direction::kDownlink)]);
+              &agora_memory_->GetDlBits()[ue_id][radio_buf_id *
+                                                 mac_sched->MacBytesNumPerframe(
+                                                     Direction::kDownlink)]);
 
           AGORA_LOG_INFO("Agora: frame %d @ offset %zu %zu @ location %zu\n",
                          pkt->Frame(), ue_id, radio_buf_id,

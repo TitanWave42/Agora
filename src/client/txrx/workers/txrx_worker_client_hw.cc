@@ -268,7 +268,7 @@ std::vector<Packet*> TxRxWorkerClientHw::DoRx(
               if (Configuration()->GetSymbolType(global_symbol_id) ==
                   SymbolType::kControl) {
                 size_t ctrl_frame_id =
-                    Configuration()->DecodeBroadcastSlots(raw_pkt->data_);
+                    MacSched()->DecodeBroadcastSlots(raw_pkt->data_);
                 if (ctrl_frame_id != global_frame_id) {
                   AGORA_LOG_WARN(
                       "RecvEnqueue: Ctrl channel frame_id %zu/%zu mismatch "

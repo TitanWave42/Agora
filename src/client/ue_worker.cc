@@ -75,7 +75,7 @@ UeWorker::UeWorker(
 }
 
 UeWorker::~UeWorker() {
-  std::cout<<"In the ue worker destructor" << std::endl<<std::flush;
+  std::cout << "In the ue worker destructor" << std::endl << std::flush;
   DftiFreeDescriptor(&mkl_handle_);
   FreeBuffer1d(&rx_samps_tmp_);
   AGORA_LOG_INFO("UeWorker[%zu] Terminated\n", tid_);

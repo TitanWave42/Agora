@@ -16,6 +16,18 @@
 
 constexpr size_t kNumTables = 4;
 
+//For determining if we need to change mcs
+constexpr float snr_delta_tolerance = 0.1;
+
+static const std::map<size_t, float> kmcs_index_to_spectral_effeciency = {
+    {0, 0.2344},  {1, 0.3066},  {2, 0.3770},  {3, 0.4902},  {4, 0.6016},
+    {5, 0.7402},  {6, 0.8770},  {7, 1.0273},  {8, 1.1758},  {9, 1.3262},
+    {10, 1.3281}, {11, 1.4766}, {12, 1.6953}, {13, 1.9141}, {14, 2.1602},
+    {15, 2.4063}, {16, 2.5703}, {17, 2.5664}, {18, 2.7305}, {19, 3.0293},
+    {20, 3.3223}, {21, 3.6094}, {22, 3.9023}, {23, 4.2129}, {24, 4.5234},
+    {25, 4.8164}, {26, 5.1152}, {27, 5.3320}, {28, 5.5547}, {29, 5.8906},
+    {30, 6.2266}, {31, 6.5703}};
+
 struct MCS_Scheme {
   size_t frame_number;
   size_t mcs_index;
@@ -27,12 +39,6 @@ struct Modulation_Tables {
   Table<complex_float> ul_tables[kNumTables];
   Table<complex_float> dl_tables[kNumTables];
 };
-
-//I'm adding this as a struct here
-//so that instead of reading from the conf file
-// every time we want to change the modulation
-// we can read once at the begining and access these
-//variables whenever needed.
 
 struct Initial_Mcs_Properties {
   uint16_t base_graph;
@@ -50,13 +56,17 @@ class Mcs {
   void InitializeUlMcs(const nlohmann::json ul_mcs);
   void InitializeDlMcs(const nlohmann::json dl_mcs);
   void UpdateMcs(size_t current_frame_number);
-  void SetNextUlMcs(MCS_Scheme next_mcs_scheme);
-  void SetNextDlMcs(MCS_Scheme next_mcs_scheme);
+  void SetNextUlMcs(size_t frame_number, size_t mod_order_bits);
+  void SetNextDlMcs(size_t frame_number, size_t mod_order_bits);
   void UpdateUlLdpcConfig();
   void UpdateDlLdpcConfig();
 
   inline void Running(bool value) { this->running_.store(value); }
   inline bool Running() const { return this->running_.load(); }
+  inline MCS_Scheme CurrentDlMcs() { return this->current_dl_mcs_; }
+
+  //spectral effeciency calculation is log_2(1+0.902)
+  inline float SpectralEffeciency(float snr) { return log2(1 + snr); }
 
   inline const complex_float* Pilots(void) const { return this->pilots_; }
   inline const complex_float* PilotsSgn() const { return this->pilots_sgn_; }
@@ -66,7 +76,6 @@ class Mcs {
     return this->pilot_ci16_;
   }
 
-
   inline Table<complex_float>& UeSpecificPilot() {
     return this->ue_specific_pilot_;
   }
@@ -74,13 +83,12 @@ class Mcs {
     return this->ue_specific_pilot_t_;
   }
 
-  
   inline const std::vector<std::complex<float>>& GoldCf32() const {
     return this->gold_cf32_;
   }
 
   inline size_t BeaconLen() const { return this->beacon_len_; }
-  
+
   inline const arma::uvec& PilotUeSc(size_t ue_id) const {
     return this->pilot_ue_sc_.at(ue_id);
   }
@@ -103,6 +111,10 @@ class Mcs {
   inline std::string Modulation(Direction dir) const {
     return dir == Direction::kUplink ? this->ul_modulation_
                                      : this->dl_modulation_;
+  }
+  inline size_t McsUpdateFrame(Direction dir) {
+    return dir == Direction::kUplink ? next_ul_mcs_.frame_number
+                                     : next_dl_mcs_.frame_number;
   }
   inline size_t ModOrderBits(Direction dir) const {
     return dir == Direction::kUplink ? this->current_ul_mcs_.mod_order_bits
@@ -151,8 +163,8 @@ class Mcs {
     return this->LdpcConfig(dir).NumCbCodewLen() / this->ModOrderBits(dir);
   }
   inline size_t McsIndex(Direction dir) const {
-    return dir == Direction::kUplink ? this->ul_mcs_index_
-                                     : this->dl_mcs_index_;
+    return dir == Direction::kUplink ? current_ul_mcs_.mcs_index
+                                     : current_dl_mcs_.mcs_index;
   }
   inline Table<int8_t>& DlModBits() { return this->dl_mod_bits_; }
   inline Table<int8_t>& UlModBits() { return this->ul_mod_bits_; }
@@ -162,11 +174,6 @@ class Mcs {
   inline Table<complex_float>& UlIqF() { return this->ul_iq_f_; }
   inline Table<complex_float>& DlIqF() { return this->dl_iq_f_; }
   inline Table<complex_float>& ModTable(Direction dir) {
-    std::cout<<"In the modtable logic: " << std::endl <<std::flush;
-
-    std::cout<<"ul mcs table index: " << std::to_string(current_ul_mcs_.mod_order_bits) << std::endl <<std::flush;
-    std::cout<<"dl mcs table index: " << std::to_string(current_dl_mcs_.mod_order_bits) << std::endl <<std::flush;
-
     return dir == Direction::kUplink
                ? this->modulation_tables_
                      .ul_tables[current_ul_mcs_.mod_order_bits]
@@ -304,7 +311,7 @@ class Mcs {
   std::vector<uint32_t> beacon_;
   std::vector<uint32_t> coeffs_;
   std::vector<uint32_t> pilot_;
-      /// I/Q samples of common pilot
+  /// I/Q samples of common pilot
   std::vector<std::complex<int16_t>> pilot_ci16_;
   std::vector<std::complex<int16_t>> beacon_ci16_;
   std::vector<std::complex<float>> pilot_cf32_;

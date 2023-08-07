@@ -31,10 +31,7 @@ Stats::Stats(Config* const cfg, MacScheduler* mac_schedule)
                       Agora_memory::Alignment_t::kAlign64);
 }
 
-Stats::~Stats() { 
-    std::cout<<"In the stats" << std::endl<<std::flush;
-
-  frame_start_.Free(); }
+Stats::~Stats() { frame_start_.Free(); }
 
 void Stats::PopulateSummary(FrameSummary* frame_summary, size_t thread_id,
                             DoerType doer_type) {

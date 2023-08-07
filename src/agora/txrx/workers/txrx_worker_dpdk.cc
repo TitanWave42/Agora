@@ -20,7 +20,8 @@ static constexpr bool kDebugDPDK = false;
 
 TxRxWorkerDpdk::TxRxWorkerDpdk(
     size_t core_offset, size_t tid, size_t interface_count,
-    size_t interface_offset, Config* const config, MacScheduler* mac_scheduler, size_t* rx_frame_start,
+    size_t interface_offset, Config* const config, MacScheduler* mac_scheduler,
+    size_t* rx_frame_start,
     moodycamel::ConcurrentQueue<EventData>* event_notify_q,
     moodycamel::ConcurrentQueue<EventData>* tx_pending_q,
     moodycamel::ProducerToken& tx_producer,
@@ -30,9 +31,9 @@ TxRxWorkerDpdk::TxRxWorkerDpdk(
     std::atomic<bool>& can_proceed,
     std::vector<std::pair<uint16_t, uint16_t>> dpdk_phy, rte_mempool* mbuf_pool)
     : TxRxWorker(core_offset, tid, interface_count, interface_offset,
-                 config->NumChannels(), config, mac_scheduler, rx_frame_start, event_notify_q,
-                 tx_pending_q, tx_producer, notify_producer, rx_memory,
-                 tx_memory, sync_mutex, sync_cond, can_proceed),
+                 config->NumChannels(), config, mac_scheduler, rx_frame_start,
+                 event_notify_q, tx_pending_q, tx_producer, notify_producer,
+                 rx_memory, tx_memory, sync_mutex, sync_cond, can_proceed),
       dpdk_phy_port_queues_(std::move(dpdk_phy)),
       mbuf_pool_(mbuf_pool) {
   int ret = inet_pton(AF_INET, config->BsRruAddr().c_str(), &bs_rru_addr_);

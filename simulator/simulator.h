@@ -19,12 +19,12 @@
 
 #include "concurrentqueue.h"
 #include "gettime.h"
+#include "mac_scheduler.h"
 #include "memory_manage.h"
 #include "message.h"
 #include "receiver.h"
 #include "sender.h"
 #include "signal_handler.h"
-#include "mac_scheduler.h"
 
 class Simulator {
  public:
@@ -37,8 +37,8 @@ class Simulator {
   static constexpr size_t kDequeueBulkSize = 32;
   static constexpr size_t kDequeueBulkSizeSingle = 8;
 
-  Simulator(Config* cfg, MacScheduler* mac_scheduler, size_t task_thread_num, size_t core_offset,
-            size_t sender_delay);
+  Simulator(Config* cfg, MacScheduler* mac_scheduler, size_t task_thread_num,
+            size_t core_offset, size_t sender_delay);
 
   ~Simulator();
 

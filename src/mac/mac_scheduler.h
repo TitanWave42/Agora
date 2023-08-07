@@ -22,14 +22,12 @@ class MacScheduler {
     return this->mcs_->UeSpecificPilotT();
   }
 
-
   inline void InitializeUlMcs(const nlohmann::json ul_mcs) {
     this->mcs_->InitializeUlMcs(ul_mcs);
   }
   inline void InitializeDlMcs(const nlohmann::json dl_mcs) {
     this->mcs_->InitializeDlMcs(dl_mcs);
   }
-
   //inline size_t Mcs::MacBytesNumPerframe(Direction dir) const
   inline size_t DecodeBroadcastSlots(const int16_t* const bcast_iq_samps) {
     return this->mcs_->DecodeBroadcastSlots(bcast_iq_samps);
@@ -54,6 +52,9 @@ class MacScheduler {
 
   inline const LDPCconfig& LdpcConfig(Direction dir) const {
     return mcs_->LdpcConfig(dir);
+  }
+  inline size_t McsUpdateFrame(Direction dir) {
+    return mcs_->McsUpdateFrame(dir);
   }
   inline size_t NumBytesPerCb(Direction dir) const {
     return mcs_->NumBytesPerCb(dir);
@@ -136,6 +137,7 @@ class MacScheduler {
   }
 
   bool IsUeScheduled(size_t frame_id, size_t sc_id, size_t ue_id);
+  void CheckDlMcs(float snr, size_t frame_id, size_t ant_id);
   size_t ScheduledUeIndex(size_t frame_id, size_t sc_id, size_t sched_ue_id);
   arma::uvec ScheduledUeList(size_t frame_id, size_t sc_id);
   arma::uvec ScheduledUeMap(size_t frame_id, size_t sc_id);

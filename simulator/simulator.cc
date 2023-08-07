@@ -13,8 +13,9 @@ static const bool kDebugPrintSimSetup = true;
 
 static const size_t kMessageQueueSize = 512;
 
-Simulator::Simulator(Config* cfg, MacScheduler* mac_sched, size_t in_task_thread_num,
-                     size_t in_core_offset, size_t sender_delay)
+Simulator::Simulator(Config* cfg, MacScheduler* mac_sched,
+                     size_t in_task_thread_num, size_t in_core_offset,
+                     size_t sender_delay)
     : task_thread_num_(in_task_thread_num),
       socket_rx_thread_num_(in_task_thread_num),
       socket_tx_thread_num_(in_task_thread_num),
@@ -43,8 +44,8 @@ Simulator::Simulator(Config* cfg, MacScheduler* mac_sched, size_t in_task_thread
       config_, socket_tx_thread_num_, core_offset_ + 1, sender_delay,
       frame_delay, enable_slow_start, "ff:ff:ff:ff:ff:ff", true);
   receiver_ =
-      std::make_unique<Receiver>(config_, mac_sched_, socket_rx_thread_num_, core_offset_,
-                                 &message_queue_, rx_ptoks_ptr_);
+      std::make_unique<Receiver>(config_, mac_sched_, socket_rx_thread_num_,
+                                 core_offset_, &message_queue_, rx_ptoks_ptr_);
 }
 
 Simulator::~Simulator() {

@@ -305,10 +305,10 @@ void RecorderWorkerHDF5::Init() {
                 "Attempting to write TxPilot for Antenna %zu Symbol %zu\n", ant,
                 sym);
             //Since UeSpecificPilot == OfdmDataNum size then repeat for each symbol
-            hdf5_->WriteDataset(
-                dataset_name, start, tx_pilot_dims,
-                reinterpret_cast<const float*>(
-                    &const_cast<MacScheduler*>(mac_sched_)->UeSpecificPilot()[ant][0u]));
+            hdf5_->WriteDataset(dataset_name, start, tx_pilot_dims,
+                                reinterpret_cast<const float*>(
+                                    &const_cast<MacScheduler*>(mac_sched_)
+                                         ->UeSpecificPilot()[ant][0u]));
           }
         }
         hdf5_->FinalizeDataset(dataset_name);

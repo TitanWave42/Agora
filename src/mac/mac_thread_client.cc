@@ -112,9 +112,11 @@ void MacThreadClient::ProcessSnrReportFromPhy(EventData event) {
   server_.snr_[ue_id].push(snr);
 }
 
-// void MacThreadClient::CheckToUpdateMCS(){
-//   //if 
-// }
+struct McsTableParams {
+  size_t snr;
+  size_t channel_bandwidth;
+  size_t spatial_streams;
+};
 
 void MacThreadClient::ProcessCodeblocksFromPhy(EventData event) {
   assert(event.event_type_ == EventType::kPacketToMac);

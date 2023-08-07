@@ -140,9 +140,9 @@ int RecorderWorkerMultiFile::Record(const Packet* pkt) {
               "RecorderWorkerMultiFile failed to open txpilot file for "
               "writing");
         }
-        write_status =
-            std::fwrite(const_cast<MacScheduler*>(mac_sched_)->UeSpecificPilot()[ant_id],
-                        2 * sizeof(float), cfg_->OfdmDataNum(), fp_txpilot);
+        write_status = std::fwrite(
+            const_cast<MacScheduler*>(mac_sched_)->UeSpecificPilot()[ant_id],
+            2 * sizeof(float), cfg_->OfdmDataNum(), fp_txpilot);
         if (write_status != cfg_->OfdmDataNum()) {
           throw std::runtime_error(
               "RecorderWorkerMultiFile failed to write txpilot file");

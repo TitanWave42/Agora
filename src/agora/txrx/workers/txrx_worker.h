@@ -21,7 +21,8 @@ class TxRxWorker {
 
   TxRxWorker(size_t core_offset, size_t tid, size_t interface_count,
              size_t interface_offset, size_t channels_per_interface,
-             Config* const config, MacScheduler* mac_scheduler, size_t* rx_frame_start,
+             Config* const config, MacScheduler* mac_scheduler,
+             size_t* rx_frame_start,
              moodycamel::ConcurrentQueue<EventData>* event_notify_q,
              moodycamel::ConcurrentQueue<EventData>* tx_pending_q,
              moodycamel::ProducerToken& tx_producer,
@@ -44,6 +45,7 @@ class TxRxWorker {
  protected:
   void WaitSync();
   inline Config* Configuration() { return cfg_; }
+  inline MacScheduler* MacSched() { return this->mac_sched_; }
   bool NotifyComplete(const EventData& complete_event);
   std::vector<EventData> GetPendingTxEvents(size_t max_events = 0);
   RxPacket& GetRxPacket();
