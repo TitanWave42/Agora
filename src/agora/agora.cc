@@ -72,6 +72,11 @@ Agora::Agora(MacScheduler* mac_scheduler)
   InitializeCounters();
   InitializeThreads();
 
+  for (size_t i = 0; i < config_->UeAntNum(); i++) {
+    Mcs* mcs = new Mcs(mac_sched_->Cfg());
+    user_mcss_.push_back(mcs);
+  }
+
   if (kRecordUplinkFrame) {
     recorder_ = std::make_unique<Agora_recorder::RecorderThread>(
         config_, mac_sched_, 0,
@@ -99,6 +104,9 @@ Agora::~Agora() {
   stats_.reset();
   phy_stats_.reset();
   FreeQueues();
+  for (size_t i = 0; i < config_->UeAntNum(); i++) {
+    delete user_mcss_.at(i);
+  }
 }
 
 void Agora::Stop() {
@@ -373,7 +381,6 @@ void Agora::Start() {
         case EventType::kPacketRX: {  //For downlink I should read from this
           RxPacket* rx = rx_tag_t(event.tags_[0u]).rx_packet_;
           Packet* pkt = rx->RawPacket();
-          const size_t ant_id = gen_tag_t(event.tags_[0]).ant_id_;
 
           if (recorder_ != nullptr) {
             rx->Use();
@@ -394,16 +401,6 @@ void Agora::Start() {
           UpdateRxCounters(pkt->frame_id_, pkt->symbol_id_);
           fft_queue_arr_.at(pkt->frame_id_ % kFrameWnd)
               .push(fft_req_tag_t(event.tags_[0]));
-
-          //Measure the SNR of the user to determine of the MCS of that user
-          // needs to be updated.
-          float snr = phy_stats_->GetEvmSnr(pkt->frame_id_, ant_id);
-          this->mac_sched_->CheckDlMcs(snr, pkt->frame_id_, ant_id);
-
-          //Do I need to use the ue_map to see if the user being sampled was
-          //previously scheduled?
-          // auto ue_map = mac_sched_->ScheduledUeMap(frame_id, 0u);
-          // auto ue_list = mac_sched_->ScheduledUeList(frame_id, 0u);
         } break;
 
         case EventType::kFFT: {
@@ -514,6 +511,7 @@ void Agora::Start() {
         case EventType::kDecode: {
           const size_t frame_id = gen_tag_t(event.tags_[0]).frame_id_;
           const size_t symbol_id = gen_tag_t(event.tags_[0]).symbol_id_;
+          const size_t ant_id = gen_tag_t(event.tags_[0]).ant_id_;
 
           const bool last_decode_task =
               this->decode_counters_.CompleteTask(frame_id, symbol_id);
@@ -539,6 +537,16 @@ void Agora::Start() {
                   goto finish;
                 }
               }
+              //Measure the SNR of the user to determine of the MCS of that user
+              // needs to be updated.
+              float snr = phy_stats_->GetEvmSnr(frame_id, ant_id);
+              std::cout << "snr + " << snr << std::endl << std::flush;
+              this->mac_sched_->CheckDlMcs(snr, frame_id, ant_id);
+
+              //Do I need to use the ue_map to see if the user being sampled was
+              //previously scheduled?
+              // auto ue_map = mac_sched_->ScheduledUeMap(frame_id, 0u);
+              // auto ue_list = mac_sched_->ScheduledUeList(frame_id, 0u);
             }
           }
         } break;

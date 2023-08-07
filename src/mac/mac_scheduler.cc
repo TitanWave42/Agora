@@ -50,6 +50,7 @@ MacScheduler::~MacScheduler() {
 
 void MacScheduler::CheckDlMcs(float snr, size_t frame_id, size_t ant_id) {
   float spectral_efficiency = this->mcs_->SpectralEffeciency(snr);
+  std::cout << "checking the dl mcs" << std::endl << std::flush;
   if (abs(kmcs_index_to_spectral_effeciency.at(mcs_->CurrentDlMcs().mcs_index) -
           spectral_efficiency) > 0.1) {
     //Find the closest spectral effeciency to the measured average special

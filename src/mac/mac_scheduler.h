@@ -15,6 +15,8 @@ class MacScheduler {
   inline void Running(bool value) { this->mcs_->Running(value); }
   inline bool Running() const { return mcs_->Running(); }
 
+  inline Mcs* MCS() { return this->mcs_.get(); }
+
   inline Table<complex_float>& UeSpecificPilot() {
     return this->mcs_->UeSpecificPilot();
   }
