@@ -275,10 +275,7 @@ class Mcs {
   // The total number of uplink mac packets sent/received in each frame
   size_t ul_mac_packets_perframe_;
   std::string ul_modulation_;  // Modulation order as a string, e.g., "16QAM"
-  // size_t
-  //     ul_mod_order_bits_;  // Number of binary bits used for a modulation order
   std::string dl_modulation_;
-  size_t dl_mod_order_bits_;
   size_t dl_bcast_mod_order_bits_;
   // Number of bytes per code block
   size_t ul_num_bytes_per_cb_;

@@ -266,7 +266,7 @@ void MacThreadClient::ProcessCodeblocksFromPhy(EventData event) {
 void MacThreadClient::ProcessControlInformation() {
   std::memset(&udp_control_buf_[0], 0, udp_control_buf_.size());
   ssize_t ret =
-      udp_control_channel_->Recv(cfg_->UeServerAddr(), kMacBaseClientPort + next_radio_id_, &udp_control_buf_[0], udp_control_buf_.size());
+      udp_control_channel_->Recv(&udp_control_buf_[0], udp_control_buf_.size());
   if (ret == 0) {
     return;  // No data received
   } else if (ret == -1) {

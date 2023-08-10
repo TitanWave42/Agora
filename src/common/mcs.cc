@@ -824,7 +824,7 @@ void Mcs::GenData() {
             GetModBitsBuf(dl_mod_bits_, Direction::kDownlink, 0, i, j, k);
         AdaptBitsForMod(reinterpret_cast<uint8_t*>(coded_bits_ptr),
                         reinterpret_cast<uint8_t*>(mod_input_ptr),
-                        dl_encoded_bytes_per_block, dl_mod_order_bits_);
+                        dl_encoded_bytes_per_block,  this->current_dl_mcs_.mod_order_bits);
       }
     }
   }
