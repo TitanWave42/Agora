@@ -242,11 +242,12 @@ class Mcs {
   void GenPilots();
   void DumpMcsInfo();
   void UpdateCtrlMCS();
-  LDPCconfig Ul_Ldpc_Config();
-  LDPCconfig Dl_Ldpc_Config();
+  LDPCconfig UlLdpcConfig();
+  LDPCconfig DlLdpcConfig();
   size_t DecodeBroadcastSlots(const int16_t* const bcast_iq_samps);
   void GenBroadcastSlots(std::vector<std::complex<int16_t>*>& bcast_iq_samps,
                          std::vector<size_t> ctrl_msg);
+  void CheckUlMcs(float snr, size_t frame_id);
 
  private:
   static constexpr size_t kCbPerSymbol = 1;

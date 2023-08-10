@@ -187,7 +187,7 @@ class Agora {
   std::unique_ptr<Agora_recorder::RecorderThread> recorder_;
 
   //Unique mcs object for each user.
-  std::vector<Mcs*> user_mcss_;
+  std::vector<Mcs*> base_station_user_mcss_;
 };
 
 #endif  // AGORA_H_

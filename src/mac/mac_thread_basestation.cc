@@ -257,6 +257,8 @@ void MacThreadBaseStation::ProcessCodeblocksFromPhy(EventData event) {
 }
 
 void MacThreadBaseStation::SendControlInformation() {
+
+  std::cout<<"Next Radio ID: " <<next_radio_id_<<std::endl<<std::flush;
   // send RAN control information UE
   RBIndicator ri;
   ri.ue_id_ = next_radio_id_;
@@ -264,8 +266,30 @@ void MacThreadBaseStation::SendControlInformation() {
   udp_comm_->Send(cfg_->UeServerAddr(), kMacBaseClientPort + ri.ue_id_,
                   reinterpret_cast<std::byte*>(&ri), sizeof(RBIndicator));
 
+  // udp_comm_->Send(cfg_->UeServerAddr(), kMacBaseClientPort + ri.ue_id_,
+  //                 reinterpret_cast<std::byte*>(&ri), sizeof(RBIndicator));
   // update RAN config within Agora
   SendRanConfigUpdate(EventData(EventType::kRANUpdate));
+}
+
+void MacThreadBaseStation::SendMcs() {
+  std::cout << "sending mcs to " << cfg_->UeServerAddr() << " with port "
+            << kMacBaseClientPort << std::endl
+            << std::flush;
+  // send RAN control information UE
+  RBIndicator ri;
+  for (size_t i = 0; i < cfg_->UeAntNum(); i++) {
+    ri.ue_id_ = i;
+    ri.mcs_index_ = mac_sched_->McsIndex(Direction::kUplink);
+    udp_comm_->Send(cfg_->UeServerAddr(), kMacBaseClientPort,
+                    reinterpret_cast<std::byte*>(&ri), sizeof(RBIndicator));
+  }
+
+  // udp_comm_->Send(cfg_->UeServerAddr(), kMacBaseClientPort + ri.ue_id_,
+  //                 reinterpret_cast<std::byte*>(&ri), sizeof(RBIndicator));
+
+  // // update RAN config within Agora
+  // SendRanConfigUpdate(EventData(EventType::kRANUpdate));
 }
 
 void MacThreadBaseStation::ProcessUdpPacketsFromApps() {
@@ -536,6 +560,7 @@ void MacThreadBaseStation::RunEventLoop() {
   size_t last_frame_tx_tsc = 0;
 
   while (mac_sched_->Running() == true) {
+    //SendMcs();
     ProcessRxFromPhy();
 
     if ((GetTime::Rdtsc() - last_frame_tx_tsc) > tsc_delta_) {

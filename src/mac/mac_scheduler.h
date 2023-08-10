@@ -139,7 +139,6 @@ class MacScheduler {
   }
 
   bool IsUeScheduled(size_t frame_id, size_t sc_id, size_t ue_id);
-  void CheckDlMcs(float snr, size_t frame_id, size_t ant_id);
   size_t ScheduledUeIndex(size_t frame_id, size_t sc_id, size_t sched_ue_id);
   arma::uvec ScheduledUeList(size_t frame_id, size_t sc_id);
   arma::uvec ScheduledUeMap(size_t frame_id, size_t sc_id);

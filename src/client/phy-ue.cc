@@ -178,6 +178,13 @@ PhyUe::PhyUe(Config* config, MacScheduler* mac_scheduler)
     ue.tx_ready_frames_.clear();
   }
 
+  //Create a new MCS object for each user. Currently each user
+  //corresponds to one antenna.
+  for (size_t i = 0; i < config_->UeAntNum(); i++) {
+    Mcs* mcs = new Mcs(mac_sched_->Cfg());
+    client_user_mcss_.push_back(mcs);
+  }
+
   // This usage doesn't effect the user num_reciprocity_pkts_per_frame_;
   rx_counters_.num_rx_pkts_per_frame_ =
       config_->UeAntNum() *
@@ -214,6 +221,10 @@ PhyUe::~PhyUe() {
     delete tx_ptoks_ptr_[i];
     delete mac_rx_ptoks_ptr_[i];
     delete mac_tx_ptoks_ptr_[i];
+  }
+
+  for (size_t i = 0; i < config_->UeAntNum(); i++) {
+    delete client_user_mcss_.at(i);
   }
 
   FreeUplinkBuffers();
@@ -604,6 +615,14 @@ void PhyUe::Start() {
               }
             }
           }
+
+          std::vector<float> base_station_snr = phy_stats_->GetPilotSnr(frame_id);
+
+          for (size_t i = 0; i < config_->UeAntNum(); i++) {
+            //send snr back to base station //TODO.
+          }
+
+
         } break;
 
         case EventType::kPacketToMac: {

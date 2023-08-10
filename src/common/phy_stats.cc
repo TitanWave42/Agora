@@ -211,6 +211,20 @@ void PhyStats::PrintDlSnrStats(size_t frame_id, const arma::uvec& ue_list) {
   AGORA_LOG_INFO("%s", ss.str().c_str());
 }
 
+std::vector<float> PhyStats::GetPilotSnr(size_t frame_id) {
+  std::vector<float> user_pilot_snr;
+  float snr_average = 0;
+  const size_t frame_slot = frame_id % kFrameWnd;
+  for (size_t i = 0; i < config_->UeAntNum(); i++) {
+    for (size_t j = 0; j < config_->BsAntNum(); j++) {
+      const size_t idx_offset = i * config_->BsAntNum() + j;
+      snr_average = pilot_snr_[frame_slot][idx_offset];
+    }
+    user_pilot_snr.push_back(snr_average / config_->BsAntNum());
+  }
+  return user_pilot_snr;
+}
+
 void PhyStats::PrintUlSnrStats(size_t frame_id) {
   [[maybe_unused]] std::stringstream ss;
   ss << "Frame " << frame_id

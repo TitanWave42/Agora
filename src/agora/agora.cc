@@ -74,7 +74,7 @@ Agora::Agora(MacScheduler* mac_scheduler)
 
   for (size_t i = 0; i < config_->UeAntNum(); i++) {
     Mcs* mcs = new Mcs(mac_sched_->Cfg());
-    user_mcss_.push_back(mcs);
+    base_station_user_mcss_.push_back(mcs);
   }
 
   if (kRecordUplinkFrame) {
@@ -105,7 +105,7 @@ Agora::~Agora() {
   phy_stats_.reset();
   FreeQueues();
   for (size_t i = 0; i < config_->UeAntNum(); i++) {
-    delete user_mcss_.at(i);
+    delete base_station_user_mcss_.at(i);
   }
 }
 
@@ -539,14 +539,26 @@ void Agora::Start() {
               }
               //Measure the SNR of the user to determine of the MCS of that user
               // needs to be updated.
-              float snr = phy_stats_->GetEvmSnr(frame_id, ant_id);
-              std::cout << "snr + " << snr << std::endl << std::flush;
-              this->mac_sched_->CheckDlMcs(snr, frame_id, ant_id);
+              std::vector<float> user_snr = phy_stats_->GetPilotSnr(frame_id);
+              //std::cout << "snr + " << user_snr << std::endl << std::flush;
+
+              for (size_t i = 0; i < config_->UeAntNum(); i++) {
+                base_station_user_mcss_.at(i)->CheckUlMcs(user_snr.at(i),
+                                                          frame_id);
+              }
 
               //Do I need to use the ue_map to see if the user being sampled was
               //previously scheduled?
               // auto ue_map = mac_sched_->ScheduledUeMap(frame_id, 0u);
               // auto ue_list = mac_sched_->ScheduledUeList(frame_id, 0u);
+
+              //Update the current mcs to the next mcs if the next mcs frame
+              // has been reached.
+              for (size_t i = 0; i < config_->UeAntNum(); i++) {
+                base_station_user_mcss_.at(i)->UpdateMcs(frame_id);
+              }
+
+              
             }
           }
         } break;

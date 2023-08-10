@@ -72,6 +72,7 @@ int main(int argc, char* argv[]) {
           mac_scheduler->MacPacketsPerframe(Direction::kDownlink),
           mac_scheduler->MacPayloadMaxLength(Direction::kDownlink));
 
+      std::cout<<"before open file"<<std::endl<<std::flush;
       create_file.open(
           data_filename,
           (std::ofstream::out | std::ofstream::binary | std::ofstream::trunc));
@@ -79,6 +80,8 @@ int main(int argc, char* argv[]) {
 
       std::vector<char> mac_data;
       mac_data.resize(mac_scheduler->MacPayloadMaxLength(Direction::kDownlink));
+
+      AGORA_LOG_INFO("TO FOR LOOP\n");
 
       for (size_t i = 0;
            i < (cfg->FramesToTest() *
@@ -91,6 +94,9 @@ int main(int argc, char* argv[]) {
     }
 
     PinToCoreWithOffset(ThreadType::kMaster, FLAGS_core_offset, 0, true);
+
+    AGORA_LOG_INFO("TO Try expression\n");
+
 
     try {
       SignalHandler signal_handler;

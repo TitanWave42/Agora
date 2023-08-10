@@ -57,7 +57,7 @@ void DataGenerator::DoDataGeneration(const std::string& directory) {
   srand(time(nullptr));
   std::unique_ptr<DoCRC> crc_obj = std::make_unique<DoCRC>();
   const size_t ul_cb_bytes = mac_sched_->NumBytesPerCb(Direction::kUplink);
-  LDPCconfig ul_ldpc_config = mac_sched_->LdpcConfig(Direction::kUplink);
+  LDPCconfig UlLdpcConfig = mac_sched_->LdpcConfig(Direction::kUplink);
 
   // Step 1: Generate the information buffers (MAC Packets) and LDPC-encoded
   // buffers for uplink
@@ -127,7 +127,7 @@ void DataGenerator::DoDataGeneration(const std::string& directory) {
     }
 
     const size_t symbol_blocks =
-        ul_ldpc_config.NumBlocksInSymbol() * this->cfg_->UeAntNum();
+        UlLdpcConfig.NumBlocksInSymbol() * this->cfg_->UeAntNum();
     const size_t num_ul_codeblocks =
         this->cfg_->Frame().NumUlDataSyms() * symbol_blocks;
     AGORA_LOG_SYMBOL("Total number of ul blocks: %zu\n", num_ul_codeblocks);
@@ -139,10 +139,10 @@ void DataGenerator::DoDataGeneration(const std::string& directory) {
       size_t sym_id = cb / (symbol_blocks);
       // ue antenna for code block
       size_t sym_offset = cb % (symbol_blocks);
-      size_t ue_id = sym_offset / ul_ldpc_config.NumBlocksInSymbol();
-      size_t ue_cb_id = sym_offset % ul_ldpc_config.NumBlocksInSymbol();
+      size_t ue_id = sym_offset / UlLdpcConfig.NumBlocksInSymbol();
+      size_t ue_cb_id = sym_offset % UlLdpcConfig.NumBlocksInSymbol();
       size_t ue_cb_cnt =
-          (sym_id * ul_ldpc_config.NumBlocksInSymbol()) + ue_cb_id;
+          (sym_id * UlLdpcConfig.NumBlocksInSymbol()) + ue_cb_id;
 
       AGORA_LOG_TRACE(
           "cb %zu -- user %zu -- user block %zu -- user cb id %zu -- input "
@@ -153,7 +153,7 @@ void DataGenerator::DoDataGeneration(const std::string& directory) {
       ul_information.at(cb) =
           std::vector<int8_t>(cb_start, cb_start + ul_cb_bytes);
       ul_encoded_codewords.at(cb) = DataGenerator::GenCodeblock(
-          ul_ldpc_config, &ul_information.at(cb).at(0), ul_cb_bytes,
+          UlLdpcConfig, &ul_information.at(cb).at(0), ul_cb_bytes,
           this->cfg_->ScrambleEnabled());
     }
 
@@ -278,7 +278,7 @@ void DataGenerator::DoDataGeneration(const std::string& directory) {
     }
 
     // Place modulated uplink data codewords into central IFFT bins
-    RtAssert(ul_ldpc_config.NumBlocksInSymbol() == 1);  // TODO: Assumption
+    RtAssert(UlLdpcConfig.NumBlocksInSymbol() == 1);  // TODO: Assumption
     pre_ifft_data_syms.resize(this->cfg_->UeAntNum() *
                               this->cfg_->Frame().NumUlDataSyms());
     for (size_t i = 0; i < pre_ifft_data_syms.size(); i++) {
@@ -440,7 +440,7 @@ void DataGenerator::DoDataGeneration(const std::string& directory) {
   /* ------------------------------------------------
    * Generate data for downlink test
    * ------------------------------------------------ */
-  const LDPCconfig dl_ldpc_config =
+  const LDPCconfig DlLdpcConfig =
       this->mac_sched_->LdpcConfig(Direction::kDownlink);
   const size_t dl_cb_bytes = mac_sched_->NumBytesPerCb(Direction::kDownlink);
 
@@ -511,7 +511,7 @@ void DataGenerator::DoDataGeneration(const std::string& directory) {
     }
 
     const size_t symbol_blocks =
-        dl_ldpc_config.NumBlocksInSymbol() * this->cfg_->UeAntNum();
+        DlLdpcConfig.NumBlocksInSymbol() * this->cfg_->UeAntNum();
     const size_t num_dl_codeblocks =
         this->cfg_->Frame().NumDlDataSyms() * symbol_blocks;
     AGORA_LOG_SYMBOL("Total number of dl data blocks: %zu\n",
@@ -524,15 +524,15 @@ void DataGenerator::DoDataGeneration(const std::string& directory) {
       const size_t sym_id = cb / (symbol_blocks);
       // ue antenna for code block
       const size_t sym_offset = cb % (symbol_blocks);
-      const size_t ue_id = sym_offset / dl_ldpc_config.NumBlocksInSymbol();
-      const size_t ue_cb_id = sym_offset % dl_ldpc_config.NumBlocksInSymbol();
+      const size_t ue_id = sym_offset / DlLdpcConfig.NumBlocksInSymbol();
+      const size_t ue_cb_id = sym_offset % DlLdpcConfig.NumBlocksInSymbol();
       const size_t ue_cb_cnt =
-          (sym_id * dl_ldpc_config.NumBlocksInSymbol()) + ue_cb_id;
+          (sym_id * DlLdpcConfig.NumBlocksInSymbol()) + ue_cb_id;
       int8_t* cb_start = &dl_mac_info.at(ue_id).at(ue_cb_cnt * dl_cb_bytes);
       dl_information.at(cb) =
           std::vector<int8_t>(cb_start, cb_start + dl_cb_bytes);
       dl_encoded_codewords.at(cb) = DataGenerator::GenCodeblock(
-          dl_ldpc_config, &dl_information.at(cb).at(0), dl_cb_bytes,
+          DlLdpcConfig, &dl_information.at(cb).at(0), dl_cb_bytes,
           this->cfg_->ScrambleEnabled());
     }
 
@@ -541,7 +541,7 @@ void DataGenerator::DoDataGeneration(const std::string& directory) {
         num_dl_codeblocks);
     for (size_t i = 0; i < num_dl_codeblocks; i++) {
       const size_t sym_offset = i % (symbol_blocks);
-      const size_t ue_id = sym_offset / dl_ldpc_config.NumBlocksInSymbol();
+      const size_t ue_id = sym_offset / DlLdpcConfig.NumBlocksInSymbol();
       auto ofdm_symbol = DataGenerator::GetModulation(
           &dl_encoded_codewords.at(i)[0],
           mac_sched_->ModTable(Direction::kDownlink),

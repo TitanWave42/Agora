@@ -66,6 +66,8 @@ class PhyStats {
   void UpdateCalibMat(size_t frame_id, size_t sc_id,
                       const arma::cx_fvec& vec_in);
 
+  std::vector<float> GetPilotSnr(size_t frame_id);
+
  private:
   Config const* const config_;
   MacScheduler* mac_sched_;

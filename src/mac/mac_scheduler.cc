@@ -48,31 +48,6 @@ MacScheduler::~MacScheduler() {
   dl_mcs_buffer_.Free();
 }
 
-void MacScheduler::CheckDlMcs(float snr, size_t frame_id, size_t ant_id) {
-  float spectral_efficiency = this->mcs_->SpectralEffeciency(snr);
-  std::cout << "checking the dl mcs" << std::endl << std::flush;
-  if (abs(kmcs_index_to_spectral_effeciency.at(mcs_->CurrentDlMcs().mcs_index) -
-          spectral_efficiency) > 0.1) {
-    //Find the closest spectral effeciency to the measured average special
-    //effeciency and update the dl mcs to the corresponding dl mcs.
-
-    float min_spectral_effeciency_delta = MAXFLOAT;
-    size_t optimal_mcs_index = 0;
-
-    for (auto map_iter = kmcs_index_to_spectral_effeciency.begin();
-         map_iter != kmcs_index_to_spectral_effeciency.end(); ++map_iter) {
-      if (map_iter->second - spectral_efficiency < 0 &&
-          abs(map_iter->second - spectral_efficiency) <
-              min_spectral_effeciency_delta) {
-        min_spectral_effeciency_delta =
-            abs(map_iter->second - spectral_efficiency);
-        optimal_mcs_index = map_iter->first;
-      }
-    }
-    mcs_->SetNextDlMcs(frame_id, GetModOrderBits(optimal_mcs_index));
-  }
-}
-
 bool MacScheduler::IsUeScheduled(size_t frame_id, size_t sc_id, size_t ue_id) {
   size_t gp = frame_id % num_groups_;
   return (schedule_buffer_[gp][ue_id + cfg_->UeAntNum() * sc_id] != 0);

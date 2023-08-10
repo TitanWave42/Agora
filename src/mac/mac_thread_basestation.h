@@ -28,7 +28,7 @@
 class MacThreadBaseStation {
  public:
   // Default log file for MAC layer outputs
-  static constexpr char kDefaultLogFilename[] = "data/mac_log_server";
+  static constexpr char kDefaultLogFilename[] = "files/log/mac_log_server";
 
   // Maximum number of outstanding UDP packets per UE that we allocate recv()
   // buffer space for
@@ -53,6 +53,7 @@ class MacThreadBaseStation {
   void RunEventLoop();
 
  private:
+  void SendMcs();
   // Receive events from Agora PHY master thread. Forwards
   // to appropriate function in MAC.
   void ProcessRxFromPhy();

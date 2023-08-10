@@ -108,6 +108,31 @@ Mcs::~Mcs() {
   ul_iq_t_.Free();
 }
 
+void Mcs::CheckUlMcs(float snr, size_t frame_id) {
+  float spectral_efficiency = SpectralEffeciency(snr);
+  std::cout << "checking the dl mcs" << std::endl << std::flush;
+  if (abs(kmcs_index_to_spectral_effeciency.at(current_dl_mcs_.mcs_index) -
+          spectral_efficiency) > 0.1) {
+    //Find the closest spectral effeciency to the measured average special
+    //effeciency and update the dl mcs to the corresponding dl mcs.
+
+    float min_spectral_effeciency_delta = MAXFLOAT;
+    size_t optimal_mcs_index = 0;
+
+    for (auto map_iter = kmcs_index_to_spectral_effeciency.begin();
+         map_iter != kmcs_index_to_spectral_effeciency.end(); ++map_iter) {
+      if (map_iter->second - spectral_efficiency < 0 &&
+          abs(map_iter->second - spectral_efficiency) <
+              min_spectral_effeciency_delta) {
+        min_spectral_effeciency_delta =
+            abs(map_iter->second - spectral_efficiency);
+        optimal_mcs_index = map_iter->first;
+      }
+    }
+    SetNextDlMcs(frame_id, GetModOrderBits(optimal_mcs_index));
+  }
+}
+
 void Mcs::InitializeUlMcs(const nlohmann::json ul_mcs) {
   current_ul_mcs_.frame_number = 0;
   if (ul_mcs.find("mcs_index") == ul_mcs.end()) {
@@ -286,16 +311,16 @@ void Mcs::UpdateDlLdpcConfig() {
   uint32_t num_cb_len = LdpcNumInputBits(base_graph, zc);
   uint32_t num_cb_codew_len = LdpcNumEncodedBits(base_graph, zc, num_rows);
   dl_ldpc_config_ =
-      LDPCconfig(base_graph, zc, initial_ul_mcs_properties_.max_decoder_iter,
-                 initial_ul_mcs_properties_.early_term, num_cb_len,
+      LDPCconfig(base_graph, zc, initial_dl_mcs_properties_.max_decoder_iter,
+                 initial_dl_mcs_properties_.early_term, num_cb_len,
                  num_cb_codew_len, num_rows, 0);
 
   dl_ldpc_config_.NumBlocksInSymbol(
-      (initial_dl_mcs_properties_.ofdm_data_num * dl_mod_order_bits) /
-      ul_ldpc_config_.NumCbCodewLen());
+      (cfg_->OfdmDataNum() * dl_mod_order_bits) /
+      dl_ldpc_config_.NumCbCodewLen());
   RtAssert(
-      (frame_.NumULSyms() == 0) || (ul_ldpc_config_.NumBlocksInSymbol() > 0),
-      "Uplink LDPC expansion factor is too large for number of OFDM data "
+      (frame_.NumDLSyms() == 0) || (dl_ldpc_config_.NumBlocksInSymbol() > 0),
+      "Downlink LDPC expansion factor is too large for number of OFDM data "
       "subcarriers.");
 }
 
@@ -308,12 +333,12 @@ void Mcs::CalculateLdpcProperties() {
   ul_mac_packet_length_ = ul_data_bytes_num_persymbol_;
 
   //((cb_len_bits / zc_size) - 1) * (zc_size / 8) + kProcBytes(32)
-  std::cout << "ul_ldpc_config_.NumCbLen: "
-            << std::to_string(ul_ldpc_config_.NumCbLen()) << std::endl
-            << std::flush;
-  std::cout << "ul_ldpc_config_.ExpansionFactor: "
-            << std::to_string(ul_ldpc_config_.ExpansionFactor()) << std::endl
-            << std::flush;
+  // std::cout << "ul_ldpc_config_.NumCbLen: "
+  //           << std::to_string(ul_ldpc_config_.NumCbLen()) << std::endl
+  //           << std::flush;
+  // std::cout << "ul_ldpc_config_.ExpansionFactor: "
+  //           << std::to_string(ul_ldpc_config_.ExpansionFactor()) << std::endl
+  //           << std::flush;
 
   const size_t ul_ldpc_input_min =
       (((ul_ldpc_config_.NumCbLen() / ul_ldpc_config_.ExpansionFactor()) - 1) *
@@ -1162,6 +1187,6 @@ void Mcs::DumpMcsInfo() {
       dl_ldpc_config_.NumRows(), dl_modulation_.c_str());
 }
 
-LDPCconfig Mcs::Ul_Ldpc_Config() { return ul_ldpc_config_; }
+LDPCconfig Mcs::UlLdpcConfig() { return ul_ldpc_config_; }
 
-LDPCconfig Mcs::Dl_Ldpc_Config() { return dl_ldpc_config_; }
+LDPCconfig Mcs::DlLdpcConfig() { return dl_ldpc_config_; }

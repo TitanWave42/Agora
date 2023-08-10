@@ -266,7 +266,7 @@ void MacThreadClient::ProcessCodeblocksFromPhy(EventData event) {
 void MacThreadClient::ProcessControlInformation() {
   std::memset(&udp_control_buf_[0], 0, udp_control_buf_.size());
   ssize_t ret =
-      udp_control_channel_->Recv(&udp_control_buf_[0], udp_control_buf_.size());
+      udp_control_channel_->Recv(cfg_->UeServerAddr(), kMacBaseClientPort + next_radio_id_, &udp_control_buf_[0], udp_control_buf_.size());
   if (ret == 0) {
     return;  // No data received
   } else if (ret == -1) {
@@ -277,8 +277,27 @@ void MacThreadClient::ProcessControlInformation() {
 
   RtAssert(static_cast<size_t>(ret) == sizeof(RBIndicator));
 
-  const auto* ri = reinterpret_cast<RBIndicator*>(&udp_control_buf_[0]);
+  const RBIndicator* ri = reinterpret_cast<RBIndicator*>(&udp_control_buf_[0]);
+  std::cout << "Ri: " << ri->mcs_index_ << " " << ri->ue_id_ << std::endl
+            << std::flush;
   ProcessUdpPacketsFromApps(*ri);
+}
+
+void MacThreadClient::RecieveMcsInfo() {
+  std::cout << "Recieving mac info: " << std::endl << std::flush;
+
+  std::memset(&udp_control_buf_[0], 0, udp_control_buf_.size());
+  ssize_t ret =
+      udp_control_channel_->Recv(&udp_control_buf_[0], udp_control_buf_.size());
+  RtAssert(static_cast<size_t>(ret) == sizeof(RBIndicator));
+
+  if (ret < 1) {
+    return;
+  }
+
+  const RBIndicator* ri = reinterpret_cast<RBIndicator*>(&udp_control_buf_[0]);
+  std::cout << "Ri: " << ri->mcs_index_ << " " << ri->ue_id_ << std::endl
+            << std::flush;
 }
 
 void MacThreadClient::ProcessUdpPacketsFromApps(RBIndicator ri) {
@@ -537,11 +556,12 @@ void MacThreadClient::RunEventLoop() {
                       0 /* thread ID */);
 
   while (mac_sched_->Running() == true) {
-    ProcessRxFromPhy();
+    //RecieveMcsInfo();
+      ProcessRxFromPhy();
 
-    // No need to process incomming packets if we are finished
-    if (next_tx_frame_id_ != cfg_->FramesToTest()) {
-      ProcessControlInformation();
-    }
+      // No need to process incomming packets if we are finished
+      if (next_tx_frame_id_ != cfg_->FramesToTest()) {
+        ProcessControlInformation();
+      }
   }
 }

@@ -93,6 +93,7 @@ class PhyUe {
   void FreeDownlinkBuffers();
 
   Config* config_;
+  std::vector<Mcs*> client_user_mcss_;
   size_t dl_pilot_symbol_perframe_;
   size_t ul_data_symbol_perframe_;
   size_t dl_data_symbol_perframe_;
