@@ -164,6 +164,8 @@ void MacThreadClient::ProcessCodeblocksFromPhy(EventData event) {
 
     if (kLogMacPackets) {
       ss << "Header Info:" << std::endl
+         << "MCS INDEX: " << pkt->GetRBIndicator().mcs_index_ << std::endl
+         << "User: " << pkt->GetRBIndicator().ue_id_ << std::endl
          << "FRAME_ID: " << pkt->Frame() << std::endl
          << "SYMBOL_ID: " << pkt->Symbol() << std::endl
          << "UE_ID: " << pkt->Ue() << std::endl
@@ -278,8 +280,8 @@ void MacThreadClient::ProcessControlInformation() {
   RtAssert(static_cast<size_t>(ret) == sizeof(RBIndicator));
 
   const RBIndicator* ri = reinterpret_cast<RBIndicator*>(&udp_control_buf_[0]);
-  std::cout << "Ri: " << ri->mcs_index_ << " " << ri->ue_id_ << std::endl
-            << std::flush;
+  // std::cout << "Ri: " << ri->mcs_index_ << " " << ri->ue_id_ << std::endl
+  //           << std::flush;
   ProcessUdpPacketsFromApps(*ri);
 }
 
@@ -296,8 +298,8 @@ void MacThreadClient::RecieveMcsInfo() {
   }
 
   const RBIndicator* ri = reinterpret_cast<RBIndicator*>(&udp_control_buf_[0]);
-  std::cout << "Ri: " << ri->mcs_index_ << " " << ri->ue_id_ << std::endl
-            << std::flush;
+  //std::cout << "Ri: " << ri->mcs_index_ << " " << ri->ue_id_ << std::endl
+  //         << std::flush;
 }
 
 void MacThreadClient::ProcessUdpPacketsFromApps(RBIndicator ri) {
@@ -403,7 +405,7 @@ void MacThreadClient::ProcessUdpPacketsFromApps(RBIndicator ri) {
 }
 
 void MacThreadClient::ProcessUdpPacketsFromAppsClient(const char* payload,
-                                                      RBIndicator /*ri*/) {
+                                                      RBIndicator ri) {
   const size_t num_mac_packets_per_frame =
       mac_sched_->MacPacketsPerframe(Direction::kUplink);
   const size_t num_pilot_symbols = cfg_->Frame().ClientUlPilotSymbols();
@@ -497,7 +499,7 @@ void MacThreadClient::ProcessUdpPacketsFromAppsClient(const char* payload,
              src_packet->PayloadLength());
 
 #if defined(ENABLE_RB_IND)
-    pkt->rb_indicator_ = ri;
+    pkt->SetRBIndicator(ri);
 #endif
 
     pkt->LoadData(src_packet->Data());
@@ -515,6 +517,8 @@ void MacThreadClient::ProcessUdpPacketsFromAppsClient(const char* payload,
          << " dest offset " << dest_pkt_offset << std::endl;
 
       ss << "Header Info:" << std::endl
+         << "MCS INDEX: " << pkt->GetRBIndicator().mcs_index_ << std::endl
+         << "User: " << pkt->GetRBIndicator().ue_id_ << std::endl
          << "FRAME_ID: " << pkt->Frame() << std::endl
          << "SYMBOL_ID: " << pkt->Symbol() << std::endl
          << "UE_ID: " << pkt->Ue() << std::endl
@@ -557,11 +561,11 @@ void MacThreadClient::RunEventLoop() {
 
   while (mac_sched_->Running() == true) {
     //RecieveMcsInfo();
-      ProcessRxFromPhy();
+    ProcessRxFromPhy();
 
-      // No need to process incomming packets if we are finished
-      if (next_tx_frame_id_ != cfg_->FramesToTest()) {
-        ProcessControlInformation();
-      }
+    // No need to process incomming packets if we are finished
+    if (next_tx_frame_id_ != cfg_->FramesToTest()) {
+      ProcessControlInformation();
+    }
   }
 }

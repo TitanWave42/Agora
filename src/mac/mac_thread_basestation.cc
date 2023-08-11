@@ -165,6 +165,8 @@ void MacThreadBaseStation::ProcessCodeblocksFromPhy(EventData event) {
 
     if (kLogMacPackets) {
       ss << "Header Info:" << std::endl
+         << "MCS INDEX: " << pkt->GetRBIndicator().mcs_index_ << std::endl
+         << "User: " << pkt->GetRBIndicator().ue_id_ << std::endl
          << "FRAME_ID: " << pkt->Frame() << std::endl
          << "SYMBOL_ID: " << pkt->Symbol() << std::endl
          << "UE_ID: " << pkt->Ue() << std::endl
@@ -257,8 +259,7 @@ void MacThreadBaseStation::ProcessCodeblocksFromPhy(EventData event) {
 }
 
 void MacThreadBaseStation::SendControlInformation() {
-
-  std::cout<<"Next Radio ID: " <<next_radio_id_<<std::endl<<std::flush;
+  //std::cout<<"Next Radio ID: " <<next_radio_id_<<std::endl<<std::flush;
   // send RAN control information UE
   RBIndicator ri;
   ri.ue_id_ = next_radio_id_;
@@ -499,7 +500,7 @@ void MacThreadBaseStation::ProcessUdpPacketsFromAppsBs(const char* payload) {
              src_packet->PayloadLength());
 
 #if ENABLE_RB_IND
-    pkt->rb_indicator_ = ri;
+    pkt->SetRBIndicator(ri);
 #endif
 
     pkt->LoadData(src_packet->Data());
@@ -517,6 +518,8 @@ void MacThreadBaseStation::ProcessUdpPacketsFromAppsBs(const char* payload) {
          << " dest offset " << dest_pkt_offset << std::endl;
 
       ss << "Header Info:" << std::endl
+         << "MCS INDEX: " << pkt->GetRBIndicator().mcs_index_ << std::endl
+         << "User: " << pkt->GetRBIndicator().ue_id_ << std::endl
          << "FRAME_ID: " << pkt->Frame() << std::endl
          << "SYMBOL_ID: " << pkt->Symbol() << std::endl
          << "UE_ID: " << pkt->Ue() << std::endl

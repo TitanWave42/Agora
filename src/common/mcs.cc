@@ -76,6 +76,7 @@ Mcs::Mcs(Config* const cfg)
   //Update the LDPC
   UpdateUlLdpcConfig();
   UpdateDlLdpcConfig();
+  UpdateCtrlMCS();
 
   CalculateLdpcProperties();
 
@@ -226,9 +227,18 @@ void Mcs::CreateModulationTables() {
   std::cout << "CREATING MODULATION TABLES" << std::endl << std::flush;
 
   for (size_t i = 0; i < kNumTables; i++) {
+    std::cout << "creating ul table: " << std::endl << std::flush;
+    InitModulationTable(modulation_tables_.ul_tables[i], (i + 1) * 2);
+    std::cout << modulation_tables_.ul_tables[i][0][0].re << " "
+              << modulation_tables_.ul_tables[i][0][0].im << std::endl
+              << std::flush;
+
     std::cout << "creating dl table" << std::endl << std::flush;
     InitModulationTable(modulation_tables_.dl_tables[i], (i + 1) * 2);
-    InitModulationTable(modulation_tables_.ul_tables[i], (i + 1) * 2);
+    std::cout << "DL table: at 0, 0: "
+              << modulation_tables_.dl_tables[i][0][0].re << " "
+              << modulation_tables_.dl_tables[i][0][0].im << std::endl
+              << std::flush;
   }
 }
 
@@ -301,7 +311,7 @@ void Mcs::UpdateDlLdpcConfig() {
   size_t dl_code_rate = GetCodeRate(current_dl_mcs_.mcs_index);
 
   size_t zc = SelectZc(base_graph, dl_code_rate, dl_mod_order_bits,
-                       cfg_->OfdmDataNum(), this->kCbPerSymbol, "uplink");
+                       cfg_->GetOFDMDataNum(), this->kCbPerSymbol, "uplink");
 
   // Always positive since ul_code_rate is smaller than 1024
   size_t num_rows = static_cast<size_t>(std::round(
@@ -315,9 +325,8 @@ void Mcs::UpdateDlLdpcConfig() {
                  initial_dl_mcs_properties_.early_term, num_cb_len,
                  num_cb_codew_len, num_rows, 0);
 
-  dl_ldpc_config_.NumBlocksInSymbol(
-      (cfg_->OfdmDataNum() * dl_mod_order_bits) /
-      dl_ldpc_config_.NumCbCodewLen());
+  dl_ldpc_config_.NumBlocksInSymbol((cfg_->GetOFDMDataNum() * dl_mod_order_bits) /
+                                    dl_ldpc_config_.NumCbCodewLen());
   RtAssert(
       (frame_.NumDLSyms() == 0) || (dl_ldpc_config_.NumBlocksInSymbol() > 0),
       "Downlink LDPC expansion factor is too large for number of OFDM data "
@@ -824,7 +833,8 @@ void Mcs::GenData() {
             GetModBitsBuf(dl_mod_bits_, Direction::kDownlink, 0, i, j, k);
         AdaptBitsForMod(reinterpret_cast<uint8_t*>(coded_bits_ptr),
                         reinterpret_cast<uint8_t*>(mod_input_ptr),
-                        dl_encoded_bytes_per_block,  this->current_dl_mcs_.mod_order_bits);
+                        dl_encoded_bytes_per_block,
+                        this->current_dl_mcs_.mod_order_bits);
       }
     }
   }
@@ -1070,6 +1080,9 @@ size_t Mcs::DecodeBroadcastSlots(const int16_t* const bcast_iq_samps) {
 
 void Mcs::GenBroadcastSlots(std::vector<std::complex<int16_t>*>& bcast_iq_samps,
                             std::vector<size_t> ctrl_msg) {
+  //RtAssert(-1 == 1, "In Gen broadcast slots");
+
+  std::cout << "In Gen broadcast slots" << std::endl << std::flush;
   ///\todo enable a vector of bytes to TX'ed in each symbol
   assert(bcast_iq_samps.size() == this->frame_.NumDlControlSyms());
   const size_t start_tsc = GetTime::WorkerRdtsc();

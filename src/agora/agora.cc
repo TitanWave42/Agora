@@ -511,7 +511,6 @@ void Agora::Start() {
         case EventType::kDecode: {
           const size_t frame_id = gen_tag_t(event.tags_[0]).frame_id_;
           const size_t symbol_id = gen_tag_t(event.tags_[0]).symbol_id_;
-          const size_t ant_id = gen_tag_t(event.tags_[0]).ant_id_;
 
           const bool last_decode_task =
               this->decode_counters_.CompleteTask(frame_id, symbol_id);
@@ -557,8 +556,6 @@ void Agora::Start() {
               for (size_t i = 0; i < config_->UeAntNum(); i++) {
                 base_station_user_mcss_.at(i)->UpdateMcs(frame_id);
               }
-
-              
             }
           }
         } break;

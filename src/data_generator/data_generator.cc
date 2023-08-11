@@ -47,6 +47,11 @@ DataGenerator::DataGenerator(Config* cfg, MacScheduler* mac_scheduler,
   if (seed != 0) {
     fast_rand_.seed_ = seed;
   }
+
+  std::cout << "Checking DL mod table: "
+            << (mac_sched_->ModTable(Direction::kDownlink))[0][0].re
+            << std::endl
+            << std::flush;
 }
 
 void DataGenerator::DoDataGeneration(const std::string& directory) {
@@ -141,8 +146,7 @@ void DataGenerator::DoDataGeneration(const std::string& directory) {
       size_t sym_offset = cb % (symbol_blocks);
       size_t ue_id = sym_offset / UlLdpcConfig.NumBlocksInSymbol();
       size_t ue_cb_id = sym_offset % UlLdpcConfig.NumBlocksInSymbol();
-      size_t ue_cb_cnt =
-          (sym_id * UlLdpcConfig.NumBlocksInSymbol()) + ue_cb_id;
+      size_t ue_cb_cnt = (sym_id * UlLdpcConfig.NumBlocksInSymbol()) + ue_cb_id;
 
       AGORA_LOG_TRACE(
           "cb %zu -- user %zu -- user block %zu -- user cb id %zu -- input "

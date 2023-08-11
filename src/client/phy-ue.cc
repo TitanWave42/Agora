@@ -616,12 +616,12 @@ void PhyUe::Start() {
             }
           }
 
-          std::vector<float> base_station_snr = phy_stats_->GetPilotSnr(frame_id);
+          std::vector<float> base_station_snr =
+              phy_stats_->GetPilotSnr(frame_id);
 
           for (size_t i = 0; i < config_->UeAntNum(); i++) {
             //send snr back to base station //TODO.
           }
-
 
         } break;
 
@@ -690,13 +690,13 @@ void PhyUe::Start() {
             expected_frame_id_from_mac_++;
           }
 #if defined(ENABLE_RB_IND)
-          config_->UpdateModCfgs(pkt->rb_indicator_.mod_order_bits_);
+          //config_->UpdateModCfgs(pkt->rb_indicator_.mod_order_bits_);
 #endif
           if (kDebugPrintPacketsFromMac) {
 #if defined(ENABLE_RB_IND)
             AGORA_LOG_INFO(
                 "PhyUe: received packet for frame %u with modulation %zu\n",
-                pkt->frame_id_, pkt->rb_indicator_.mod_order_bits_);
+                pkt->Frame(), pkt->GetRBIndicator().mcs_index_);
 #endif
             std::stringstream ss;
 

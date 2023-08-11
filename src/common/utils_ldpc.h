@@ -60,6 +60,7 @@ static inline uint8_t Bitreverse8(uint8_t x) {
 static inline void AdaptBitsForMod(const uint8_t* bit_seq_in,
                                    uint8_t* bytes_out, size_t len,
                                    size_t mod_type) {
+  std::cout << "Mod type: " << mod_type << std::endl << std::flush;
   uint16_t bits = 0;      // Bits collected from the input
   size_t bits_avail = 0;  // Number of valid bits filled into [bits]
   for (size_t i = 0; i < len; i++) {

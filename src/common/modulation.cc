@@ -214,6 +214,11 @@ complex_float ModSingle(int x, Table<complex_float>& mod_table) {
 }
 
 complex_float ModSingleUint8(uint8_t x, Table<complex_float>& mod_table) {
+  // std::cout << "x: " << x << std::endl << std::flush;
+  // std::cout << "modulation table: " << mod_table[0][0].re << " "
+  //           << mod_table[0][0].im << std::endl
+  //           << std::flush;
+  //std::cout<< "mod table" << mod_table[0][x].re << " " << mod_table[0][x].im << std::endl<<std::flush;
   return mod_table[0][x];
 }
 

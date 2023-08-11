@@ -174,11 +174,52 @@ class Mcs {
   inline Table<complex_float>& UlIqF() { return this->ul_iq_f_; }
   inline Table<complex_float>& DlIqF() { return this->dl_iq_f_; }
   inline Table<complex_float>& ModTable(Direction dir) {
+    std::cout << "DL Mod Order Bits: " << current_dl_mcs_.mod_order_bits
+              << std::endl
+              << std::flush;
+    std::cout << "DL Mcs index: " << current_dl_mcs_.mcs_index << std::endl
+              << std::flush;
+    std::cout
+        << "Size DL: "
+        << sizeof(modulation_tables_.dl_tables[current_dl_mcs_.mod_order_bits])
+        << std::endl
+        << std::flush;
+
+    std::cout << "UL Mod Order bits " << current_ul_mcs_.mod_order_bits
+              << std::endl
+              << std::flush;
+
+    std::cout
+        << "Ul Mod Table: "
+        << (modulation_tables_.ul_tables[current_ul_mcs_.mod_order_bits])[0][0]
+               .re
+        << " "
+        << (modulation_tables_.ul_tables[current_ul_mcs_.mod_order_bits])[0][0]
+               .im
+        << std::endl
+        << std::flush;
+
+    std::cout << "checking Dl Mod Table at position 0: "
+              << (modulation_tables_.dl_tables[0])[0][0].re << " "
+              << (modulation_tables_.dl_tables[0])[0][0].im << std::endl
+              << std::flush;
+    std::cout
+        << "Size UL: "
+        << sizeof(modulation_tables_.ul_tables[current_ul_mcs_.mod_order_bits])
+        << std::endl
+        << std::flush;
+
+    std::cout << "current_ul_mcs_.mod_order_bits: "
+              << current_ul_mcs_.mod_order_bits << std::endl
+              << std::flush;
+    std::cout << " current_dl_mcs_.mod_order_bits: "
+              << current_dl_mcs_.mod_order_bits << std::endl
+              << std::flush;
     return dir == Direction::kUplink
                ? this->modulation_tables_
-                     .ul_tables[current_ul_mcs_.mod_order_bits]
+                     .ul_tables[current_ul_mcs_.mod_order_bits / 2 - 1]
                : this->modulation_tables_
-                     .dl_tables[current_dl_mcs_.mod_order_bits];
+                     .dl_tables[current_dl_mcs_.mod_order_bits / 2 - 1];
   }
   /// Get info bits for this symbol, user and code block ID
   inline int8_t* GetInfoBits(Table<int8_t>& info_bits, Direction dir,
