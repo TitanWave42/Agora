@@ -1,21 +1,23 @@
 {
-  "fft_size": 2048,
-  "ofdm_data_num": 1200,
+  "fft_size": 1024,
+  "ofdm_data_num": 864,
   "demul_block_size": 48,
   "ul_mcs": {
-      "modulation": "64QAM",
+      "modulation": "16QAM",
       "code_rate": 0.333
   },
   "dl_mcs": {
-      "modulation": "64QAM",
+      "modulation": "16QAM",
       "code_rate": 0.333
   },
+  "frame_schedule": [
+    "BPSDDDDGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG"
+  ],
   "ue_radio_num": 1,
   "bs_radio_num": 8,
   "freq_orthogonal_pilot": true,
-  "frame_schedule": [
-    "BPGUUUUUGGGGGGGGGGGGGGGGGGGGGGGG"
-  ],
+  "pilot_num" : 1,
+  "client_dl_pilot_syms": 2,
   "mac_rx_port": 8070,
   "mac_tx_port": 8080,
   "core_offset": 16,
@@ -24,7 +26,11 @@
   "ue_mac_rx_port": 9070,
   "ue_mac_tx_port": 9080,
   "ue_core_offset": 12,
+  "rx_gain_a": 1000,
+  "tx_gain_a": 1000,
+  "rx_gain_b": 1000,
+  "tx_gain_b": 1000,
   "ue_worker_thread_num": 1,
   "ue_socket_thread_num": 1,
-  "max_frame": 5
+  "max_frame": 1000000
 }

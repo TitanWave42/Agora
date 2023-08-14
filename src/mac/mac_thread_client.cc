@@ -164,8 +164,8 @@ void MacThreadClient::ProcessCodeblocksFromPhy(EventData event) {
 
     if (kLogMacPackets) {
       ss << "Header Info:" << std::endl
-         << "MCS INDEX: " << pkt->GetRBIndicator().mcs_index_ << std::endl
-         << "User: " << pkt->GetRBIndicator().ue_id_ << std::endl
+        // << "MCS INDEX: " << pkt->GetRBIndicator().mcs_index_ << std::endl
+        // << "User: " << pkt->GetRBIndicator().ue_id_ << std::endl
          << "FRAME_ID: " << pkt->Frame() << std::endl
          << "SYMBOL_ID: " << pkt->Symbol() << std::endl
          << "UE_ID: " << pkt->Ue() << std::endl
@@ -499,7 +499,7 @@ void MacThreadClient::ProcessUdpPacketsFromAppsClient(const char* payload,
              src_packet->PayloadLength());
 
 #if defined(ENABLE_RB_IND)
-    pkt->SetRBIndicator(ri);
+    //pkt->SetRBIndicator(ri);
 #endif
 
     pkt->LoadData(src_packet->Data());
@@ -517,8 +517,8 @@ void MacThreadClient::ProcessUdpPacketsFromAppsClient(const char* payload,
          << " dest offset " << dest_pkt_offset << std::endl;
 
       ss << "Header Info:" << std::endl
-         << "MCS INDEX: " << pkt->GetRBIndicator().mcs_index_ << std::endl
-         << "User: " << pkt->GetRBIndicator().ue_id_ << std::endl
+         //<< "MCS INDEX: " << pkt->GetRBIndicator().mcs_index_ << std::endl
+         //<< "User: " << pkt->GetRBIndicator().ue_id_ << std::endl
          << "FRAME_ID: " << pkt->Frame() << std::endl
          << "SYMBOL_ID: " << pkt->Symbol() << std::endl
          << "UE_ID: " << pkt->Ue() << std::endl
@@ -553,6 +553,9 @@ void MacThreadClient::ProcessUdpPacketsFromAppsClient(const char* payload,
 }
 
 void MacThreadClient::RunEventLoop() {
+  
+
+
   AGORA_LOG_INFO(
       "MacThreadClient: Running MAC thread event loop, logging to file %s\n",
       log_filename_.c_str());
@@ -560,6 +563,8 @@ void MacThreadClient::RunEventLoop() {
                       0 /* thread ID */);
 
   while (mac_sched_->Running() == true) {
+    // std::cout<< "client mcs uplink: " << mac_sched_->McsIndex(Direction::kUplink) <<std::endl<<std::flush;
+    // std::cout<< "client mcs downlink: " << mac_sched_->McsIndex(Direction::kDownlink) <<std::endl<<std::flush;
     //RecieveMcsInfo();
     ProcessRxFromPhy();
 

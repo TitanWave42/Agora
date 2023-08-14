@@ -164,9 +164,10 @@ void MacThreadBaseStation::ProcessCodeblocksFromPhy(EventData event) {
        << pkt->Crc() << " copied to offset " << frame_data_offset << std::endl;
 
     if (kLogMacPackets) {
+      
       ss << "Header Info:" << std::endl
-         << "MCS INDEX: " << pkt->GetRBIndicator().mcs_index_ << std::endl
-         << "User: " << pkt->GetRBIndicator().ue_id_ << std::endl
+         //<< "MCS INDEX: " << pkt->GetRBIndicator().mcs_index_ << std::endl
+         //<< "User: " << pkt->GetRBIndicator().ue_id_ << std::endl
          << "FRAME_ID: " << pkt->Frame() << std::endl
          << "SYMBOL_ID: " << pkt->Symbol() << std::endl
          << "UE_ID: " << pkt->Ue() << std::endl
@@ -264,6 +265,7 @@ void MacThreadBaseStation::SendControlInformation() {
   RBIndicator ri;
   ri.ue_id_ = next_radio_id_;
   ri.mcs_index_ = mac_sched_->McsIndex(Direction::kUplink);
+  //std::cout<<"Sending MCS index: " << ri.mcs_index_ << "To user."<<std::endl<<std::flush;
   udp_comm_->Send(cfg_->UeServerAddr(), kMacBaseClientPort + ri.ue_id_,
                   reinterpret_cast<std::byte*>(&ri), sizeof(RBIndicator));
 
@@ -500,7 +502,7 @@ void MacThreadBaseStation::ProcessUdpPacketsFromAppsBs(const char* payload) {
              src_packet->PayloadLength());
 
 #if ENABLE_RB_IND
-    pkt->SetRBIndicator(ri);
+    //pkt->SetRBIndicator(ri);
 #endif
 
     pkt->LoadData(src_packet->Data());
@@ -518,8 +520,8 @@ void MacThreadBaseStation::ProcessUdpPacketsFromAppsBs(const char* payload) {
          << " dest offset " << dest_pkt_offset << std::endl;
 
       ss << "Header Info:" << std::endl
-         << "MCS INDEX: " << pkt->GetRBIndicator().mcs_index_ << std::endl
-         << "User: " << pkt->GetRBIndicator().ue_id_ << std::endl
+        // << "MCS INDEX: " << pkt->GetRBIndicator().mcs_index_ << std::endl
+         //<< "User: " << pkt->GetRBIndicator().ue_id_ << std::endl
          << "FRAME_ID: " << pkt->Frame() << std::endl
          << "SYMBOL_ID: " << pkt->Symbol() << std::endl
          << "UE_ID: " << pkt->Ue() << std::endl
@@ -553,6 +555,7 @@ void MacThreadBaseStation::ProcessUdpPacketsFromAppsBs(const char* payload) {
 }
 
 void MacThreadBaseStation::RunEventLoop() {
+
   AGORA_LOG_INFO(
       "MacThreadBasestation: Running MAC thread event loop, logging to file "
       "%s\n",
@@ -563,6 +566,8 @@ void MacThreadBaseStation::RunEventLoop() {
   size_t last_frame_tx_tsc = 0;
 
   while (mac_sched_->Running() == true) {
+    // std::cout<< "basestation uplink mcs: " << mac_sched_->McsIndex(Direction::kUplink) <<std::endl<<std::flush;
+    // std::cout<< "basestation mcs downlink: " << mac_sched_->McsIndex(Direction::kDownlink) <<std::endl<<std::flush;
     //SendMcs();
     ProcessRxFromPhy();
 

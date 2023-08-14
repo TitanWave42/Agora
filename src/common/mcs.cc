@@ -44,8 +44,6 @@ Mcs::Mcs(Config* const cfg)
   pilots_ = nullptr;
   pilots_sgn_ = nullptr;
 
-  this->running_.store(true);
-
   size_t ofdm_data_num = cfg_->OfdmCaNum();
   ul_mcs_params_ = cfg_->UlMcsParams();
   dl_mcs_params_ = cfg_->DlMcsParams();
@@ -76,16 +74,19 @@ Mcs::Mcs(Config* const cfg)
   //Update the LDPC
   UpdateUlLdpcConfig();
   UpdateDlLdpcConfig();
+  this->DumpMcsInfo();
+
   UpdateCtrlMCS();
 
   CalculateLdpcProperties();
+
+  this->running_.store(true);
+
 
   if (std::filesystem::is_directory(kLogFilepath) == false) {
     std::filesystem::create_directory(kLogFilepath);
   }
 
-  this->DumpMcsInfo();
-  this->UpdateCtrlMCS();
 }
 
 Mcs::~Mcs() {
@@ -325,8 +326,9 @@ void Mcs::UpdateDlLdpcConfig() {
                  initial_dl_mcs_properties_.early_term, num_cb_len,
                  num_cb_codew_len, num_rows, 0);
 
-  dl_ldpc_config_.NumBlocksInSymbol((cfg_->GetOFDMDataNum() * dl_mod_order_bits) /
-                                    dl_ldpc_config_.NumCbCodewLen());
+  dl_ldpc_config_.NumBlocksInSymbol(
+      (cfg_->GetOFDMDataNum() * dl_mod_order_bits) /
+      dl_ldpc_config_.NumCbCodewLen());
   RtAssert(
       (frame_.NumDLSyms() == 0) || (dl_ldpc_config_.NumBlocksInSymbol() > 0),
       "Downlink LDPC expansion factor is too large for number of OFDM data "
@@ -334,21 +336,14 @@ void Mcs::UpdateDlLdpcConfig() {
 }
 
 void Mcs::CalculateLdpcProperties() {
-  this->ul_num_bytes_per_cb_ = ul_ldpc_config_.NumCbLen() / 8;
-  this->ul_num_padding_bytes_per_cb_ =
+  ul_num_bytes_per_cb_ = ul_ldpc_config_.NumCbLen() / 8;
+  ul_num_padding_bytes_per_cb_ =
       Roundup<64>(ul_num_bytes_per_cb_) - ul_num_bytes_per_cb_;
-  this->ul_data_bytes_num_persymbol_ =
+  ul_data_bytes_num_persymbol_ =
       ul_num_bytes_per_cb_ * ul_ldpc_config_.NumBlocksInSymbol();
   ul_mac_packet_length_ = ul_data_bytes_num_persymbol_;
 
   //((cb_len_bits / zc_size) - 1) * (zc_size / 8) + kProcBytes(32)
-  // std::cout << "ul_ldpc_config_.NumCbLen: "
-  //           << std::to_string(ul_ldpc_config_.NumCbLen()) << std::endl
-  //           << std::flush;
-  // std::cout << "ul_ldpc_config_.ExpansionFactor: "
-  //           << std::to_string(ul_ldpc_config_.ExpansionFactor()) << std::endl
-  //           << std::flush;
-
   const size_t ul_ldpc_input_min =
       (((ul_ldpc_config_.NumCbLen() / ul_ldpc_config_.ExpansionFactor()) - 1) *
            (ul_ldpc_config_.ExpansionFactor() / 8) +
@@ -372,36 +367,34 @@ void Mcs::CalculateLdpcProperties() {
   }
 
   // Smallest over the air packet structure
-  RtAssert(frame_.NumULSyms() == 0 ||
+  RtAssert(this->frame_.NumULSyms() == 0 ||
                ul_mac_packet_length_ > sizeof(MacPacketHeaderPacked),
            "Uplink MAC Packet size must be larger than MAC header size");
-  this->ul_mac_data_length_max_ =
+  ul_mac_data_length_max_ =
       ul_mac_packet_length_ - sizeof(MacPacketHeaderPacked);
 
-  this->ul_mac_packets_perframe_ = frame_.NumUlDataSyms();
-  this->ul_mac_data_bytes_num_perframe_ =
-      this->ul_mac_data_length_max_ * this->ul_mac_packets_perframe_;
-  this->ul_mac_bytes_num_perframe_ =
-      ul_mac_packet_length_ * this->ul_mac_packets_perframe_;
+  ul_mac_packets_perframe_ = this->frame_.NumUlDataSyms();
+  ul_mac_data_bytes_num_perframe_ =
+      ul_mac_data_length_max_ * ul_mac_packets_perframe_;
+  ul_mac_bytes_num_perframe_ = ul_mac_packet_length_ * ul_mac_packets_perframe_;
 
-  this->dl_num_bytes_per_cb_ = dl_ldpc_config_.NumCbLen() / 8;
-  this->dl_num_padding_bytes_per_cb_ =
-      Roundup<64>(this->dl_num_bytes_per_cb_) - this->dl_num_bytes_per_cb_;
-  this->dl_data_bytes_num_persymbol_ =
-      this->dl_num_bytes_per_cb_ * dl_ldpc_config_.NumBlocksInSymbol();
-  this->dl_mac_packet_length_ = this->dl_data_bytes_num_persymbol_;
+  dl_num_bytes_per_cb_ = dl_ldpc_config_.NumCbLen() / 8;
+  dl_num_padding_bytes_per_cb_ =
+      Roundup<64>(dl_num_bytes_per_cb_) - dl_num_bytes_per_cb_;
+  dl_data_bytes_num_persymbol_ =
+      dl_num_bytes_per_cb_ * dl_ldpc_config_.NumBlocksInSymbol();
+  dl_mac_packet_length_ = dl_data_bytes_num_persymbol_;
   // Smallest over the air packet structure
-  RtAssert(frame_.NumDLSyms() == 0 ||
-               this->dl_mac_packet_length_ > sizeof(MacPacketHeaderPacked),
+  RtAssert(this->frame_.NumDLSyms() == 0 ||
+               dl_mac_packet_length_ > sizeof(MacPacketHeaderPacked),
            "Downlink MAC Packet size must be larger than MAC header size");
-  this->dl_mac_data_length_max_ =
-      this->dl_mac_packet_length_ - sizeof(MacPacketHeaderPacked);
+  dl_mac_data_length_max_ =
+      dl_mac_packet_length_ - sizeof(MacPacketHeaderPacked);
 
-  this->dl_mac_packets_perframe_ = frame_.NumDlDataSyms();
-  this->dl_mac_data_bytes_num_perframe_ =
-      this->dl_mac_data_length_max_ * this->dl_mac_packets_perframe_;
-  this->dl_mac_bytes_num_perframe_ =
-      this->dl_mac_packet_length_ * this->dl_mac_packets_perframe_;
+  dl_mac_packets_perframe_ = this->frame_.NumDlDataSyms();
+  dl_mac_data_bytes_num_perframe_ =
+      dl_mac_data_length_max_ * dl_mac_packets_perframe_;
+  dl_mac_bytes_num_perframe_ = dl_mac_packet_length_ * dl_mac_packets_perframe_;
 
   //((cb_len_bits / zc_size) - 1) * (zc_size / 8) + kProcBytes(32)
   const size_t dl_ldpc_input_min =
@@ -412,18 +405,18 @@ void Mcs::CalculateLdpcProperties() {
       dl_ldpc_config_.BaseGraph(), dl_ldpc_config_.ExpansionFactor());
 
   if (dl_ldpc_input_min >
-      (this->dl_num_bytes_per_cb_ + this->dl_num_padding_bytes_per_cb_)) {
+      (dl_num_bytes_per_cb_ + dl_num_padding_bytes_per_cb_)) {
     // Can cause a lot of wasted space, specifically the second argument of the max
     const size_t increased_padding =
-        Roundup<64>(dl_ldpc_sugg_input) - this->dl_num_bytes_per_cb_;
+        Roundup<64>(dl_ldpc_sugg_input) - dl_num_bytes_per_cb_;
 
     AGORA_LOG_WARN(
         "LDPC required Input Buffer size exceeds downlink code block size!, "
         "Increased cb padding from %zu to %zu Downlink CB Bytes %zu, LDPC "
         "Input Min for zc 64:256: %zu\n",
-        this->dl_num_padding_bytes_per_cb_, increased_padding,
-        this->dl_num_bytes_per_cb_, dl_ldpc_input_min);
-    this->dl_num_padding_bytes_per_cb_ = increased_padding;
+        dl_num_padding_bytes_per_cb_, increased_padding, dl_num_bytes_per_cb_,
+        dl_ldpc_input_min);
+    dl_num_padding_bytes_per_cb_ = increased_padding;
   }
 }
 
@@ -1014,12 +1007,12 @@ size_t Mcs::DecodeBroadcastSlots(const int16_t* const bcast_iq_samps) {
   size_t delay_offset = (cfg_->OfdmRxZeroPrefixClient() + cfg_->CpLen()) * 2;
   complex_float* bcast_fft_buff = static_cast<complex_float*>(
       Agora_memory::PaddedAlignedAlloc(Agora_memory::Alignment_t::kAlign64,
-                                       cfg_->OfdmCaNum() * sizeof(float) * 2));
+                                       ofdm_ca_num_ * sizeof(float) * 2));
   SimdConvertShortToFloat(&bcast_iq_samps[delay_offset],
                           reinterpret_cast<float*>(bcast_fft_buff),
-                          cfg_->OfdmCaNum() * 2);
-  CommsLib::FFT(bcast_fft_buff, cfg_->OfdmCaNum());
-  CommsLib::FFTShift(bcast_fft_buff, cfg_->OfdmCaNum());
+                          ofdm_ca_num_ * 2);
+  CommsLib::FFT(bcast_fft_buff, ofdm_ca_num_);
+  CommsLib::FFTShift(bcast_fft_buff, ofdm_ca_num_);
   auto* bcast_buff_complex = reinterpret_cast<arma::cx_float*>(bcast_fft_buff);
 
   const size_t sc_num = cfg_->GetOFDMCtrlNum();
@@ -1078,11 +1071,9 @@ size_t Mcs::DecodeBroadcastSlots(const int16_t* const bcast_iq_samps) {
   return (reinterpret_cast<size_t*>(decode_buff.data()))[0];
 }
 
-void Mcs::GenBroadcastSlots(std::vector<std::complex<int16_t>*>& bcast_iq_samps,
-                            std::vector<size_t> ctrl_msg) {
-  //RtAssert(-1 == 1, "In Gen broadcast slots");
-
-  std::cout << "In Gen broadcast slots" << std::endl << std::flush;
+void Mcs::GenBroadcastSlots(
+    std::vector<std::complex<int16_t>*>& bcast_iq_samps,
+    std::vector<size_t> ctrl_msg) {
   ///\todo enable a vector of bytes to TX'ed in each symbol
   assert(bcast_iq_samps.size() == this->frame_.NumDlControlSyms());
   const size_t start_tsc = GetTime::WorkerRdtsc();
@@ -1100,10 +1091,10 @@ void Mcs::GenBroadcastSlots(std::vector<std::complex<int16_t>*>& bcast_iq_samps,
         dl_bcast_ldpc_config_, &bcast_bits_buffer.at(0), num_bcast_bytes,
         cfg_->ScrambleEnabled());
 
-    auto modulated_vector = DataGenerator::GetModulation(
-        &coded_bits_ptr[0], dl_bcast_mod_table,
-        dl_bcast_ldpc_config_.NumCbCodewLen(), cfg_->OfdmDataNum(),
-        dl_bcast_mod_order_bits_);
+    auto modulated_vector =
+        DataGenerator::GetModulation(&coded_bits_ptr[0], dl_bcast_mod_table,
+                                     dl_bcast_ldpc_config_.NumCbCodewLen(),
+                                     cfg_->OfdmDataNum(), dl_bcast_mod_order_bits_);
     auto mapped_symbol = DataGenerator::MapOFDMSymbol(
         cfg_, modulated_vector, pilots_, SymbolType::kControl);
     auto ofdm_symbol = DataGenerator::BinForIfft(cfg_, mapped_symbol, true);
@@ -1111,8 +1102,9 @@ void Mcs::GenBroadcastSlots(std::vector<std::complex<int16_t>*>& bcast_iq_samps,
     // additional 2^2 (6dB) power backoff
     float dl_bcast_scale =
         2 * CommsLib::FindMaxAbs(&ofdm_symbol[0], ofdm_symbol.size());
-    CommsLib::Ifft2tx(&ofdm_symbol[0], bcast_iq_samps[i], this->ofdm_ca_num_,
-                      cfg_->OfdmTxZeroPrefix(), cfg_->CpLen(), dl_bcast_scale);
+    CommsLib::Ifft2tx(&ofdm_symbol[0], bcast_iq_samps[i], cfg_->OfdmCaNum(),
+                      cfg_->OfdmTxZeroPrefix(), cfg_->CpLen(),
+                      dl_bcast_scale);
   }
   dl_bcast_mod_table.Free();
   const double duration =

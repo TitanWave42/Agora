@@ -694,9 +694,9 @@ void PhyUe::Start() {
 #endif
           if (kDebugPrintPacketsFromMac) {
 #if defined(ENABLE_RB_IND)
-            AGORA_LOG_INFO(
-                "PhyUe: received packet for frame %u with modulation %zu\n",
-                pkt->Frame(), pkt->GetRBIndicator().mcs_index_);
+            // AGORA_LOG_INFO(
+            //     "PhyUe: received packet for frame %u with modulation %zu\n",
+            //     pkt->Frame(), pkt->GetRBIndicator().mcs_index_);
 #endif
             std::stringstream ss;
 
