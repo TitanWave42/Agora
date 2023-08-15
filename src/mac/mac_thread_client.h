@@ -54,7 +54,6 @@ class MacThreadClient {
   void RunEventLoop();
 
  private:
-  void RecieveMcsInfo();
   // Receive events from Agora PHY master thread. Forwards
   // to appropriate function in MAC.
   void ProcessRxFromPhy();

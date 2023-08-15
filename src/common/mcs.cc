@@ -44,8 +44,6 @@ Mcs::Mcs(Config* const cfg)
   pilots_ = nullptr;
   pilots_sgn_ = nullptr;
 
-  this->running_.store(true);
-
   size_t ofdm_data_num = cfg_->OfdmCaNum();
   ul_mcs_params_ = cfg_->UlMcsParams();
   dl_mcs_params_ = cfg_->DlMcsParams();
@@ -77,6 +75,7 @@ Mcs::Mcs(Config* const cfg)
   UpdateUlLdpcConfig();
   UpdateDlLdpcConfig();
   UpdateCtrlMCS();
+  this->DumpMcsInfo();
 
   CalculateLdpcProperties();
 
@@ -84,8 +83,7 @@ Mcs::Mcs(Config* const cfg)
     std::filesystem::create_directory(kLogFilepath);
   }
 
-  this->DumpMcsInfo();
-  this->UpdateCtrlMCS();
+  this->running_.store(true);
 }
 
 Mcs::~Mcs() {
@@ -245,8 +243,6 @@ void Mcs::CreateModulationTables() {
 void Mcs::UpdateMcs(size_t current_frame_number) {
   UpdateUlMcs(current_frame_number);
   UpdateDlMcs(current_frame_number);
-
-  CalculateLdpcProperties();
 }
 
 void Mcs::UpdateUlMcs(size_t current_frame_number) {
@@ -311,7 +307,7 @@ void Mcs::UpdateDlLdpcConfig() {
   size_t dl_code_rate = GetCodeRate(current_dl_mcs_.mcs_index);
 
   size_t zc = SelectZc(base_graph, dl_code_rate, dl_mod_order_bits,
-                       cfg_->GetOFDMDataNum(), this->kCbPerSymbol, "uplink");
+                       cfg_->GetOFDMDataNum(), this->kCbPerSymbol, "downlink");
 
   // Always positive since ul_code_rate is smaller than 1024
   size_t num_rows = static_cast<size_t>(std::round(
@@ -340,14 +336,6 @@ void Mcs::CalculateLdpcProperties() {
   this->ul_data_bytes_num_persymbol_ =
       ul_num_bytes_per_cb_ * ul_ldpc_config_.NumBlocksInSymbol();
   ul_mac_packet_length_ = ul_data_bytes_num_persymbol_;
-
-  //((cb_len_bits / zc_size) - 1) * (zc_size / 8) + kProcBytes(32)
-  // std::cout << "ul_ldpc_config_.NumCbLen: "
-  //           << std::to_string(ul_ldpc_config_.NumCbLen()) << std::endl
-  //           << std::flush;
-  // std::cout << "ul_ldpc_config_.ExpansionFactor: "
-  //           << std::to_string(ul_ldpc_config_.ExpansionFactor()) << std::endl
-  //           << std::flush;
 
   const size_t ul_ldpc_input_min =
       (((ul_ldpc_config_.NumCbLen() / ul_ldpc_config_.ExpansionFactor()) - 1) *

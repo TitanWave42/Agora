@@ -164,8 +164,6 @@ void MacThreadClient::ProcessCodeblocksFromPhy(EventData event) {
 
     if (kLogMacPackets) {
       ss << "Header Info:" << std::endl
-         << "MCS INDEX: " << pkt->GetRBIndicator().mcs_index_ << std::endl
-         << "User: " << pkt->GetRBIndicator().ue_id_ << std::endl
          << "FRAME_ID: " << pkt->Frame() << std::endl
          << "SYMBOL_ID: " << pkt->Symbol() << std::endl
          << "UE_ID: " << pkt->Ue() << std::endl
@@ -283,23 +281,6 @@ void MacThreadClient::ProcessControlInformation() {
   // std::cout << "Ri: " << ri->mcs_index_ << " " << ri->ue_id_ << std::endl
   //           << std::flush;
   ProcessUdpPacketsFromApps(*ri);
-}
-
-void MacThreadClient::RecieveMcsInfo() {
-  std::cout << "Recieving mac info: " << std::endl << std::flush;
-
-  std::memset(&udp_control_buf_[0], 0, udp_control_buf_.size());
-  ssize_t ret =
-      udp_control_channel_->Recv(&udp_control_buf_[0], udp_control_buf_.size());
-  RtAssert(static_cast<size_t>(ret) == sizeof(RBIndicator));
-
-  if (ret < 1) {
-    return;
-  }
-
-  const RBIndicator* ri = reinterpret_cast<RBIndicator*>(&udp_control_buf_[0]);
-  //std::cout << "Ri: " << ri->mcs_index_ << " " << ri->ue_id_ << std::endl
-  //         << std::flush;
 }
 
 void MacThreadClient::ProcessUdpPacketsFromApps(RBIndicator ri) {
@@ -517,8 +498,6 @@ void MacThreadClient::ProcessUdpPacketsFromAppsClient(const char* payload,
          << " dest offset " << dest_pkt_offset << std::endl;
 
       ss << "Header Info:" << std::endl
-         << "MCS INDEX: " << pkt->GetRBIndicator().mcs_index_ << std::endl
-         << "User: " << pkt->GetRBIndicator().ue_id_ << std::endl
          << "FRAME_ID: " << pkt->Frame() << std::endl
          << "SYMBOL_ID: " << pkt->Symbol() << std::endl
          << "UE_ID: " << pkt->Ue() << std::endl
@@ -560,7 +539,6 @@ void MacThreadClient::RunEventLoop() {
                       0 /* thread ID */);
 
   while (mac_sched_->Running() == true) {
-    //RecieveMcsInfo();
     ProcessRxFromPhy();
 
     // No need to process incomming packets if we are finished

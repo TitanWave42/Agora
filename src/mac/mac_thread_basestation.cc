@@ -165,8 +165,6 @@ void MacThreadBaseStation::ProcessCodeblocksFromPhy(EventData event) {
 
     if (kLogMacPackets) {
       ss << "Header Info:" << std::endl
-         << "MCS INDEX: " << pkt->GetRBIndicator().mcs_index_ << std::endl
-         << "User: " << pkt->GetRBIndicator().ue_id_ << std::endl
          << "FRAME_ID: " << pkt->Frame() << std::endl
          << "SYMBOL_ID: " << pkt->Symbol() << std::endl
          << "UE_ID: " << pkt->Ue() << std::endl
@@ -518,8 +516,6 @@ void MacThreadBaseStation::ProcessUdpPacketsFromAppsBs(const char* payload) {
          << " dest offset " << dest_pkt_offset << std::endl;
 
       ss << "Header Info:" << std::endl
-         << "MCS INDEX: " << pkt->GetRBIndicator().mcs_index_ << std::endl
-         << "User: " << pkt->GetRBIndicator().ue_id_ << std::endl
          << "FRAME_ID: " << pkt->Frame() << std::endl
          << "SYMBOL_ID: " << pkt->Symbol() << std::endl
          << "UE_ID: " << pkt->Ue() << std::endl

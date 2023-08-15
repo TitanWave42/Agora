@@ -259,8 +259,6 @@ struct MacPacketHeaderPacked {
   inline uint16_t Ue() const { return ue_id_; }
   inline uint16_t Crc() const { return crc_; }
   inline uint16_t PayloadLength() const { return datalen_; }
-  inline void SetRBI(RBIndicator ri) { rb_indicator_ = ri; }
-  inline RBIndicator GetRBI() const { return rb_indicator_; }
 
   // Modifiers
   inline void Set(const uint16_t &f, const uint16_t &s, const uint16_t &u,
@@ -294,8 +292,6 @@ struct MacPacketPacked {
   inline uint16_t Crc() const { return header_.Crc(); }
   inline uint16_t PayloadLength() const { return header_.PayloadLength(); }
   inline const unsigned char *Data() const { return data_; };
-  inline void SetRBIndicator(RBIndicator ri) { header_.SetRBI(ri); }
-  inline RBIndicator GetRBIndicator() const { return header_.GetRBI(); }
   // Modifiers
   inline void Set(const uint16_t &f, const uint16_t &s, const uint16_t &u,
                   const uint16_t &data_size) {
