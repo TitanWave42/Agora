@@ -541,10 +541,10 @@ void Agora::Start() {
               std::vector<float> user_snr = phy_stats_->GetPilotSnr(frame_id);
               //std::cout << "snr + " << user_snr << std::endl << std::flush;
 
-              for (size_t i = 0; i < config_->UeAntNum(); i++) {
-                base_station_user_mcss_.at(i)->CheckUlMcs(user_snr.at(i),
-                                                          frame_id);
-              }
+              // for (size_t i = 0; i < config_->UeAntNum(); i++) {
+              //   base_station_user_mcss_.at(i)->CheckUlMcs(user_snr.at(i),
+              //                                             frame_id);
+              // }
 
               //Do I need to use the ue_map to see if the user being sampled was
               //previously scheduled?
@@ -553,9 +553,9 @@ void Agora::Start() {
 
               //Update the current mcs to the next mcs if the next mcs frame
               // has been reached.
-              for (size_t i = 0; i < config_->UeAntNum(); i++) {
-                base_station_user_mcss_.at(i)->UpdateMcs(frame_id);
-              }
+              // for (size_t i = 0; i < config_->UeAntNum(); i++) {
+              //   base_station_user_mcss_.at(i)->UpdateMcs(frame_id);
+              // }
             }
           }
         } break;
