@@ -326,7 +326,7 @@ std::vector<size_t> CommsLib::GetDataSc(size_t fft_size, size_t data_sc_num,
                                         size_t pilot_sc_offset,
                                         size_t pilot_sc_spacing) {
   std::vector<size_t> data_sc;
-  if (fft_size == kFftSize_80211) {
+  if (fft_size == kFftSize80211) {
     // We follow 802.11 PHY format here
     const size_t sc_ind[48u] = {1,  2,  3,  4,  5,  6,  8,  9,  10, 11, 12, 13,
                                 14, 15, 16, 17, 18, 19, 20, 22, 23, 24, 25, 26,
@@ -349,7 +349,7 @@ std::vector<size_t> CommsLib::GetDataSc(size_t fft_size, size_t data_sc_num,
 
 std::vector<size_t> CommsLib::GetNullSc(size_t fft_size, size_t data_sc_num) {
   std::vector<size_t> null_sc;
-  if (fft_size == kFftSize_80211) {
+  if (fft_size == kFftSize80211) {
     // We follow 802.11 PHY format here
     size_t null[12u] = {0, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37};
     null_sc.assign(null, null + 12u);
@@ -370,7 +370,7 @@ std::vector<std::complex<float>> CommsLib::GetPilotScValue(
     size_t fft_size, size_t data_sc_num, size_t pilot_sc_offset,
     size_t pilot_sc_spacing) {
   std::vector<std::complex<float>> pilot_sc;
-  if (fft_size == kFftSize_80211) {
+  if (fft_size == kFftSize80211) {
     // We follow 802.11 PHY format here
     std::complex<float> sc_val[4] = {
         std::complex<float>(1.0f, 0.0f), std::complex<float>(1.0f, 0.0f),
@@ -391,7 +391,7 @@ std::vector<size_t> CommsLib::GetPilotScIdx(size_t fft_size, size_t data_sc_num,
                                             size_t pilot_sc_offset,
                                             size_t pilot_sc_spacing) {
   std::vector<size_t> pilot_sc;
-  if (fft_size == kFftSize_80211) {
+  if (fft_size == kFftSize80211) {
     // We follow 802.11 standard here
     const size_t sc_ind[4u] = {7, 21, 43, 57};
     pilot_sc.assign(sc_ind, sc_ind + 4);
@@ -805,10 +805,10 @@ std::vector<std::vector<double>> CommsLib::GetSequence(size_t seq_len,
     const size_t sts_seq_len = 16;
 
     std::vector<std::complex<float>> sts_freq(kStsSeqArray,
-                                              kStsSeqArray + kFftSize_80211);
+                                              kStsSeqArray + kFftSize80211);
     // Perform ifft with ifft-shift on sts_freq
     auto sts_iq = CommsLib::FFTShift(sts_freq);
-    CommsLib::IFFT(sts_iq, kFftSize_80211, false);
+    CommsLib::IFFT(sts_iq, kFftSize80211, false);
 
     size_t out_seq_len = sts_seq_len;
     size_t frac_seq_len = out_seq_len % sts_seq_len;
@@ -820,7 +820,7 @@ std::vector<std::vector<double>> CommsLib::GetSequence(size_t seq_len,
     }
   } else if (type == kLtsFSeq || type == kLtsSeq) {
     matrix.resize(2);
-    const size_t lts_seq_len = kFftSize_80211;
+    const size_t lts_seq_len = kFftSize80211;
 
     std::vector<std::complex<float>> lts_freq(kLtsSeqArray,
                                               kLtsSeqArray + lts_seq_len);

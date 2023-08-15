@@ -110,8 +110,8 @@ void Scrambler::WlanScrambler(void* output_buffer, const void* input_buffer,
         j++;
       }
       bit_buffer.at(i) =
-          bit_buffer.at(i) ^ std::byte(static_cast<int>(std::bitset<1>(1)[0] &
-                                                        scram_buffer[j - 1]));
+          bit_buffer.at(i) ^ std::byte(static_cast<int>(static_cast<int>(std::bitset<1>(1)[0]) &
+                                                        static_cast<int>(scram_buffer[j - 1])));
     }
   }
   ConvertBitsToBytes(bit_buffer.data(), num_bytes, output_buffer_ptr);

@@ -46,7 +46,7 @@ static inline void ConvertShortToFloat(const short* in_buf, float* out_buf,
 }
 
 static inline void SimdConvertShortToFloatAVX512(const short* in_buf,
-                                                 float* out_buf,
+                                                 const float* out_buf,
                                                  size_t n_elems) {
 #if defined(__AVX512F__)
 #if defined(DATATYPE_MEMORY_CHECK)
@@ -138,7 +138,7 @@ static inline void SimdConvertShortToFloat(const short* in_buf, float* out_buf,
 // n_elems must be a multiple of 16 for AVX512
 // scale_down_factor is used for scaling down values in the input array
 static inline void SimdConvertFloatToShortAVX512(const float* in_buf,
-                                                 short* out_buf, size_t n_elems,
+                                                 const short* out_buf, size_t n_elems,
                                                  size_t n_prefix,
                                                  float scale_down_factor) {
 #if defined(__AVX512F__)

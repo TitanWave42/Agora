@@ -17,9 +17,9 @@
 constexpr size_t kNumTables = 4;
 
 //For determining if we need to change mcs
-constexpr float snr_delta_tolerance = 0.1;
+constexpr float kSnrDeltaTolerance = 0.1;
 
-static const std::map<size_t, float> kmcs_index_to_spectral_effeciency = {
+static const std::map<size_t, float> kMcsIndexToSpectralEffeciency = {
     {0, 0.2344},  {1, 0.3066},  {2, 0.3770},  {3, 0.4902},  {4, 0.6016},
     {5, 0.7402},  {6, 0.8770},  {7, 1.0273},  {8, 1.1758},  {9, 1.3262},
     {10, 1.3281}, {11, 1.4766}, {12, 1.6953}, {13, 1.9141}, {14, 2.1602},
@@ -28,23 +28,23 @@ static const std::map<size_t, float> kmcs_index_to_spectral_effeciency = {
     {25, 4.8164}, {26, 5.1152}, {27, 5.3320}, {28, 5.5547}, {29, 5.8906},
     {30, 6.2266}, {31, 6.5703}};
 
-struct MCS_Scheme {
-  size_t frame_number;
-  size_t mcs_index;
-  size_t mod_order_bits;
-  size_t code_rate;
+struct McsScheme {
+  size_t frame_number_;
+  size_t mcs_index_;
+  size_t mod_order_bits_;
+  size_t code_rate_;
 };
 
-struct Modulation_Tables {
-  Table<complex_float> ul_tables[kNumTables];
-  Table<complex_float> dl_tables[kNumTables];
+struct ModulationTables {
+  Table<complex_float> ul_tables_[kNumTables];
+  Table<complex_float> dl_tables_[kNumTables];
 };
 
-struct Initial_Mcs_Properties {
-  uint16_t base_graph;
-  bool early_term;
-  int16_t max_decoder_iter;
-  size_t ofdm_data_num;
+struct InitialMcsProperties {
+  uint16_t base_graph_;
+  bool early_term_;
+  int16_t max_decoder_iter_;
+  size_t ofdm_data_num_;
 };
 
 class Mcs {
@@ -63,7 +63,7 @@ class Mcs {
 
   inline void Running(bool value) { this->running_.store(value); }
   inline bool Running() const { return this->running_.load(); }
-  inline MCS_Scheme CurrentDlMcs() { return this->current_dl_mcs_; }
+  inline McsScheme CurrentDlMcs() { return this->current_dl_mcs_; }
 
   //spectral effeciency calculation is log_2(1+0.902)
   inline float SpectralEffeciency(float snr) { return log2(1 + snr); }
@@ -113,12 +113,12 @@ class Mcs {
                                      : this->dl_modulation_;
   }
   inline size_t McsUpdateFrame(Direction dir) {
-    return dir == Direction::kUplink ? next_ul_mcs_.frame_number
-                                     : next_dl_mcs_.frame_number;
+    return dir == Direction::kUplink ? next_ul_mcs_.frame_number_
+                                     : next_dl_mcs_.frame_number_;
   }
   inline size_t ModOrderBits(Direction dir) const {
-    return dir == Direction::kUplink ? this->current_ul_mcs_.mod_order_bits
-                                     : this->current_dl_mcs_.mod_order_bits;
+    return dir == Direction::kUplink ? this->current_ul_mcs_.mod_order_bits_
+                                     : this->current_dl_mcs_.mod_order_bits_;
   }
   inline size_t NumBytesPerCb(Direction dir) const {
     return dir == Direction::kUplink ? this->ul_num_bytes_per_cb_
@@ -163,8 +163,8 @@ class Mcs {
     return this->LdpcConfig(dir).NumCbCodewLen() / this->ModOrderBits(dir);
   }
   inline size_t McsIndex(Direction dir) const {
-    return dir == Direction::kUplink ? current_ul_mcs_.mcs_index
-                                     : current_dl_mcs_.mcs_index;
+    return dir == Direction::kUplink ? current_ul_mcs_.mcs_index_
+                                     : current_dl_mcs_.mcs_index_;
   }
   inline Table<int8_t>& DlModBits() { return this->dl_mod_bits_; }
   inline Table<int8_t>& UlModBits() { return this->ul_mod_bits_; }
@@ -176,9 +176,9 @@ class Mcs {
   inline Table<complex_float>& ModTable(Direction dir) {
     return dir == Direction::kUplink
                ? this->modulation_tables_
-                     .ul_tables[current_ul_mcs_.mod_order_bits / 2 - 1]
+                     .ul_tables_[current_ul_mcs_.mod_order_bits_ / 2 - 1]
                : this->modulation_tables_
-                     .dl_tables[current_dl_mcs_.mod_order_bits / 2 - 1];
+                     .dl_tables_[current_dl_mcs_.mod_order_bits_ / 2 - 1];
   }
   /// Get info bits for this symbol, user and code block ID
   inline int8_t* GetInfoBits(Table<int8_t>& info_bits, Direction dir,
@@ -325,15 +325,15 @@ class Mcs {
   LDPCconfig dl_bcast_ldpc_config_;  // Downlink Broadcast LDPC parameters
   nlohmann::json ul_mcs_params_;     // Uplink Modulation and Coding (MCS)
   nlohmann::json dl_mcs_params_;     // Downlink Modulation and Coding (MCS)
-  MCS_Scheme next_ul_mcs_;
-  MCS_Scheme next_dl_mcs_;
-  MCS_Scheme current_ul_mcs_;
-  MCS_Scheme current_dl_mcs_;
-  Modulation_Tables modulation_tables_;
+  McsScheme next_ul_mcs_;
+  McsScheme next_dl_mcs_;
+  McsScheme current_ul_mcs_;
+  McsScheme current_dl_mcs_;
+  ModulationTables modulation_tables_;
   Config* const cfg_;
   FrameStats frame_;
-  Initial_Mcs_Properties initial_ul_mcs_properties_;
-  Initial_Mcs_Properties initial_dl_mcs_properties_;
+  InitialMcsProperties initial_ul_mcs_properties_;
+  InitialMcsProperties initial_dl_mcs_properties_;
 
   void UpdateUlMcs(size_t current_frame_number);
   void UpdateDlMcs(size_t current_frame_number);

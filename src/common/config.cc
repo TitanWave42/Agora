@@ -922,7 +922,7 @@ void Config::Print() const {
   }
 }
 extern "C" {
-__attribute__((visibility("default"))) Config* ConfigNew(char* filename) {
+__attribute__((visibility("default"))) Config* ConfigNew(const char* filename) {
   auto* cfg = new Config(filename);
   //cfg->GenData();
   return cfg;

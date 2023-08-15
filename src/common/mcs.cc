@@ -5,7 +5,7 @@
 
 #include "mcs.h"
 
-#include <stddef.h>
+#include <cstddef>
 
 #include "comms-constants.inc"
 #include "comms-lib.h"
@@ -52,17 +52,17 @@ Mcs::Mcs(Config* const cfg)
   this->frame_ = cfg_->Frame();
   ofdm_ca_num_ = cfg_->OfdmCaNum();
 
-  initial_ul_mcs_properties_.base_graph = ul_mcs_params_.value("base_graph", 1);
-  initial_ul_mcs_properties_.early_term =
+  initial_ul_mcs_properties_.base_graph_ = ul_mcs_params_.value("base_graph", 1);
+  initial_ul_mcs_properties_.early_term_ =
       ul_mcs_params_.value("earlyTermination", true);
-  initial_ul_mcs_properties_.max_decoder_iter =
+  initial_ul_mcs_properties_.max_decoder_iter_ =
       ul_mcs_params_.value("decoderIter", 5);
-  initial_ul_mcs_properties_.ofdm_data_num = ofdm_data_num;
+  initial_ul_mcs_properties_.ofdm_data_num_ = ofdm_data_num;
 
-  initial_dl_mcs_properties_.base_graph = dl_mcs_params_.value("base_graph", 1);
-  initial_dl_mcs_properties_.early_term =
+  initial_dl_mcs_properties_.base_graph_ = dl_mcs_params_.value("base_graph", 1);
+  initial_dl_mcs_properties_.early_term_ =
       dl_mcs_params_.value("earlyTermination", true);
-  initial_dl_mcs_properties_.max_decoder_iter =
+  initial_dl_mcs_properties_.max_decoder_iter_ =
       dl_mcs_params_.value("decoderIter", 5);
 
   //Initialize UL MCS
@@ -110,7 +110,7 @@ Mcs::~Mcs() {
 void Mcs::CheckUlMcs(float snr, size_t frame_id) {
   float spectral_efficiency = SpectralEffeciency(snr);
   std::cout << "checking the dl mcs" << std::endl << std::flush;
-  if (abs(kmcs_index_to_spectral_effeciency.at(current_dl_mcs_.mcs_index) -
+  if (abs(kMcsIndexToSpectralEffeciency.at(current_dl_mcs_.mcs_index_) -
           spectral_efficiency) > 0.1) {
     //Find the closest spectral effeciency to the measured average special
     //effeciency and update the dl mcs to the corresponding dl mcs.
@@ -118,8 +118,8 @@ void Mcs::CheckUlMcs(float snr, size_t frame_id) {
     float min_spectral_effeciency_delta = MAXFLOAT;
     size_t optimal_mcs_index = 0;
 
-    for (auto map_iter = kmcs_index_to_spectral_effeciency.begin();
-         map_iter != kmcs_index_to_spectral_effeciency.end(); ++map_iter) {
+    for (auto map_iter = kMcsIndexToSpectralEffeciency.begin();
+         map_iter != kMcsIndexToSpectralEffeciency.end(); ++map_iter) {
       if (map_iter->second - spectral_efficiency < 0 &&
           abs(map_iter->second - spectral_efficiency) <
               min_spectral_effeciency_delta) {
@@ -133,55 +133,55 @@ void Mcs::CheckUlMcs(float snr, size_t frame_id) {
 }
 
 void Mcs::InitializeUlMcs(const nlohmann::json ul_mcs) {
-  current_ul_mcs_.frame_number = 0;
+  current_ul_mcs_.frame_number_ = 0;
   if (ul_mcs.find("mcs_index") == ul_mcs.end()) {
     ul_modulation_ = ul_mcs.value("modulation", "16QAM");
-    current_ul_mcs_.mod_order_bits = kModulStringMap.at(ul_modulation_);
+    current_ul_mcs_.mod_order_bits_ = kModulStringMap.at(ul_modulation_);
 
     double ul_code_rate_usr = ul_mcs.value("code_rate", 0.333);
     size_t code_rate_int =
         static_cast<size_t>(std::round(ul_code_rate_usr * 1024.0));
 
-    current_ul_mcs_.mcs_index =
-        CommsLib::GetMcsIndex(current_ul_mcs_.mod_order_bits, code_rate_int);
-    current_ul_mcs_.code_rate = GetCodeRate(current_ul_mcs_.mcs_index);
-    if (current_ul_mcs_.code_rate / 1024.0 != ul_code_rate_usr) {
+    current_ul_mcs_.mcs_index_ =
+        CommsLib::GetMcsIndex(current_ul_mcs_.mod_order_bits_, code_rate_int);
+    current_ul_mcs_.code_rate_ = GetCodeRate(current_ul_mcs_.mcs_index_);
+    if (current_ul_mcs_.code_rate_ / 1024.0 != ul_code_rate_usr) {
       AGORA_LOG_WARN(
           "Rounded the user-defined uplink code rate to the closest standard "
           "rate %zu/1024.\n",
-          current_ul_mcs_.code_rate);
+          current_ul_mcs_.code_rate_);
     }
   } else {
-    current_ul_mcs_.mcs_index =
+    current_ul_mcs_.mcs_index_ =
         ul_mcs.value("mcs_index", 10);  // 16QAM, 340/1024
-    current_ul_mcs_.mod_order_bits = GetModOrderBits(current_ul_mcs_.mcs_index);
-    current_ul_mcs_.code_rate = GetCodeRate(current_ul_mcs_.mcs_index);
+    current_ul_mcs_.mod_order_bits_ = GetModOrderBits(current_ul_mcs_.mcs_index_);
+    current_ul_mcs_.code_rate_ = GetCodeRate(current_ul_mcs_.mcs_index_);
   }
 }
 
 void Mcs::InitializeDlMcs(const nlohmann::json dl_mcs) {
-  current_dl_mcs_.frame_number = 0;
+  current_dl_mcs_.frame_number_ = 0;
   if (dl_mcs.find("mcs_index") == dl_mcs.end()) {
     dl_modulation_ = dl_mcs.value("modulation", "16QAM");
-    current_dl_mcs_.mod_order_bits = kModulStringMap.at(dl_modulation_);
+    current_dl_mcs_.mod_order_bits_ = kModulStringMap.at(dl_modulation_);
 
     double dl_code_rate_usr = dl_mcs.value("code_rate", 0.333);
     size_t code_rate_int =
         static_cast<size_t>(std::round(dl_code_rate_usr * 1024.0));
-    current_dl_mcs_.mcs_index =
-        CommsLib::GetMcsIndex(current_dl_mcs_.mod_order_bits, code_rate_int);
-    current_dl_mcs_.code_rate = GetCodeRate(current_dl_mcs_.mcs_index);
-    if (current_dl_mcs_.code_rate / 1024.0 != dl_code_rate_usr) {
+    current_dl_mcs_.mcs_index_ =
+        CommsLib::GetMcsIndex(current_dl_mcs_.mod_order_bits_, code_rate_int);
+    current_dl_mcs_.code_rate_ = GetCodeRate(current_dl_mcs_.mcs_index_);
+    if (current_dl_mcs_.code_rate_ / 1024.0 != dl_code_rate_usr) {
       AGORA_LOG_WARN(
           "Rounded the user-defined downlink code rate to the closest standard "
           "rate %zu/1024.\n",
-          current_dl_mcs_.code_rate);
+          current_dl_mcs_.code_rate_);
     }
   } else {
-    current_dl_mcs_.mcs_index =
+    current_dl_mcs_.mcs_index_ =
         dl_mcs.value("mcs_index", 10);  // 16QAM, 340/1024
-    current_dl_mcs_.mod_order_bits = GetModOrderBits(current_dl_mcs_.mcs_index);
-    current_dl_mcs_.code_rate = GetCodeRate(current_dl_mcs_.mcs_index);
+    current_dl_mcs_.mod_order_bits_ = GetModOrderBits(current_dl_mcs_.mcs_index_);
+    current_dl_mcs_.code_rate_ = GetCodeRate(current_dl_mcs_.mcs_index_);
   }
 }
 
@@ -226,16 +226,16 @@ void Mcs::CreateModulationTables() {
 
   for (size_t i = 0; i < kNumTables; i++) {
     std::cout << "creating ul table: " << std::endl << std::flush;
-    InitModulationTable(modulation_tables_.ul_tables[i], (i + 1) * 2);
-    std::cout << modulation_tables_.ul_tables[i][0][0].re << " "
-              << modulation_tables_.ul_tables[i][0][0].im << std::endl
+    InitModulationTable(modulation_tables_.ul_tables_[i], (i + 1) * 2);
+    std::cout << modulation_tables_.ul_tables_[i][0][0].re << " "
+              << modulation_tables_.ul_tables_[i][0][0].im << std::endl
               << std::flush;
 
     std::cout << "creating dl table" << std::endl << std::flush;
-    InitModulationTable(modulation_tables_.dl_tables[i], (i + 1) * 2);
+    InitModulationTable(modulation_tables_.dl_tables_[i], (i + 1) * 2);
     std::cout << "DL table: at 0, 0: "
-              << modulation_tables_.dl_tables[i][0][0].re << " "
-              << modulation_tables_.dl_tables[i][0][0].im << std::endl
+              << modulation_tables_.dl_tables_[i][0][0].re << " "
+              << modulation_tables_.dl_tables_[i][0][0].im << std::endl
               << std::flush;
   }
 }
@@ -246,39 +246,39 @@ void Mcs::UpdateMcs(size_t current_frame_number) {
 }
 
 void Mcs::UpdateUlMcs(size_t current_frame_number) {
-  if (current_frame_number >= next_ul_mcs_.frame_number) {
-    current_ul_mcs_.frame_number = current_frame_number;
-    current_ul_mcs_.mcs_index = next_ul_mcs_.mcs_index;
+  if (current_frame_number >= next_ul_mcs_.frame_number_) {
+    current_ul_mcs_.frame_number_ = current_frame_number;
+    current_ul_mcs_.mcs_index_ = next_ul_mcs_.mcs_index_;
   }
   UpdateUlLdpcConfig();
 }
 
 void Mcs::UpdateDlMcs(size_t current_frame_number) {
-  if (current_frame_number >= next_dl_mcs_.frame_number) {
-    current_dl_mcs_.frame_number = current_frame_number;
-    current_dl_mcs_.mcs_index = next_dl_mcs_.mcs_index;
+  if (current_frame_number >= next_dl_mcs_.frame_number_) {
+    current_dl_mcs_.frame_number_ = current_frame_number;
+    current_dl_mcs_.mcs_index_ = next_dl_mcs_.mcs_index_;
   }
   UpdateDlLdpcConfig();
 }
 
 void Mcs::SetNextUlMcs(size_t frame_number, size_t mod_order_bits) {
-  next_ul_mcs_.frame_number = frame_number;
-  next_ul_mcs_.mcs_index = mod_order_bits;
+  next_ul_mcs_.frame_number_ = frame_number;
+  next_ul_mcs_.mcs_index_ = mod_order_bits;
 }
 
 void Mcs::SetNextDlMcs(size_t frame_number, size_t mod_order_bits) {
-  next_dl_mcs_.frame_number = frame_number;
-  next_dl_mcs_.mcs_index = mod_order_bits;
+  next_dl_mcs_.frame_number_ = frame_number;
+  next_dl_mcs_.mcs_index_ = mod_order_bits;
 }
 
 void Mcs::UpdateUlLdpcConfig() {
-  uint16_t base_graph = initial_ul_mcs_properties_.base_graph;
+  uint16_t base_graph = initial_ul_mcs_properties_.base_graph_;
 
-  size_t ul_mod_order_bits = GetModOrderBits(current_ul_mcs_.mcs_index);
-  size_t ul_code_rate = GetCodeRate(current_ul_mcs_.mcs_index);
+  size_t ul_mod_order_bits = GetModOrderBits(current_ul_mcs_.mcs_index_);
+  size_t ul_code_rate = GetCodeRate(current_ul_mcs_.mcs_index_);
 
   size_t zc = SelectZc(base_graph, ul_code_rate, ul_mod_order_bits,
-                       cfg_->OfdmDataNum(), this->kCbPerSymbol, "uplink");
+                       cfg_->OfdmDataNum(), Mcs::kCbPerSymbol, "uplink");
 
   // Always positive since ul_code_rate is smaller than 1024
   size_t num_rows = static_cast<size_t>(std::round(
@@ -288,8 +288,8 @@ void Mcs::UpdateUlLdpcConfig() {
   uint32_t num_cb_len = LdpcNumInputBits(base_graph, zc);
   uint32_t num_cb_codew_len = LdpcNumEncodedBits(base_graph, zc, num_rows);
   ul_ldpc_config_ =
-      LDPCconfig(base_graph, zc, initial_ul_mcs_properties_.max_decoder_iter,
-                 initial_ul_mcs_properties_.early_term, num_cb_len,
+      LDPCconfig(base_graph, zc, initial_ul_mcs_properties_.max_decoder_iter_,
+                 initial_ul_mcs_properties_.early_term_, num_cb_len,
                  num_cb_codew_len, num_rows, 0);
 
   ul_ldpc_config_.NumBlocksInSymbol((cfg_->OfdmDataNum() * ul_mod_order_bits) /
@@ -301,13 +301,13 @@ void Mcs::UpdateUlLdpcConfig() {
 }
 
 void Mcs::UpdateDlLdpcConfig() {
-  uint16_t base_graph = initial_dl_mcs_properties_.base_graph;
+  uint16_t base_graph = initial_dl_mcs_properties_.base_graph_;
 
-  size_t dl_mod_order_bits = GetModOrderBits(current_dl_mcs_.mcs_index);
-  size_t dl_code_rate = GetCodeRate(current_dl_mcs_.mcs_index);
+  size_t dl_mod_order_bits = GetModOrderBits(current_dl_mcs_.mcs_index_);
+  size_t dl_code_rate = GetCodeRate(current_dl_mcs_.mcs_index_);
 
   size_t zc = SelectZc(base_graph, dl_code_rate, dl_mod_order_bits,
-                       cfg_->GetOFDMDataNum(), this->kCbPerSymbol, "downlink");
+                       cfg_->GetOFDMDataNum(), Mcs::kCbPerSymbol, "downlink");
 
   // Always positive since ul_code_rate is smaller than 1024
   size_t num_rows = static_cast<size_t>(std::round(
@@ -317,8 +317,8 @@ void Mcs::UpdateDlLdpcConfig() {
   uint32_t num_cb_len = LdpcNumInputBits(base_graph, zc);
   uint32_t num_cb_codew_len = LdpcNumEncodedBits(base_graph, zc, num_rows);
   dl_ldpc_config_ =
-      LDPCconfig(base_graph, zc, initial_dl_mcs_properties_.max_decoder_iter,
-                 initial_dl_mcs_properties_.early_term, num_cb_len,
+      LDPCconfig(base_graph, zc, initial_dl_mcs_properties_.max_decoder_iter_,
+                 initial_dl_mcs_properties_.early_term_, num_cb_len,
                  num_cb_codew_len, num_rows, 0);
 
   dl_ldpc_config_.NumBlocksInSymbol((cfg_->GetOFDMDataNum() * dl_mod_order_bits) /
@@ -697,7 +697,7 @@ void Mcs::GenData() {
         AdaptBitsForMod(reinterpret_cast<uint8_t*>(coded_bits_ptr),
                         reinterpret_cast<uint8_t*>(mod_input_ptr),
                         ul_encoded_bytes_per_block,
-                        this->current_ul_mcs_.mod_order_bits);
+                        this->current_ul_mcs_.mod_order_bits_);
       }
     }
   }
@@ -741,7 +741,7 @@ void Mcs::GenData() {
           ul_iq_f_[i][q + j] = ModSingleUint8(
               *mod_input_ptr,
               modulation_tables_
-                  .ul_tables[current_ul_mcs_.mod_order_bits / 2 - 1]);
+                  .ul_tables_[current_ul_mcs_.mod_order_bits_ / 2 - 1]);
         } else {
           ul_iq_f_[i][q + j] = ue_specific_pilot_[u][j];
         }
@@ -822,7 +822,7 @@ void Mcs::GenData() {
         AdaptBitsForMod(reinterpret_cast<uint8_t*>(coded_bits_ptr),
                         reinterpret_cast<uint8_t*>(mod_input_ptr),
                         dl_encoded_bytes_per_block,
-                        this->current_dl_mcs_.mod_order_bits);
+                        this->current_dl_mcs_.mod_order_bits_);
       }
     }
   }
@@ -844,7 +844,7 @@ void Mcs::GenData() {
           dl_iq_f_[i][q + j] = ModSingleUint8(
               *mod_input_ptr,
               modulation_tables_
-                  .dl_tables[current_dl_mcs_.mod_order_bits / 2 - 1]);
+                  .dl_tables_[current_dl_mcs_.mod_order_bits_ / 2 - 1]);
         } else {
           dl_iq_f_[i][q + j] = ue_specific_pilot_[u][j];
         }

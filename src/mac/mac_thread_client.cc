@@ -113,9 +113,9 @@ void MacThreadClient::ProcessSnrReportFromPhy(EventData event) {
 }
 
 struct McsTableParams {
-  size_t snr;
-  size_t channel_bandwidth;
-  size_t spatial_streams;
+  size_t snr_;
+  size_t channel_bandwidth_;
+  size_t spatial_streams_;
 };
 
 void MacThreadClient::ProcessCodeblocksFromPhy(EventData event) {

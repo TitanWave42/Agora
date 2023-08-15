@@ -21,7 +21,7 @@
 
 class AgoraBuffer {
  public:
-  explicit AgoraBuffer(MacScheduler* const mac_sched_);
+  explicit AgoraBuffer(MacScheduler* const mac_sched);
   // Delete copy constructor and copy assignment
   AgoraBuffer(AgoraBuffer const&) = delete;
   AgoraBuffer& operator=(AgoraBuffer const&) = delete;
