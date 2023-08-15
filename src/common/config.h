@@ -253,8 +253,8 @@ class Config {
 
   inline size_t FramesToTest() const { return this->frames_to_test_; }
   inline float NoiseLevel() const { return this->noise_level_; }
-  inline bool FftInRru() const { return this->fft_in_rru_; }
 
+  inline bool FreqDomainChannel() const { return this->freq_domain_channel_; }
   inline uint16_t DpdkNumPorts() const { return this->dpdk_num_ports_; }
   inline uint16_t DpdkPortOffset() const { return this->dpdk_port_offset_; }
 
@@ -523,6 +523,27 @@ class Config {
   std::vector<size_t> dl_symbol_ctrl_id_;
 
   /// I/Q samples of common pilot
+  std::vector<std::complex<int16_t>> pilot_ci16_;
+
+  std::vector<std::complex<float>> pilot_cf32_;
+
+  /// I/Q samples of pilots per UE antenna per pilot symbol
+  std::vector<std::vector<std::vector<std::complex<int16_t>>>> pilot_ue_ci16_;
+
+  /// List of subcarriers used per UE to transmit pilot
+  std::vector<arma::uvec> pilot_ue_sc_;
+
+  std::vector<uint32_t> pilot_;
+  std::vector<uint32_t> beacon_;
+  complex_float* pilots_;
+  complex_float* pilots_sgn_;
+  complex_float* pilot_pre_ifft_;
+  complex_float* pilot_ifft_;
+  Table<complex_float> ue_specific_pilot_;
+  Table<complex_float> ue_pilot_pre_ifft_;
+  Table<complex_float> ue_pilot_ifft_;
+  Table<std::complex<int16_t>> ue_specific_pilot_t_;
+  std::vector<std::complex<float>> common_pilot_;
 
   std::vector<double> client_gain_tx_a_;
   std::vector<double> client_gain_tx_b_;
@@ -718,9 +739,20 @@ class Config {
 
   float noise_level_;
 
-  bool fft_in_rru_;  // If true, the RRU does FFT instead of Agora
+  // Number of bytes per code block
+  size_t ul_num_bytes_per_cb_;
+  size_t dl_num_bytes_per_cb_;
+
+  // Number of padding bytes per code block
+  size_t ul_num_padding_bytes_per_cb_;
+  size_t dl_num_padding_bytes_per_cb_;
+
   const std::string config_filename_;
   std::string trace_file_;
   std::string timestamp_;
+  std::vector<std::string> ul_tx_f_data_files_;
+
+  // If true, channel matrix H will be applied in the frequency domain
+  bool freq_domain_channel_;
 };
 #endif /* CONFIG_HPP_ */
