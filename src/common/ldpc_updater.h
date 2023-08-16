@@ -11,7 +11,7 @@
 struct UlMcsParams {
   LDPCconfig ul_ldpc_config_;
   bool ul_early_term_;
-  size_t ul_modulation_;
+  std::string ul_modulation_ = NULL;
   size_t ul_mod_order_bits_;
   size_t ul_base_graph_;
   size_t ul_max_decoder_iter_;
@@ -29,7 +29,7 @@ struct UlMcsParams {
 struct DlMcsParams {
   LDPCconfig dl_ldpc_config_;
   bool dl_early_term_;
-  size_t dl_modulation_;
+  std::string dl_modulation_ = NULL;
   size_t dl_mod_order_bits_;
   size_t dl_base_graph_;
   size_t dl_max_decoder_iter_;
@@ -45,25 +45,38 @@ struct DlMcsParams {
   double dl_code_rate_usr_;
 };
 
-
 // struct InitialMcsProperties {
 //   uint16_t base_graph_;
 //   bool early_term_;
 //   int16_t max_decoder_iter_;
 // };
 
+//Not sure where else to put this.
+struct OfdmConfig {
+  size_t ofdm_data_num_ul_;
+  size_t ofdm_data_num_dl_;
+  size_t ofdm_ctrl_data_;
+}
+
 class LdpcUpdater {
  public:
-  LdpcUpdater(uint16_t ul_base_graph, bool ul_early_term,
-              int16_t ul_max_decoder_iter, uint16_t dl_base_graph,
-              bool dl_early_term, int16_t dl_max_decoder_iter);
+  LdpcUpdater(onst OfdmConfig ofdm_data, const uint16_t ul_base_graph, const bool ul_early_term,
+              const int16_t ul_max_decoder_iter, const uint16_t dl_base_graph,
+              const bool dl_early_term, const int16_t dl_max_decoder_iter);
   ~LdpcUpdater();
 
   UpdateLdpc(LDPCconfig ldpc_config, Direction dir, size_t mcs_index);
 
  private:
-  const uint16_t ul_base_graph_ const bool ul_early_term_ const int16_t ul_max_decoder_iter_ const
-      uint16_t dl_base_graph_ const bool dl_early_term_ const int16_t dl_max_decoder_iter_
+  const size_t ofdm_data_num_ul_;
+  const size_t ofdm_data_num_dl_;
+  const size_t ofdm_ctrl_data_;
+  const uint16_t ul_base_graph_;
+  const bool ul_early_term_;
+  const int16_t ul_max_decoder_iter_; 
+  const uint16_t dl_base_graph_; 
+  const bool dl_early_term_; 
+  const int16_t dl_max_decoder_iter_;
 
           // static constexpr size_t kCbPerSymbol = 1;
           // const size_t ofdm_data_num_ul_;
@@ -155,6 +168,8 @@ class LdpcUpdater {
   // const InitialMcsProperties initial_ul_mcs_properties_;
   // const InitialMcsProperties initial_dl_mcs_properties_;
 
+  std::vector < pair<UlMcsParams*, DlMcsParams*> ul_dl_ldpc_table_;
+
   UpdateUlLdpcConfig(LDPCconfig ul_ldpc_config_, size_t ul_mcs_index);
   UpdateDlLdpcConfig(LDPCconfig dl_ldpc_config_, size_t dl_mcs_index);
   UpdateCtrlMCS(LDPCconfig dl_bcast_ldpc_config_, size_t control_mcs_index);
@@ -162,9 +177,6 @@ class LdpcUpdater {
                             LDPCconfig ul_ldpc_config);
   CalculateDlLdpcProperties(DlLdpcProperties dl_ldpc_properties,
                             LDPCconfig dl_ldpc_config);
-
-  UlMcsParams ul_mcs_params_;
-  DlMcsParams dl_mcs_params_;
 }
 
 #endif /* LDPC_UPDATE_H_ */

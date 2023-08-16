@@ -33,14 +33,19 @@ struct McsScheme {
   size_t mcs_index_;
   size_t mod_order_bits_;
   size_t code_rate_;
-  Direction dir;
 };
+
+struct UserMcs {
+  McsScheme current_ul_mcs_;
+  McsScheme current_dl_mcs_;
+  McsScheme next_ul_mcs_;
+  McsScheme next_dl_mcs_;
+}
 
 struct ModulationTables {
   Table<complex_float> ul_tables_[kNumTables];
   Table<complex_float> dl_tables_[kNumTables];
 };
-
 
 class Mcs {
  public:
@@ -51,10 +56,6 @@ class Mcs {
 
  private:
   static constexpr size_t kCbPerSymbol = 1;
-  const size_t ofdm_data_num_ul_;
-  const size_t ofdm_data_num_dl_;
-  const size_t ofdm_ctrl_data_;
-
   //   size_t dl_bcast_mod_order_bits_;
 
   // // The total number of downlink MAC payload data bytes in each Frame
@@ -129,13 +130,8 @@ class Mcs {
   // LDPCconfig dl_bcast_ldpc_config_;  // Downlink Broadcast LDPC parameters
   // nlohmann::json ul_mcs_params_;     // Uplink Modulation and Coding (MCS)
   // nlohmann::json dl_mcs_params_;     // Downlink Modulation and Coding (MCS)
-  McsScheme next_ul_mcs_;
-  McsScheme next_dl_mcs_;
-  McsScheme current_ul_mcs_;
-  McsScheme current_dl_mcs_;
   // ModulationTables modulation_tables_;
   // FrameStats frame_;
-
 
   std::unique_ptr<LdpcUpdater> ldpc_updater;
 

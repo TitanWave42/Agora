@@ -19,47 +19,22 @@
 #include "symbols.h"
 #include "utils_ldpc.h"
 
-static constexpr size_t kMaxSupportedZc = 256;
-
-/// Print the I/Q samples in the pilots
-static constexpr bool kDebugPrintPilot = false;
-
-static const std::string kLogFilepath =
-    TOSTRING(PROJECT_DIRECTORY) "/files/log/";
-static const std::string kExperimentFilepath =
-    TOSTRING(PROJECT_DIRECTORY) "/files/experiment/";
-static const std::string kUlDataFilePrefix =
-    kExperimentFilepath + "LDPC_orig_ul_data_";
-static const std::string kDlDataFilePrefix =
-    kExperimentFilepath + "LDPC_orig_dl_data_";
-static const std::string kUlDataFreqPrefix = kExperimentFilepath + "ul_data_f_";
-static constexpr size_t kControlMCS = 5;  // QPSK, 379/1024
-
-// , size_t ofdm_ctrl_num
-// size_t ofdm_data_num, size_t get_ofdm_data_num,
-
-const size_t ofdm_data_num_ul_;
-const size_t ofdm_data_num_dl_;
-const size_t ofdm_ctrl_data_;
-
 //Need the second argument for GetOFDMDataNum
 Mcs::Mcs(const OfdmConfig ofdm_data, UlMcsParams ul_mcs_params,
          DlMcsParams dl_mcs_params, FrameStats frame)
-    : ofdm_data_num_ul_(ofdm_data.ofdm_data_num_ul_),
-      ofdm_data_num_dl_(ofdm_data.ofdm_data_num_dl_),
-      ofdm_ctrl_data_(ofdm_data.ofdm_ctrl_data_),
-      ul_mcs_params_(ul_mcs_params),
+    : ul_mcs_params_(ul_mcs_params),
       dl_mcs_params_(dl_mcs_params),
       ul_ldpc_config_(0, 0, 0, false, 0, 0, 0, 0),
       dl_ldpc_config_(0, 0, 0, false, 0, 0, 0, 0),
       dl_bcast_ldpc_config_(0, 0, 0, false, 0, 0, 0, 0),
       frame_(frame) {
-  ldpc_updater = std::make_unique<LdpcUpdater> CreateModulationTables();
+  CreateModulationTables();
   //Initialize UL MCS
-  InitializeUlMcs(ul_mcs_params_);
 
-  //Initialize DL MCS
-  InitializeDlMcs(dl_mcs_params_);
+  ldpc_updater = std::make_unique<LdpcUpdater>(ofdm_data,
+      ul_mcs_params.ul_base_graph, ul_mcs_params.ul_early_term_,
+      ul_mcs_params.ul_max_decoder_iter, dl_mcs_params.dl_base_graph,
+      dl_mcs_params.dl_early_term, dl_mcs_params.dl_max_decoder_iter);
 }
 
 Mcs::~Mcs() = default;
@@ -89,98 +64,47 @@ void Mcs::CheckUlMcs(float snr, size_t frame_id) {
   }
 }
 
-void Mcs::InitializeUlMcs(const nlohmann::json ul_mcs) {
-  current_ul_mcs_.dir = Direction::kUplink;
-  current_ul_mcs_.frame_number_ = 0;
-  if (ul_mcs.find("mcs_index") == ul_mcs.end()) {
-    ul_modulation_ = ul_mcs.value("modulation", "16QAM");
-    current_ul_mcs_.mod_order_bits_ = kModulStringMap.at(ul_modulation_);
+McsScheme Mcs::InitializeMcs(UlMcsParams mcs_params) {
+  McsScheme current_mcs;
+  current_mcs.frame_number_ = 0;
 
-    double ul_code_rate_usr = ul_mcs.value("code_rate", 0.333);
+  //If the string has been set.
+  if (mcs_params.ul_modulation_ != NULL) {
+    this->ul_modulation_ = mcs_params.ul_modulation_;
+    current_mcs.mod_order_bits_ = kModulStringMap.at(ul_modulation_);
+
+    double ul_code_rate_usr = mcs_params.ul_code_rate_usr_;
     size_t code_rate_int =
         static_cast<size_t>(std::round(ul_code_rate_usr * 1024.0));
 
-    current_ul_mcs_.mcs_index_ =
-        CommsLib::GetMcsIndex(current_ul_mcs_.mod_order_bits_, code_rate_int);
-    current_ul_mcs_.code_rate_ = GetCodeRate(current_ul_mcs_.mcs_index_);
-    if (current_ul_mcs_.code_rate_ / 1024.0 != ul_code_rate_usr) {
+    current_mcs.mcs_index_ =
+        CommsLib::GetMcsIndex(current_mcs.mod_order_bits_, code_rate_int);
+    current_mcs.code_rate_ = GetCodeRate(current_mcs.mcs_index_);
+    if (current_mcs.code_rate_ / 1024.0 != ul_code_rate_usr) {
       AGORA_LOG_WARN(
           "Rounded the user-defined uplink code rate to the closest standard "
           "rate %zu/1024.\n",
-          current_ul_mcs_.code_rate_);
+          current_mcs.code_rate_);
     }
   } else {
-    current_ul_mcs_.mcs_index_ =
-        ul_mcs.value("mcs_index", 10);  // 16QAM, 340/1024
-    current_ul_mcs_.mod_order_bits_ =
-        GetModOrderBits(current_ul_mcs_.mcs_index_);
-    current_ul_mcs_.code_rate_ = GetCodeRate(current_ul_mcs_.mcs_index_);
+    current_mcs.mcs_index_ = mcs_params.ul_mcs_index;
+    current_mcs.mod_order_bits_ =
+        GetModOrderBits(current_mcs.mcs_index_);
+    current_mcs.code_rate_ = GetCodeRate(current_mcs.mcs_index_);
   }
+  return current_mcs;
 }
 
-void Mcs::InitializeDlMcs(const nlohmann::json dl_mcs) {
-  current_dl_mcs_.dir = Direction::kDownlink;
-  current_dl_mcs_.frame_number_ = 0;
-  if (dl_mcs.find("mcs_index") == dl_mcs.end()) {
-    dl_modulation_ = dl_mcs.value("modulation", "16QAM");
-    current_dl_mcs_.mod_order_bits_ = kModulStringMap.at(dl_modulation_);
-
-    double dl_code_rate_usr = dl_mcs.value("code_rate", 0.333);
-    size_t code_rate_int =
-        static_cast<size_t>(std::round(dl_code_rate_usr * 1024.0));
-    current_dl_mcs_.mcs_index_ =
-        CommsLib::GetMcsIndex(current_dl_mcs_.mod_order_bits_, code_rate_int);
-    current_dl_mcs_.code_rate_ = GetCodeRate(current_dl_mcs_.mcs_index_);
-    if (current_dl_mcs_.code_rate_ / 1024.0 != dl_code_rate_usr) {
-      AGORA_LOG_WARN(
-          "Rounded the user-defined downlink code rate to the closest standard "
-          "rate %zu/1024.\n",
-          current_dl_mcs_.code_rate_);
-    }
-  } else {
-    current_dl_mcs_.mcs_index_ =
-        dl_mcs.value("mcs_index", 10);  // 16QAM, 340/1024
-    current_dl_mcs_.mod_order_bits_ =
-        GetModOrderBits(current_dl_mcs_.mcs_index_);
-    current_dl_mcs_.code_rate_ = GetCodeRate(current_dl_mcs_.mcs_index_);
-  }
+//This function is so I can check that the next mcs_frame isn't null before
+// updating the mcs so I can know if it was actually set or not.
+McsScheme Mcs::InitializeNextMcs(){
+   McsScheme next_mcs;
+   next_mcs.frame_number_ = nullptr;
+   next_mcs.code_rate_ = nullptr;
+   next_mcs.mcs_index_ = nullptr;
+   next_mcs.mod_order_bits_ = nullptr;
 }
 
-// inline size_t SelectZc(size_t base_graph, size_t code_rate,
-//                        size_t mod_order_bits, size_t num_sc, size_t cb_per_sym,
-//                        const std::string& dir) {
-//   size_t n_zc = sizeof(kZc) / sizeof(size_t);
-//   std::vector<size_t> zc_vec(kZc, kZc + n_zc);
-//   std::sort(zc_vec.begin(), zc_vec.end());
-//   // According to cyclic_shift.cc cyclic shifter for zc
-//   // larger than 256 has not been implemented, so we skip them here.
-//   size_t max_zc_index =
-//       (std::find(zc_vec.begin(), zc_vec.end(), kMaxSupportedZc) -
-//        zc_vec.begin());
-//   size_t max_uncoded_bits =
-//       static_cast<size_t>(num_sc * code_rate * mod_order_bits / 1024.0);
-//   size_t zc = SIZE_MAX;
-//   size_t i = 0;
-//   for (; i < max_zc_index; i++) {
-//     if ((zc_vec.at(i) * LdpcNumInputCols(base_graph) * cb_per_sym <
-//          max_uncoded_bits) &&
-//         (zc_vec.at(i + 1) * LdpcNumInputCols(base_graph) * cb_per_sym >
-//          max_uncoded_bits)) {
-//       zc = zc_vec.at(i);
-//       break;
-//     }
-//   }
-//   if (zc == SIZE_MAX) {
-//     AGORA_LOG_WARN(
-//         "Exceeded possible range of LDPC lifting Zc for " + dir +
-//             "! Setting lifting size to max possible value(%zu).\nThis may lead "
-//             "to too many unused subcarriers. For better use of the PHY "
-//             "resources, you may reduce your coding or modulation rate.\n",
-//         kMaxSupportedZc);
-//     zc = kMaxSupportedZc;
-//   }
-//   return zc;
-// }
 
 void Mcs::CreateModulationTables() {
   std::cout << "CREATING MODULATION TABLES" << std::endl << std::flush;
@@ -201,26 +125,26 @@ void Mcs::CreateModulationTables() {
   }
 }
 
-void Mcs::UpdateMcs(size_t current_frame_number) {
-  std::cout << "Updating MCS." << std::endl << std::flush;
-  UpdateUlMcs(current_frame_number);
-  UpdateDlMcs(current_frame_number);
+// void Mcs::UpdateMcs(size_t current_frame_number) {
+//   std::cout << "Updating MCS." << std::endl << std::flush;
+//   UpdateUlMcs(current_frame_number);
+//   UpdateDlMcs(current_frame_number);
+// }
+
+McsScheme  Mcs::UpdateCurrentUlMcs(McsScheme current_ul_mcs, McsScheme next_ul_mcs, size_t current_frame_number) {
+  if (current_frame_number >= next_ul_mcs.frame_number_) {
+    current_ul_mcs.frame_number_ = current_frame_number;
+    current_ul_mcs.mcs_index_ = next_ul_mcs.mcs_index_;
+  }
+  return current_ul_mcs;
 }
 
-void Mcs::UpdateUlMcs(size_t current_frame_number) {
-  if (current_frame_number >= next_ul_mcs_.frame_number_) {
-    current_ul_mcs_.frame_number_ = current_frame_number;
-    current_ul_mcs_.mcs_index_ = next_ul_mcs_.mcs_index_;
+McsScheme Mcs::UpdateCurrentDlMcs(McsScheme current_dl_mcs, McsScheme next_dl_mcs, size_t current_frame_number) {
+  if (current_frame_number >= next_dl_mcs.frame_number_) {
+    current_dl_mcs.frame_number_ = current_frame_number;
+    current_dl_mcs.mcs_index_ = next_dl_mcs.mcs_index_;
   }
-  UpdateUlLdpcConfig();
-}
-
-void Mcs::UpdateDlMcs(size_t current_frame_number) {
-  if (current_frame_number >= next_dl_mcs_.frame_number_) {
-    current_dl_mcs_.frame_number_ = current_frame_number;
-    current_dl_mcs_.mcs_index_ = next_dl_mcs_.mcs_index_;
-  }
-  UpdateDlLdpcConfig();
+  return current_dl_mcs;
 }
 
 void Mcs::SetNextUlMcs(size_t frame_number, size_t mod_order_bits) {
@@ -259,3 +183,105 @@ void Mcs::DumpMcsInfo() {
            dl_ldpc_config_.NumRows()),
       dl_ldpc_config_.NumRows(), dl_modulation_.c_str());
 }
+
+
+
+// McsScheme Mcs::InitializeUlMcs(UlMcsParams ul_mcs_params) {
+//   McsScheme current_ul_mcs;
+//   current_ul_mcs.dir = Direction::kUplink;
+//   current_ul_mcs.frame_number_ = 0;
+
+//   //If the string has been set.
+//   if (ul_mcs_params.ul_modulation_ != NULL) {
+//     this->ul_modulation_ = ul_mcs_params.ul_modulation_;
+//     current_ul_mcs.mod_order_bits_ = kModulStringMap.at(ul_modulation_);
+
+//     double ul_code_rate_usr = ul_mcs_params.ul_code_rate_usr_;
+//     size_t code_rate_int =
+//         static_cast<size_t>(std::round(ul_code_rate_usr * 1024.0));
+
+//     current_ul_mcs.mcs_index_ =
+//         CommsLib::GetMcsIndex(current_ul_mcs.mod_order_bits_, code_rate_int);
+//     current_ul_mcs.code_rate_ = GetCodeRate(current_ul_mcs.mcs_index_);
+//     if (current_ul_mcs.code_rate_ / 1024.0 != ul_code_rate_usr) {
+//       AGORA_LOG_WARN(
+//           "Rounded the user-defined uplink code rate to the closest standard "
+//           "rate %zu/1024.\n",
+//           current_ul_mcs.code_rate_);
+//     }
+//   } else {
+//     current_ul_mcs.mcs_index_ = ul_mcs_params.ul_mcs_index;
+//     current_ul_mcs.mod_order_bits_ =
+//         GetModOrderBits(current_ul_mcs.mcs_index_);
+//     current_ul_mcs.code_rate_ = GetCodeRate(current_ul_mcs.mcs_index_);
+//   }
+//   return current_ul_mcs;
+// }
+
+// void Mcs::InitializeDlMcs(DlMcsParams dl_mcs_params) {
+//   McsScheme current_dl_mcs;
+
+//   current_dl_mcs.dir = Direction::kDownlink;
+//   current_dl_mcs.frame_number_ = 0;
+
+//   //If the string has been set.
+//   if (dl_mcs_params.dl_modulation_ != NULL) {
+//     this->dl_modulation_ = dl_mcs_params.dl_modulation_;
+//     current_dl_mcs.mod_order_bits_ = kModulStringMap.at(dl_modulation_);
+
+//     double dl_code_rate_usr = dl_mcs_params.dl_code_rate_usr_;
+//     size_t code_rate_int =
+//         static_cast<size_t>(std::round(dl_code_rate_usr * 1024.0));
+//     current_dl_mcs_.mcs_index_ =
+//         CommsLib::GetMcsIndex(current_dl_mcs_.mod_order_bits_, code_rate_int);
+//     current_dl_mcs_.code_rate_ = GetCodeRate(current_dl_mcs_.mcs_index_);
+//     if (current_dl_mcs_.code_rate_ / 1024.0 != dl_code_rate_usr) {
+//       AGORA_LOG_WARN(
+//           "Rounded the user-defined downlink code rate to the closest standard "
+//           "rate %zu/1024.\n",
+//           current_dl_mcs_.code_rate_);
+//     }
+//   } else {
+//     current_dl_mcs_.mcs_index_ = dl_mcs_params.dl_mcs_index;
+//     current_dl_mcs_.mod_order_bits_ =
+//         GetModOrderBits(current_dl_mcs_.mcs_index_);
+//     current_dl_mcs_.code_rate_ = GetCodeRate(current_dl_mcs_.mcs_index_);
+//   }
+//   return current_dl_mcs;
+// }
+
+// inline size_t SelectZc(size_t base_graph, size_t code_rate,
+//                        size_t mod_order_bits, size_t num_sc, size_t cb_per_sym,
+//                        const std::string& dir) {
+//   size_t n_zc = sizeof(kZc) / sizeof(size_t);
+//   std::vector<size_t> zc_vec(kZc, kZc + n_zc);
+//   std::sort(zc_vec.begin(), zc_vec.end());
+//   // According to cyclic_shift.cc cyclic shifter for zc
+//   // larger than 256 has not been implemented, so we skip them here.
+//   size_t max_zc_index =
+//       (std::find(zc_vec.begin(), zc_vec.end(), kMaxSupportedZc) -
+//        zc_vec.begin());
+//   size_t max_uncoded_bits =
+//       static_cast<size_t>(num_sc * code_rate * mod_order_bits / 1024.0);
+//   size_t zc = SIZE_MAX;
+//   size_t i = 0;
+//   for (; i < max_zc_index; i++) {
+//     if ((zc_vec.at(i) * LdpcNumInputCols(base_graph) * cb_per_sym <
+//          max_uncoded_bits) &&
+//         (zc_vec.at(i + 1) * LdpcNumInputCols(base_graph) * cb_per_sym >
+//          max_uncoded_bits)) {
+//       zc = zc_vec.at(i);
+//       break;
+//     }
+//   }
+//   if (zc == SIZE_MAX) {
+//     AGORA_LOG_WARN(
+//         "Exceeded possible range of LDPC lifting Zc for " + dir +
+//             "! Setting lifting size to max possible value(%zu).\nThis may lead "
+//             "to too many unused subcarriers. For better use of the PHY "
+//             "resources, you may reduce your coding or modulation rate.\n",
+//         kMaxSupportedZc);
+//     zc = kMaxSupportedZc;
+//   }
+//   return zc;
+// }

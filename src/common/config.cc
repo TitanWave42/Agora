@@ -29,12 +29,6 @@
 
 using json = nlohmann::json;
 
-//Not sure where else to put this.
-struct OfdmConfig {
-  size_t ofdm_data_num_ul_;
-  size_t ofdm_data_num_dl_;
-  size_t ofdm_ctrl_data_;
-}
 
 static constexpr size_t kMacAlignmentBytes = 64u;
 static constexpr bool kDebugPrintConfiguration = false;
@@ -694,25 +688,19 @@ Config::Config(std::string jsonfilename)
   UlMcsParams ul_mcs_params = ParseUlMcsParams(ul_mcs);
   DlMcsParams dl_mcs_params = ParseDlMcsParams(dl_mcs);
 
-  mcs_ = std::make_unique<Mcs>(odfm_data, ul_mcs_params, dl_mcs_params, this->frame);
+  mcs_ = std::make_unique<Mcs>(odfm_data, ul_mcs_params, dl_mcs_params,
+                               this->frame);
 
-
-  std::vector<std::pair<size_t, size_t>> user_mcs_indicies;
+  std::vector<UserMcs> user_mcs_indicies;
   for (size_t user = 0; user < ue_num_; user++) {
-    std::pair<size_t, size_t> mcs_indices;
-    mcs_indices.first = mcs_->current_ul_mcs_;
-    mcs_indices.second = mcs_->current_dl_mcs;
-    user_mcs_indicies.push_back(mcs_indices);
+    UserMcs user_mcs;
+    user_mcs.current_ul_mcs_ = mcs_->InitializeMcs(ul_mcs_params);
+    user_mcs.current_dl_mcs_ = mcs_->InitializeMcs(dl_mcs_params);
+    user_mcs.next_ul_mcs_ = mcs_->InitializeNextMcs(); 
+    user_mcs.next_dl_mcs_ = mcs_->InitializeNextMcs();
+    user_mcs_indicies.push_back(user_mcs);
   }
 
-
-  // mcs_ = std::make_unique<Mcs>(odfm_data, ul_mcs_params, dl_mcs_params, this->frame);
-
-  // mcs_->UpdateUlLdpcConfig();
-  // mcs_->UpdateDlLdpcConfig();
-  // mcs_->UpdateCtrlLdpcConfig();
-  // mcs_->DumpMcsInfo();
-  // mcs_->CalculateLdpcProperties();
 
   freq_domain_channel_ = tdd_conf.value("freq_domain_channel", false);
 
