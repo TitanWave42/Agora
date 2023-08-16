@@ -29,6 +29,13 @@
 
 using json = nlohmann::json;
 
+//Not sure where else to put this.
+struct OfdmConfig {
+  size_t ofdm_data_num_ul_;
+  size_t ofdm_data_num_dl_;
+  size_t ofdm_ctrl_data_;
+}
+
 static constexpr size_t kMacAlignmentBytes = 64u;
 static constexpr bool kDebugPrintConfiguration = false;
 static constexpr size_t kMaxSupportedZc = 256;
@@ -38,9 +45,6 @@ static constexpr size_t kControlMCS = 5;  // QPSK, 379/1024
 
 /// Print the I/Q samples in the pilots
 static constexpr bool kDebugPrintPilot = false;
-
-static const std::string kLogFilepath =
-    TOSTRING(PROJECT_DIRECTORY) "/files/log/";
 
 Config::Config(std::string jsonfilename)
     : freq_ghz_(GetTime::MeasureRdtscFreq()),
@@ -680,14 +684,35 @@ Config::Config(std::string jsonfilename)
   // Scrambler and descrambler configurations
   scramble_enabled_ = tdd_conf.value("wlan_scrambler", true);
 
+  //----------------------------------------------------------//
   // LDPC Coding and Modulation configurations
-  ul_mcs_params_ = this->Parse(tdd_conf, "ul_mcs");
-  this->UpdateUlMCS(ul_mcs_params_);
 
-  dl_mcs_params_ = this->Parse(tdd_conf, "dl_mcs");
-  this->UpdateDlMCS(dl_mcs_params_);
-  this->DumpMcsInfo();
-  this->UpdateCtrlMCS();
+  json ul_mcs = this->Parse(tdd_conf, "ul_mcs");
+  json dl_mcs = this->Parse(tdd_conf, "dl_mcs");
+  const OfdmConfig ofdm_data = {ofdm_data_num_, GetOFDMDataNum(),
+                                GetOFDMCtrlNum()};
+  UlMcsParams ul_mcs_params = ParseUlMcsParams(ul_mcs);
+  DlMcsParams dl_mcs_params = ParseDlMcsParams(dl_mcs);
+
+  mcs_ = std::make_unique<Mcs>(odfm_data, ul_mcs_params, dl_mcs_params, this->frame);
+
+
+  std::vector<std::pair<size_t, size_t>> user_mcs_indicies;
+  for (size_t user = 0; user < ue_num_; user++) {
+    std::pair<size_t, size_t> mcs_indices;
+    mcs_indices.first = mcs_->current_ul_mcs_;
+    mcs_indices.second = mcs_->current_dl_mcs;
+    user_mcs_indicies.push_back(mcs_indices);
+  }
+
+
+  // mcs_ = std::make_unique<Mcs>(odfm_data, ul_mcs_params, dl_mcs_params, this->frame);
+
+  // mcs_->UpdateUlLdpcConfig();
+  // mcs_->UpdateDlLdpcConfig();
+  // mcs_->UpdateCtrlLdpcConfig();
+  // mcs_->DumpMcsInfo();
+  // mcs_->CalculateLdpcProperties();
 
   freq_domain_channel_ = tdd_conf.value("freq_domain_channel", false);
 
@@ -703,88 +728,27 @@ Config::Config(std::string jsonfilename)
              "Packet size must be smaller than jumbo frame");
   }
 
-  ul_num_bytes_per_cb_ = ul_ldpc_config_.NumCbLen() / 8;
-  ul_num_padding_bytes_per_cb_ =
-      Roundup<64>(ul_num_bytes_per_cb_) - ul_num_bytes_per_cb_;
-  ul_data_bytes_num_persymbol_ =
-      ul_num_bytes_per_cb_ * ul_ldpc_config_.NumBlocksInSymbol();
-  ul_mac_packet_length_ = ul_data_bytes_num_persymbol_;
-
-  //((cb_len_bits / zc_size) - 1) * (zc_size / 8) + kProcBytes(32)
-  const size_t ul_ldpc_input_min =
-      (((ul_ldpc_config_.NumCbLen() / ul_ldpc_config_.ExpansionFactor()) - 1) *
-           (ul_ldpc_config_.ExpansionFactor() / 8) +
-       32);
-  const size_t ul_ldpc_sugg_input = LdpcEncodingInputBufSize(
-      ul_ldpc_config_.BaseGraph(), ul_ldpc_config_.ExpansionFactor());
-
-  if (ul_ldpc_input_min >
-      (ul_num_bytes_per_cb_ + ul_num_padding_bytes_per_cb_)) {
-    // Can cause a lot of wasted space, specifically the second argument of the max
-    const size_t increased_padding =
-        Roundup<64>(ul_ldpc_sugg_input) - ul_num_bytes_per_cb_;
-
-    AGORA_LOG_WARN(
-        "LDPC required Input Buffer size exceeds uplink code block size!, "
-        "Increased cb padding from %zu to %zu uplink CB Bytes %zu, LDPC "
-        "Input Min for zc 64:256: %zu\n",
-        ul_num_padding_bytes_per_cb_, increased_padding, ul_num_bytes_per_cb_,
-        ul_ldpc_input_min);
-    ul_num_padding_bytes_per_cb_ = increased_padding;
-  }
+  //-----have to make sure that this gets set based on the mcs//
+  ul_mac_packet_length_ =
+      0;  //This is where I need to access the ul_ldpc_properties
 
   // Smallest over the air packet structure
-  RtAssert(this->frame_.NumULSyms() == 0 ||
+  RtAssert(frame_.NumULSyms() == 0 ||
                ul_mac_packet_length_ > sizeof(MacPacketHeaderPacked),
            "Uplink MAC Packet size must be larger than MAC header size");
-  ul_mac_data_length_max_ =
+  this->ul_mac_data_length_max_ =
       ul_mac_packet_length_ - sizeof(MacPacketHeaderPacked);
 
-  ul_mac_packets_perframe_ = this->frame_.NumUlDataSyms();
-  ul_mac_data_bytes_num_perframe_ =
-      ul_mac_data_length_max_ * ul_mac_packets_perframe_;
-  ul_mac_bytes_num_perframe_ = ul_mac_packet_length_ * ul_mac_packets_perframe_;
-
-  dl_num_bytes_per_cb_ = dl_ldpc_config_.NumCbLen() / 8;
-  dl_num_padding_bytes_per_cb_ =
-      Roundup<64>(dl_num_bytes_per_cb_) - dl_num_bytes_per_cb_;
-  dl_data_bytes_num_persymbol_ =
-      dl_num_bytes_per_cb_ * dl_ldpc_config_.NumBlocksInSymbol();
-  dl_mac_packet_length_ = dl_data_bytes_num_persymbol_;
-  // Smallest over the air packet structure
-  RtAssert(this->frame_.NumDLSyms() == 0 ||
-               dl_mac_packet_length_ > sizeof(MacPacketHeaderPacked),
-           "Downlink MAC Packet size must be larger than MAC header size");
-  dl_mac_data_length_max_ =
-      dl_mac_packet_length_ - sizeof(MacPacketHeaderPacked);
+  this->ul_mac_packets_perframe_ = frame_.NumUlDataSyms();
+  this->ul_mac_data_bytes_num_perframe_ =
+      this->ul_mac_data_length_max_ * this->ul_mac_packets_perframe_;
+  this->ul_mac_bytes_num_perframe_ =
+      ul_mac_packet_length_ * this->ul_mac_packets_perframe_;
 
   dl_mac_packets_perframe_ = this->frame_.NumDlDataSyms();
   dl_mac_data_bytes_num_perframe_ =
       dl_mac_data_length_max_ * dl_mac_packets_perframe_;
   dl_mac_bytes_num_perframe_ = dl_mac_packet_length_ * dl_mac_packets_perframe_;
-
-  //((cb_len_bits / zc_size) - 1) * (zc_size / 8) + kProcBytes(32)
-  const size_t dl_ldpc_input_min =
-      (((dl_ldpc_config_.NumCbLen() / dl_ldpc_config_.ExpansionFactor()) - 1) *
-           (dl_ldpc_config_.ExpansionFactor() / 8) +
-       32);
-  const size_t dl_ldpc_sugg_input = LdpcEncodingInputBufSize(
-      dl_ldpc_config_.BaseGraph(), dl_ldpc_config_.ExpansionFactor());
-
-  if (dl_ldpc_input_min >
-      (dl_num_bytes_per_cb_ + dl_num_padding_bytes_per_cb_)) {
-    // Can cause a lot of wasted space, specifically the second argument of the max
-    const size_t increased_padding =
-        Roundup<64>(dl_ldpc_sugg_input) - dl_num_bytes_per_cb_;
-
-    AGORA_LOG_WARN(
-        "LDPC required Input Buffer size exceeds downlink code block size!, "
-        "Increased cb padding from %zu to %zu Downlink CB Bytes %zu, LDPC "
-        "Input Min for zc 64:256: %zu\n",
-        dl_num_padding_bytes_per_cb_, increased_padding, dl_num_bytes_per_cb_,
-        dl_ldpc_input_min);
-    dl_num_padding_bytes_per_cb_ = increased_padding;
-  }
 
   this->running_.store(true);
   /* 12 bit samples x2 for I + Q */
@@ -860,6 +824,45 @@ Config::Config(std::string jsonfilename)
   Print();
 }
 
+UlMcsParams ParseUlMcsParams(json ul_mcs) {
+  UlMcsParams ul_mcs_params;
+
+  ul_mcs_params.base_graph_ = ul_mcs.value("base_graph", 1);
+  ul_mcs_params.early_term_ = ul_mcs.value("earlyTermination", true);
+  ul_mcs_params.max_decoder_iter_ = ul_mcs.value("decoderIter", 5);
+
+  if (ul_mcs.find("mcs_index") == ul_mcs.end()) {
+    ul_mcs_params.ul_modulation_ = ul_mcs.value("modulation", "16QAM");
+    ul_mcs_params.ul_mod_order_bits_ =
+        kModulStringMap.at(ul_mcs_params.ul_modulation_);
+
+    ul_mcs_params.ul_code_rate_usr = ul_mcs.value("code_rate", 0.333);
+  } else {
+    ul_mcs_params.ul_mcs_index_ = ul_mcs.value("mcs_index", 10);
+  }
+
+  return ul_mcs_params;
+}
+
+UlMcsParams ParseDlMcsParams(json dl_mcs) {
+  DlMcsParams dl_mcs_params;
+
+  dl_mcs_params.base_graph_ = dl_mcs.value("base_graph", 1);
+  dl_mcs_params.early_term_ = dl_mcs.value("earlyTermination", true);
+  dl_mcs_params.max_decoder_iter_ = dl_mcs.value("decoderIter", 5);
+
+  if (dl_mcs.find("mcs_index") == dl_mcs.end()) {
+    dl_mcs_params.dl_modulation_ = dl_mcs.value("modulation", "16QAM");
+    dl_mcs_params.dl_mod_order_bits_ =
+        kModulStringMap.at(dl_mcs_params.dl_modulation_);
+
+    dl_mcs_params.dl_code_rate_usr = dl_mcs.value("code_rate", 0.333);
+  } else {
+    dl_mcs_params.dl_mcs_index_ = dl_mcs.value("mcs_index", 10);
+  }
+  return dl_mcs_params;
+}
+
 json Config::Parse(const json& in_json, const std::string& json_handle) {
   json out_json;
   std::stringstream ss;
@@ -907,191 +910,6 @@ inline size_t SelectZc(size_t base_graph, size_t code_rate,
     zc = kMaxSupportedZc;
   }
   return zc;
-}
-
-void Config::UpdateUlMCS(const json& ul_mcs) {
-  if (ul_mcs.find("mcs_index") == ul_mcs.end()) {
-    ul_modulation_ = ul_mcs.value("modulation", "16QAM");
-    ul_mod_order_bits_ = kModulStringMap.at(ul_modulation_);
-
-    double ul_code_rate_usr = ul_mcs.value("code_rate", 0.333);
-    size_t code_rate_int =
-        static_cast<size_t>(std::round(ul_code_rate_usr * 1024.0));
-
-    ul_mcs_index_ = CommsLib::GetMcsIndex(ul_mod_order_bits_, code_rate_int);
-    ul_code_rate_ = GetCodeRate(ul_mcs_index_);
-    if (ul_code_rate_ / 1024.0 != ul_code_rate_usr) {
-      AGORA_LOG_WARN(
-          "Rounded the user-defined uplink code rate to the closest standard "
-          "rate %zu/1024.\n",
-          ul_code_rate_);
-    }
-  } else {
-    // 16QAM, 340/1024
-    ul_mcs_index_ = ul_mcs.value("mcs_index", kDefaultMcsIndex);
-    ul_mod_order_bits_ = GetModOrderBits(ul_mcs_index_);
-    ul_modulation_ = MapModToStr(ul_mod_order_bits_);
-    ul_code_rate_ = GetCodeRate(ul_mcs_index_);
-    ul_modulation_ = MapModToStr(ul_mod_order_bits_);
-  }
-  InitModulationTable(this->ul_mod_table_, ul_mod_order_bits_);
-
-  // TODO: find the optimal base_graph
-  uint16_t base_graph = ul_mcs.value("base_graph", 1);
-  bool early_term = ul_mcs.value("earlyTermination", true);
-  int16_t max_decoder_iter = ul_mcs.value("decoderIter", 5);
-
-  size_t zc = SelectZc(base_graph, ul_code_rate_, ul_mod_order_bits_,
-                       ofdm_data_num_, kCbPerSymbol, "uplink");
-
-  // Always positive since ul_code_rate is smaller than 1024
-  size_t num_rows =
-      static_cast<size_t>(
-          std::round(1024.0 * LdpcNumInputCols(base_graph) / ul_code_rate_)) -
-      (LdpcNumInputCols(base_graph) - 2);
-
-  uint32_t num_cb_len = LdpcNumInputBits(base_graph, zc);
-  uint32_t num_cb_codew_len = LdpcNumEncodedBits(base_graph, zc, num_rows);
-  ul_ldpc_config_ = LDPCconfig(base_graph, zc, max_decoder_iter, early_term,
-                               num_cb_len, num_cb_codew_len, num_rows, 0);
-
-  ul_ldpc_config_.NumBlocksInSymbol((ofdm_data_num_ * ul_mod_order_bits_) /
-                                    ul_ldpc_config_.NumCbCodewLen());
-  RtAssert(
-      (frame_.NumULSyms() == 0) || (ul_ldpc_config_.NumBlocksInSymbol() > 0),
-      "Uplink LDPC expansion factor is too large for number of OFDM data "
-      "subcarriers.");
-}
-
-void Config::UpdateDlMCS(const json& dl_mcs) {
-  if (dl_mcs.find("mcs_index") == dl_mcs.end()) {
-    dl_modulation_ = dl_mcs.value("modulation", "16QAM");
-    dl_mod_order_bits_ = kModulStringMap.at(dl_modulation_);
-
-    double dl_code_rate_usr = dl_mcs.value("code_rate", 0.333);
-    size_t code_rate_int =
-        static_cast<size_t>(std::round(dl_code_rate_usr * 1024.0));
-    dl_mcs_index_ = CommsLib::GetMcsIndex(dl_mod_order_bits_, code_rate_int);
-    dl_code_rate_ = GetCodeRate(dl_mcs_index_);
-    if (dl_code_rate_ / 1024.0 != dl_code_rate_usr) {
-      AGORA_LOG_WARN(
-          "Rounded the user-defined downlink code rate to the closest standard "
-          "rate %zu/1024.\n",
-          dl_code_rate_);
-    }
-  } else {
-    // 16QAM, 340/1024
-    dl_mcs_index_ = dl_mcs.value("mcs_index", kDefaultMcsIndex);
-    dl_mod_order_bits_ = GetModOrderBits(dl_mcs_index_);
-    dl_modulation_ = MapModToStr(dl_mod_order_bits_);
-    dl_code_rate_ = GetCodeRate(dl_mcs_index_);
-    dl_modulation_ = MapModToStr(dl_mod_order_bits_);
-  }
-  InitModulationTable(this->dl_mod_table_, dl_mod_order_bits_);
-
-  // TODO: find the optimal base_graph
-  uint16_t base_graph = dl_mcs.value("base_graph", 1);
-  bool early_term = dl_mcs.value("earlyTermination", true);
-  int16_t max_decoder_iter = dl_mcs.value("decoderIter", 5);
-
-  size_t zc = SelectZc(base_graph, dl_code_rate_, dl_mod_order_bits_,
-                       GetOFDMDataNum(), kCbPerSymbol, "downlink");
-
-  // Always positive since dl_code_rate is smaller than 1024
-  size_t num_rows =
-      static_cast<size_t>(
-          std::round(1024.0 * LdpcNumInputCols(base_graph) / dl_code_rate_)) -
-      (LdpcNumInputCols(base_graph) - 2);
-
-  uint32_t num_cb_len = LdpcNumInputBits(base_graph, zc);
-  uint32_t num_cb_codew_len = LdpcNumEncodedBits(base_graph, zc, num_rows);
-  dl_ldpc_config_ = LDPCconfig(base_graph, zc, max_decoder_iter, early_term,
-                               num_cb_len, num_cb_codew_len, num_rows, 0);
-
-  dl_ldpc_config_.NumBlocksInSymbol((GetOFDMDataNum() * dl_mod_order_bits_) /
-                                    dl_ldpc_config_.NumCbCodewLen());
-  RtAssert(
-      this->frame_.NumDLSyms() == 0 || dl_ldpc_config_.NumBlocksInSymbol() > 0,
-      "Downlink LDPC expansion factor is too large for number of OFDM data "
-      "subcarriers.");
-}
-
-void Config::UpdateCtrlMCS() {
-  if (this->frame_.NumDlControlSyms() > 0) {
-    const size_t dl_bcast_mcs_index = kControlMCS;
-    const size_t bcast_base_graph =
-        1;  // TODO: For MCS < 5, base_graph 1 doesn't work
-    dl_bcast_mod_order_bits_ = GetModOrderBits(dl_bcast_mcs_index);
-    const size_t dl_bcast_code_rate = GetCodeRate(dl_bcast_mcs_index);
-    std::string dl_bcast_modulation = MapModToStr(dl_bcast_mod_order_bits_);
-    const int16_t max_decoder_iter = 5;
-    size_t bcast_zc =
-        SelectZc(bcast_base_graph, dl_bcast_code_rate, dl_bcast_mod_order_bits_,
-                 this->GetOFDMCtrlNum(), kCbPerSymbol, "downlink broadcast");
-
-    // Always positive since dl_code_rate is smaller than 1
-    size_t bcast_num_rows =
-        static_cast<size_t>(std::round(
-            1024.0 * LdpcNumInputCols(bcast_base_graph) / dl_bcast_code_rate)) -
-        (LdpcNumInputCols(bcast_base_graph) - 2);
-
-    uint32_t bcast_num_cb_len = LdpcNumInputBits(bcast_base_graph, bcast_zc);
-    uint32_t bcast_num_cb_codew_len =
-        LdpcNumEncodedBits(bcast_base_graph, bcast_zc, bcast_num_rows);
-    dl_bcast_ldpc_config_ =
-        LDPCconfig(bcast_base_graph, bcast_zc, max_decoder_iter, true,
-                   bcast_num_cb_len, bcast_num_cb_codew_len, bcast_num_rows, 0);
-
-    dl_bcast_ldpc_config_.NumBlocksInSymbol(
-        (GetOFDMCtrlNum() * dl_bcast_mod_order_bits_) /
-        dl_bcast_ldpc_config_.NumCbCodewLen());
-    RtAssert(dl_bcast_ldpc_config_.NumBlocksInSymbol() > 0,
-             "Downlink Broadcast LDPC expansion factor is too large for number "
-             "of OFDM data "
-             "subcarriers.");
-    AGORA_LOG_INFO(
-        "Downlink Broadcast MCS Info: LDPC: Zc: %d, %zu code blocks per "
-        "symbol, "
-        "%d "
-        "information "
-        "bits per encoding, %d bits per encoded code word, decoder "
-        "iterations: %d, code rate %.3f (nRows = %zu), modulation %s\n",
-        dl_bcast_ldpc_config_.ExpansionFactor(),
-        dl_bcast_ldpc_config_.NumBlocksInSymbol(),
-        dl_bcast_ldpc_config_.NumCbLen(), dl_bcast_ldpc_config_.NumCbCodewLen(),
-        dl_bcast_ldpc_config_.MaxDecoderIter(),
-        1.f * LdpcNumInputCols(dl_bcast_ldpc_config_.BaseGraph()) /
-            (LdpcNumInputCols(dl_bcast_ldpc_config_.BaseGraph()) - 2 +
-             dl_bcast_ldpc_config_.NumRows()),
-        dl_bcast_ldpc_config_.NumRows(), dl_bcast_modulation.c_str());
-  }
-}
-
-void Config::DumpMcsInfo() {
-  AGORA_LOG_INFO(
-      "Uplink MCS Info: LDPC: Zc: %d, %zu code blocks per symbol, %d "
-      "information "
-      "bits per encoding, %d bits per encoded code word, decoder "
-      "iterations: %d, code rate %.3f (nRows = %zu), modulation %s\n",
-      ul_ldpc_config_.ExpansionFactor(), ul_ldpc_config_.NumBlocksInSymbol(),
-      ul_ldpc_config_.NumCbLen(), ul_ldpc_config_.NumCbCodewLen(),
-      ul_ldpc_config_.MaxDecoderIter(),
-      1.f * LdpcNumInputCols(ul_ldpc_config_.BaseGraph()) /
-          (LdpcNumInputCols(ul_ldpc_config_.BaseGraph()) - 2 +
-           ul_ldpc_config_.NumRows()),
-      ul_ldpc_config_.NumRows(), ul_modulation_.c_str());
-  AGORA_LOG_INFO(
-      "Downlink MCS Info: LDPC: Zc: %d, %zu code blocks per symbol, %d "
-      "information "
-      "bits per encoding, %d bits per encoded code word, decoder "
-      "iterations: %d, code rate %.3f (nRows = %zu), modulation %s\n",
-      dl_ldpc_config_.ExpansionFactor(), dl_ldpc_config_.NumBlocksInSymbol(),
-      dl_ldpc_config_.NumCbLen(), dl_ldpc_config_.NumCbCodewLen(),
-      dl_ldpc_config_.MaxDecoderIter(),
-      1.f * LdpcNumInputCols(dl_ldpc_config_.BaseGraph()) /
-          (LdpcNumInputCols(dl_ldpc_config_.BaseGraph()) - 2 +
-           dl_ldpc_config_.NumRows()),
-      dl_ldpc_config_.NumRows(), dl_modulation_.c_str());
 }
 
 void Config::GenPilots() {

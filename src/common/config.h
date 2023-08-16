@@ -19,6 +19,7 @@
 #include "common_typedef_sdk.h"
 #include "framestats.h"
 #include "ldpc_config.h"
+#include "mcs.h"
 #include "memory_manage.h"
 #include "nlohmann/json.hpp"
 #include "symbols.h"
@@ -969,5 +970,9 @@ class Config {
 
   // If true, channel matrix H will be applied in the frequency domain
   bool freq_domain_channel_;
+
+  std::unique_ptr<Mcs> mcs_;
+  UlMcsParams ParseUlMcsParams(json ul_mcs);
+  UlMcsParams ParseDlMcsParams(json dl_mcs)
 };
 #endif /* CONFIG_HPP_ */
