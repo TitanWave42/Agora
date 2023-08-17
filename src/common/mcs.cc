@@ -99,10 +99,10 @@ McsScheme Mcs::InitializeMcs(UlMcsParams mcs_params) {
 // updating the mcs so I can know if it was actually set or not.
 McsScheme Mcs::InitializeNextMcs(){
    McsScheme next_mcs;
-   next_mcs.frame_number_ = nullptr;
-   next_mcs.code_rate_ = nullptr;
-   next_mcs.mcs_index_ = nullptr;
-   next_mcs.mod_order_bits_ = nullptr;
+   next_mcs.frame_number_ = NULL;
+   next_mcs.code_rate_ = NULL;
+   next_mcs.mcs_index_ = NULL;
+   next_mcs.mod_order_bits_ = NULL;
 }
 
 
@@ -125,11 +125,6 @@ void Mcs::CreateModulationTables() {
   }
 }
 
-// void Mcs::UpdateMcs(size_t current_frame_number) {
-//   std::cout << "Updating MCS." << std::endl << std::flush;
-//   UpdateUlMcs(current_frame_number);
-//   UpdateDlMcs(current_frame_number);
-// }
 
 McsScheme  Mcs::UpdateCurrentUlMcs(McsScheme current_ul_mcs, McsScheme next_ul_mcs, size_t current_frame_number) {
   if (current_frame_number >= next_ul_mcs.frame_number_) {

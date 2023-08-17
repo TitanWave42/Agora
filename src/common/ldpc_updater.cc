@@ -1,5 +1,4 @@
-#include "ldpc_config.h"
-#include "ldpc_update.h"
+#include "ldpc_updater.h"
 
 LdpcUpdater::LdpcUpdater(const OfdmConfig ofdm_data, uint16_t ul_base_graph, bool ul_early_term,
                          int16_t ul_max_decoder_iter, uint16_t dl_base_graph,
@@ -12,14 +11,15 @@ LdpcUpdater::LdpcUpdater(const OfdmConfig ofdm_data, uint16_t ul_base_graph, boo
       ul_max_decoder_iter_(ul_max_decoder_iter),
       dl_base_graph_(dl_base_graph),
       dl_early_term_(dl_early_term),
-      dl_max_decoder_iter_(dl_max_decoder_iter) {}
+      dl_max_decoder_iter_(dl_max_decoder_iter) {
+
+        GenerateLdpcTable();
+      }
 
 LdpcUpdater::~LdpcUpdater() = default;
 
-void LdpcUpdater::UpdateLdpc(Direction dir, size_t mcs_index) {}
-
-void LdpcUpdater::GenerateLdpcTable(size_t ul_mcs_index) {
-  for (size_t mcs_index = 0; mcs_index < 32; mcs_index++) {
+void LdpcUpdater::GenerateLdpcTable() {
+  for (size_t mcs_index = 0; mcs_index < NumMcsIndices; mcs_index++) {
     std::pair<UlMcsParams*, DlMcsParams*> ldpc_info;
     UlMcsParams* ul_mcs_params;
     DlMcsParams* dl_mcs_params;
