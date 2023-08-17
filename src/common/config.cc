@@ -29,7 +29,6 @@
 
 using json = nlohmann::json;
 
-
 static constexpr size_t kMacAlignmentBytes = 64u;
 static constexpr bool kDebugPrintConfiguration = false;
 static constexpr size_t kMaxSupportedZc = 256;
@@ -685,8 +684,8 @@ Config::Config(std::string jsonfilename)
   json dl_mcs = this->Parse(tdd_conf, "dl_mcs");
   const OfdmConfig ofdm_data = {ofdm_data_num_, GetOFDMDataNum(),
                                 GetOFDMCtrlNum()};
-  UlMcsParams ul_mcs_params = ParseUlMcsParams(ul_mcs);
-  DlMcsParams dl_mcs_params = ParseDlMcsParams(dl_mcs);
+  McsParams ul_mcs_params = ParseMcsParams(ul_mcs);
+  McsParams dl_mcs_params = ParseMcsParams(dl_mcs);
 
   mcs_ = std::make_unique<Mcs>(odfm_data, ul_mcs_params, dl_mcs_params,
                                this->frame);
@@ -696,11 +695,10 @@ Config::Config(std::string jsonfilename)
     UserMcs user_mcs;
     user_mcs.current_ul_mcs_ = mcs_->InitializeMcs(ul_mcs_params);
     user_mcs.current_dl_mcs_ = mcs_->InitializeMcs(dl_mcs_params);
-    user_mcs.next_ul_mcs_ = mcs_->InitializeNextMcs(); 
+    user_mcs.next_ul_mcs_ = mcs_->InitializeNextMcs();
     user_mcs.next_dl_mcs_ = mcs_->InitializeNextMcs();
     user_mcs_indicies.push_back(user_mcs);
   }
-
 
   freq_domain_channel_ = tdd_conf.value("freq_domain_channel", false);
 
@@ -812,43 +810,24 @@ Config::Config(std::string jsonfilename)
   Print();
 }
 
-UlMcsParams ParseUlMcsParams(json ul_mcs) {
-  UlMcsParams ul_mcs_params;
+McsParams Config::ParseMcsParams(json mcs) {
+  McsParams mcs_params;
 
-  ul_mcs_params.base_graph_ = ul_mcs.value("base_graph", 1);
-  ul_mcs_params.early_term_ = ul_mcs.value("earlyTermination", true);
-  ul_mcs_params.max_decoder_iter_ = ul_mcs.value("decoderIter", 5);
+  mcs_params.base_graph_ = mcs.value("base_graph", 1);
+  mcs_params.early_term_ = mcs.value("earlyTermination", true);
+  mcs_params.max_decoder_iter_ = mcs.value("decoderIter", 5);
 
-  if (ul_mcs.find("mcs_index") == ul_mcs.end()) {
-    ul_mcs_params.ul_modulation_ = ul_mcs.value("modulation", "16QAM");
-    ul_mcs_params.ul_mod_order_bits_ =
-        kModulStringMap.at(ul_mcs_params.ul_modulation_);
+  if (mcs.find("mcs_index") == mcs.end()) {
+    mcs_params.ul_modulation_ = mcs.value("modulation", "16QAM");
+    mcs_params.ul_mod_order_bits_ =
+        kModulStringMap.at(mcs_params.ul_modulation_);
 
-    ul_mcs_params.ul_code_rate_usr = ul_mcs.value("code_rate", 0.333);
+    mcs_params.ul_code_rate_usr = mcs.value("code_rate", 0.333);
   } else {
-    ul_mcs_params.ul_mcs_index_ = ul_mcs.value("mcs_index", 10);
+    mcs_params.mcs = mcs.value("mcs_index", 10);
   }
 
-  return ul_mcs_params;
-}
-
-UlMcsParams ParseDlMcsParams(json dl_mcs) {
-  DlMcsParams dl_mcs_params;
-
-  dl_mcs_params.base_graph_ = dl_mcs.value("base_graph", 1);
-  dl_mcs_params.early_term_ = dl_mcs.value("earlyTermination", true);
-  dl_mcs_params.max_decoder_iter_ = dl_mcs.value("decoderIter", 5);
-
-  if (dl_mcs.find("mcs_index") == dl_mcs.end()) {
-    dl_mcs_params.dl_modulation_ = dl_mcs.value("modulation", "16QAM");
-    dl_mcs_params.dl_mod_order_bits_ =
-        kModulStringMap.at(dl_mcs_params.dl_modulation_);
-
-    dl_mcs_params.dl_code_rate_usr = dl_mcs.value("code_rate", 0.333);
-  } else {
-    dl_mcs_params.dl_mcs_index_ = dl_mcs.value("mcs_index", 10);
-  }
-  return dl_mcs_params;
+  return mcs_params;
 }
 
 json Config::Parse(const json& in_json, const std::string& json_handle) {
@@ -862,42 +841,6 @@ json Config::Parse(const json& in_json, const std::string& json_handle) {
   ss.str(std::string());
   ss.clear();
   return out_json;
-}
-
-inline size_t SelectZc(size_t base_graph, size_t code_rate,
-                       size_t mod_order_bits, size_t num_sc, size_t cb_per_sym,
-                       const std::string& dir) {
-  size_t n_zc = sizeof(kZc) / sizeof(size_t);
-  std::vector<size_t> zc_vec(kZc, kZc + n_zc);
-  std::sort(zc_vec.begin(), zc_vec.end());
-  // According to cyclic_shift.cc cyclic shifter for zc
-  // larger than 256 has not been implemented, so we skip them here.
-  size_t max_zc_index =
-      (std::find(zc_vec.begin(), zc_vec.end(), kMaxSupportedZc) -
-       zc_vec.begin());
-  size_t max_uncoded_bits =
-      static_cast<size_t>(num_sc * code_rate * mod_order_bits / 1024.0);
-  size_t zc = SIZE_MAX;
-  size_t i = 0;
-  for (; i < max_zc_index; i++) {
-    if ((zc_vec.at(i) * LdpcNumInputCols(base_graph) * cb_per_sym <
-         max_uncoded_bits) &&
-        (zc_vec.at(i + 1) * LdpcNumInputCols(base_graph) * cb_per_sym >
-         max_uncoded_bits)) {
-      zc = zc_vec.at(i);
-      break;
-    }
-  }
-  if (zc == SIZE_MAX) {
-    AGORA_LOG_WARN(
-        "Exceeded possible range of LDPC lifting Zc for " + dir +
-            "! Setting lifting size to max possible value(%zu).\nThis may lead "
-            "to too many unused subcarriers. For better use of the PHY "
-            "resources, you may reduce your coding or modulation rate.\n",
-        kMaxSupportedZc);
-    zc = kMaxSupportedZc;
-  }
-  return zc;
 }
 
 void Config::GenPilots() {
