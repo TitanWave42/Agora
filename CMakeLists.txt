@@ -431,6 +431,7 @@ set(COMMON_SOURCES
   src/common/utils.cc
   src/common/config.cc
   src/common/fivegconfig.cc
+  src/common/mcs.cc
   src/common/comms-lib.cc
   src/common/comms-lib-avx.cc
   src/common/signal_handler.cc

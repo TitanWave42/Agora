@@ -32,6 +32,14 @@ class Config {
   explicit Config(std::string jsonfilename);
   ~Config();
 
+  inline Mcs MCS() { return this->mcs_; }
+  inline LdpcConfig& LdpcConfig(Direction dir, size_t ue_num) { mcs_ }
+
+  inline const LDPCconfig& LdpcConfig(Direction dir) const {
+    return dir == Direction::kUplink ? this->ul_ldpc_config_
+                                     : this->dl_ldpc_config_;
+  }
+
   inline void Running(bool value) { this->running_.store(value); }
   inline bool Running() const { return this->running_.load(); }
   inline size_t BsAntNum() const { return this->bs_ant_num_; }
@@ -281,10 +289,7 @@ class Config {
     return dir == Direction::kUplink ? this->ul_mac_packets_perframe_
                                      : this->dl_mac_packets_perframe_;
   }
-  inline const LDPCconfig& LdpcConfig(Direction dir) const {
-    return dir == Direction::kUplink ? this->ul_ldpc_config_
-                                     : this->dl_ldpc_config_;
-  }
+
   inline const LDPCconfig& BcLdpcConfig() const {
     return dl_bcast_ldpc_config_;
   }
@@ -972,7 +977,9 @@ class Config {
   bool freq_domain_channel_;
 
   std::unique_ptr<Mcs> mcs_;
-  UlMcsParams ParseUlMcsParams(json ul_mcs);
-  UlMcsParams ParseDlMcsParams(json dl_mcs)
-};
+  McsParams ParseMcsParams(json mcs);
+
+  McsParams Config::ParseMcsParams(json mcs){
+
+  };
 #endif /* CONFIG_HPP_ */
