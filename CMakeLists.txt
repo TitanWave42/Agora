@@ -432,6 +432,7 @@ set(COMMON_SOURCES
   src/common/config.cc
   src/common/fivegconfig.cc
   src/common/mcs.cc
+  src/common/ldpc_generator.cc
   src/common/comms-lib.cc
   src/common/comms-lib-avx.cc
   src/common/signal_handler.cc
